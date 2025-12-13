@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button, Modal } from './index';
 import { useStore } from '../../store/useStore';
+import { useTranslation } from '../../i18n';
 import { VocaLogo } from './VocaLogo';
 
 interface SidebarMenuProps {
@@ -40,6 +41,8 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     setLanguage,
     isDarkMode,
   } = useStore();
+
+  const { t } = useTranslation();
 
   // Handle escape key to close menu
   useEffect(() => {
@@ -85,15 +88,15 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     {
       id: 'folders',
       icon: FolderOpen,
-      label: 'Scan Folders',
-      description: 'Add books from folders',
+      label: t('scanFolders'),
+      description: t('addBooksFromFolders'),
       onClick: () => setIsFolderModalOpen(true),
     },
     {
       id: 'torrent',
       icon: Magnet,
-      label: 'Download Torrent',
-      description: 'Download from magnet links',
+      label: t('downloadTorrent'),
+      description: t('downloadFromMagnet'),
       onClick: () => {
         setIsOpen(false);
         onOpenTorrent();
@@ -102,15 +105,15 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     {
       id: 'storage',
       icon: HardDrive,
-      label: 'Storage',
-      description: 'Manage your library files',
+      label: t('storage'),
+      description: t('manageLibrary'),
       onClick: () => setIsStorageModalOpen(true),
     },
     {
       id: 'appearance',
       icon: Palette,
-      label: 'Appearance',
-      description: 'Colors and themes',
+      label: t('appearance'),
+      description: t('colorsAndThemes'),
       onClick: () => {
         setIsOpen(false);
         onOpenSettings();
@@ -119,15 +122,15 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     {
       id: 'language',
       icon: Languages,
-      label: 'Language',
-      description: `Current: ${languages.find(l => l.code === language)?.nativeName || 'English'}`,
+      label: t('language'),
+      description: `${t('currentLanguage')}: ${languages.find(l => l.code === language)?.nativeName || 'English'}`,
       onClick: () => setIsLanguageModalOpen(true),
     },
     {
       id: 'cloud',
       icon: Cloud,
-      label: 'Cloud Sync',
-      description: 'Connect Google Drive',
+      label: t('cloudSync'),
+      description: t('connectGoogleDrive'),
       onClick: () => setIsCloudModalOpen(true),
     },
   ];
@@ -231,7 +234,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             <div className="p-4 border-t border-surface-200 dark:border-surface-700">
               <div className="text-center text-sm text-surface-500">
                 <p className="font-medium">VOCA v1.0.0</p>
-                <p className="text-xs mt-1">{totalBooks} books in library</p>
+                <p className="text-xs mt-1">{totalBooks} {t('booksInLibrary')}</p>
               </div>
             </div>
           </motion.aside>
@@ -259,12 +262,12 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       <Modal
         isOpen={isFolderModalOpen}
         onClose={() => setIsFolderModalOpen(false)}
-        title="Scan Folders for Books"
+        title={t('scanFoldersForBooks')}
         size="md"
       >
         <div className="space-y-4">
           <p className="text-sm text-surface-500 dark:text-surface-400">
-            Select a folder to scan for audiobooks, ebooks, and PDFs.
+            {t('selectFolderToScan')}
           </p>
 
           <div className="space-y-3">
@@ -286,16 +289,16 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             >
               <FolderSearch className="w-8 h-8 mx-auto text-surface-400 mb-2" />
               <p className="font-medium text-surface-900 dark:text-white">
-                Browse for Folder
+                {t('browseForFolder')}
               </p>
               <p className="text-sm text-surface-500 mt-1">
-                Select a folder to scan
+                {t('selectFolder')}
               </p>
             </button>
           </div>
 
           <div className="text-xs text-surface-400 mt-4">
-            Supported formats: MP3, M4B, AAC, OGG, FLAC, WAV, EPUB, PDF
+            {t('supportedFormats')}
           </div>
         </div>
       </Modal>
@@ -304,17 +307,17 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       <Modal
         isOpen={isStorageModalOpen}
         onClose={() => setIsStorageModalOpen(false)}
-        title="Storage Management"
+        title={t('storageManagement')}
         size="lg"
       >
         <div className="space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-4 gap-4">
             {[
-              { label: 'Total', value: totalBooks, color: 'bg-primary-500' },
-              { label: 'Audio', value: audioBooks, color: 'bg-cyan-500' },
-              { label: 'EPUB', value: epubBooks, color: 'bg-violet-500' },
-              { label: 'PDF', value: pdfBooks, color: 'bg-orange-500' },
+              { label: t('total'), value: totalBooks, color: 'bg-primary-500' },
+              { label: t('audio'), value: audioBooks, color: 'bg-cyan-500' },
+              { label: t('epub'), value: epubBooks, color: 'bg-violet-500' },
+              { label: t('pdf'), value: pdfBooks, color: 'bg-orange-500' },
             ].map((stat) => (
               <div key={stat.label} className="text-center p-4 bg-surface-100 dark:bg-surface-800 rounded-xl">
                 <div className={`w-3 h-3 ${stat.color} rounded-full mx-auto mb-2`} />
@@ -326,10 +329,10 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
 
           {/* File List */}
           <div>
-            <h4 className="font-medium text-surface-900 dark:text-white mb-3">Library Files</h4>
+            <h4 className="font-medium text-surface-900 dark:text-white mb-3">{t('libraryFiles')}</h4>
             <div className="max-h-64 overflow-y-auto space-y-2">
               {books.length === 0 ? (
-                <p className="text-center text-surface-500 py-8">No files in library</p>
+                <p className="text-center text-surface-500 py-8">{t('noFilesInLibrary')}</p>
               ) : (
                 books.map((book) => (
                   <div
@@ -360,7 +363,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       <Modal
         isOpen={isLanguageModalOpen}
         onClose={() => setIsLanguageModalOpen(false)}
-        title="Select Language"
+        title={t('selectLanguage')}
         size="md"
       >
         <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
@@ -385,7 +388,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
           ))}
         </div>
         <div className="text-xs text-surface-400 text-center pt-4 border-t border-surface-200 dark:border-surface-700 mt-4">
-          Full translations coming soon. Your preference is saved.
+          {t('translationsComingSoon')}
         </div>
       </Modal>
 
@@ -393,17 +396,17 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       <Modal
         isOpen={isCloudModalOpen}
         onClose={() => setIsCloudModalOpen(false)}
-        title="Cloud Sync"
+        title={t('cloudSync')}
         size="md"
       >
         <div className="space-y-4">
           <p className="text-sm text-surface-500 dark:text-surface-400">
-            Connect your cloud storage to sync your library across devices.
+            {t('connectCloudStorage')}
           </p>
 
           <button
             onClick={() => {
-              alert('Google Drive integration requires OAuth setup. Coming soon!');
+              alert(t('googleDriveIntegration'));
             }}
             className="w-full flex items-center gap-4 p-4 border-2 border-surface-200 dark:border-surface-700 rounded-xl hover:border-primary-500 transition-colors"
           >
@@ -415,14 +418,14 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
                 Google Drive
               </p>
               <p className="text-sm text-surface-500">
-                Connect your Google Drive account
+                {t('connectGoogleDrive')}
               </p>
             </div>
             <ChevronRight className="w-5 h-5 text-surface-400" />
           </button>
 
           <div className="text-xs text-surface-400 text-center pt-4">
-            More cloud providers coming soon
+            {t('moreCloudProviders')}
           </div>
         </div>
       </Modal>

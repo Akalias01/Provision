@@ -27,6 +27,7 @@ import {
 import { Button, Modal, VocaLogo, SidebarMenu } from '../ui';
 import { BookCard } from './BookCard';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
+import { useTranslation } from '../../i18n';
 import type { Book, BookFormat } from '../../types';
 
 // Fetch book metadata from Open Library API
@@ -64,6 +65,7 @@ async function fetchBookMetadata(title: string, author: string): Promise<{ cover
 }
 
 export function Library() {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const torrentInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -344,7 +346,7 @@ export function Library() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
                   type="text"
-                  placeholder="Search your library..."
+                  placeholder={`${t('search')}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="input pl-12"
@@ -384,7 +386,7 @@ export function Library() {
                 onClick={() => setIsAddModalOpen(true)}
               >
                 <Plus className="w-5 h-5" />
-                Add Book
+                {t('addBooks')}
               </Button>
             </motion.div>
           </div>
@@ -541,9 +543,9 @@ export function Library() {
             {/* Supported formats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl">
               {[
-                { icon: Headphones, label: 'Audiobooks', formats: 'MP3, M4B, AAC, OGG, FLAC', color: 'from-cyan-500 to-teal-500' },
-                { icon: BookOpen, label: 'E-Books', formats: 'EPUB format with TTS', color: 'from-violet-500 to-purple-500' },
-                { icon: FileText, label: 'Documents', formats: 'PDF with text-to-speech', color: 'from-orange-500 to-red-500' },
+                { icon: Headphones, label: t('audiobooks'), formats: t('audioFormat'), color: 'from-cyan-500 to-teal-500' },
+                { icon: BookOpen, label: t('ebooks'), formats: t('epubFormat'), color: 'from-violet-500 to-purple-500' },
+                { icon: FileText, label: t('documents'), formats: t('pdfFormat'), color: 'from-orange-500 to-red-500' },
               ].map(({ icon: Icon, label, formats, color }) => (
                 <motion.div
                   key={label}
@@ -577,10 +579,10 @@ export function Library() {
               <BookOpen className="w-10 h-10 text-surface-400" />
             </div>
             <h3 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">
-              No books found
+              {t('noBooks')}
             </h3>
             <p className="text-surface-500 dark:text-surface-400 mb-6">
-              Try adjusting your filters or search query
+              {t('noBooksDescription')}
             </p>
             <Button variant="secondary" onClick={() => {
               setSearchQuery('');
@@ -607,7 +609,7 @@ export function Library() {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Add Books"
+        title={t('addBooks')}
         size="lg"
       >
         <div className="space-y-6">
@@ -618,10 +620,10 @@ export function Library() {
           >
             <Upload className="w-12 h-12 mx-auto text-surface-400 mb-4" />
             <p className="text-surface-900 dark:text-white font-medium">
-              Click to browse or drag files here
+              {t('dragAndDrop')}
             </p>
             <p className="text-sm text-surface-500 mt-2">
-              Supports MP3, M4B, AAC, OGG, FLAC, WAV, EPUB, and PDF
+              {t('supportedFormats')}
             </p>
           </div>
 
@@ -779,7 +781,7 @@ export function Library() {
       <Modal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
-        title="Appearance Settings"
+        title={t('appearance')}
         size="lg"
       >
         <div className="space-y-8">
@@ -787,7 +789,7 @@ export function Library() {
           <div>
             <h3 className="flex items-center gap-2 text-lg font-semibold text-surface-900 dark:text-white mb-4">
               <Palette className="w-5 h-5" />
-              Color Theme
+              {t('colorTheme')}
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {(Object.entries(colorThemes) as [ColorTheme, typeof colorThemes[ColorTheme]][]).map(([key, theme]) => (
