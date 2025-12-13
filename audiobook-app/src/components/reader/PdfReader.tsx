@@ -10,8 +10,9 @@ import {
   Volume2,
   Pause,
   RotateCw,
+  Settings,
 } from 'lucide-react';
-import { Button, Slider } from '../ui';
+import { Button, Slider, Modal } from '../ui';
 import { useStore } from '../../store/useStore';
 
 // Set worker path
@@ -37,6 +38,7 @@ export function PdfReader() {
   const [rotation, setRotation] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [pageText, setPageText] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const { isReading } = ttsState;
   const { theme } = readerSettings;
@@ -210,6 +212,9 @@ export function PdfReader() {
           <Button variant="ghost" size="sm" onClick={handleRotate}>
             <RotateCw className="w-4 h-4" />
           </Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
+            <Settings className="w-4 h-4" />
+          </Button>
         </div>
       </motion.header>
 
@@ -263,13 +268,27 @@ export function PdfReader() {
         className="p-4 bg-white/80 dark:bg-surface-900/80 backdrop-blur-lg border-t border-surface-200 dark:border-surface-800"
       >
         <div className="flex items-center gap-4 max-w-2xl mx-auto">
-          <Button variant="ghost" onClick={toggleTTS}>
+          {/* Prominent Read Aloud button */}
+          <button
+            onClick={toggleTTS}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+              isReading
+                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
+                : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+            }`}
+          >
             {isReading ? (
-              <Pause className="w-5 h-5" />
+              <>
+                <Pause className="w-5 h-5" />
+                <span>Stop</span>
+              </>
             ) : (
-              <Volume2 className="w-5 h-5" />
+              <>
+                <Volume2 className="w-5 h-5" />
+                <span>Read Aloud</span>
+              </>
             )}
-          </Button>
+          </button>
 
           <div className="flex-1">
             <Slider
@@ -292,6 +311,49 @@ export function PdfReader() {
           />
         </div>
       </motion.footer>
+
+      {/* Settings Modal */}
+      <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title="PDF Settings">
+        <div className="space-y-6">
+          {/* TTS Settings */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Volume2 className="w-5 h-5 text-primary-500" />
+              <h3 className="font-medium">Text-to-Speech Settings</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 flex justify-between">
+                  <span>Speed</span>
+                  <span className="text-primary-500">{ttsState.rate}x</span>
+                </label>
+                <Slider
+                  value={ttsState.rate}
+                  min={0.5}
+                  max={2}
+                  step={0.1}
+                  onChange={(v) => setTTSState({ rate: v })}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 flex justify-between">
+                  <span>Pitch</span>
+                  <span className="text-primary-500">{ttsState.pitch}</span>
+                </label>
+                <Slider
+                  value={ttsState.pitch}
+                  min={0.5}
+                  max={2}
+                  step={0.1}
+                  onChange={(v) => setTTSState({ pitch: v })}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

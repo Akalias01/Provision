@@ -324,13 +324,27 @@ export function EpubReader() {
         className="p-4 border-t border-surface-200/20"
       >
         <div className="flex items-center justify-center gap-4">
-          <Button variant="ghost" onClick={toggleTTS}>
+          {/* Prominent Read Aloud button */}
+          <button
+            onClick={toggleTTS}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+              isReading
+                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
+                : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+            }`}
+          >
             {isReading ? (
-              <Pause className="w-5 h-5" />
+              <>
+                <Pause className="w-5 h-5" />
+                <span>Stop</span>
+              </>
             ) : (
-              <Volume2 className="w-5 h-5" />
+              <>
+                <Volume2 className="w-5 h-5" />
+                <span>Read Aloud</span>
+              </>
             )}
-          </Button>
+          </button>
 
           <div className="flex-1 max-w-md">
             <Slider
@@ -408,15 +422,41 @@ export function EpubReader() {
           </div>
 
           {/* TTS Settings */}
-          <div>
-            <label className="text-sm font-medium mb-3 block">TTS Speed</label>
-            <Slider
-              value={ttsState.rate}
-              min={0.5}
-              max={2}
-              step={0.1}
-              onChange={(v) => setTTSState({ rate: v })}
-            />
+          <div className="border-t border-surface-200 dark:border-surface-700 pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Volume2 className="w-5 h-5 text-primary-500" />
+              <h3 className="font-medium">Text-to-Speech Settings</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 flex justify-between">
+                  <span>Speed</span>
+                  <span className="text-primary-500">{ttsState.rate}x</span>
+                </label>
+                <Slider
+                  value={ttsState.rate}
+                  min={0.5}
+                  max={2}
+                  step={0.1}
+                  onChange={(v) => setTTSState({ rate: v })}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 flex justify-between">
+                  <span>Pitch</span>
+                  <span className="text-primary-500">{ttsState.pitch}</span>
+                </label>
+                <Slider
+                  value={ttsState.pitch}
+                  min={0.5}
+                  max={2}
+                  step={0.1}
+                  onChange={(v) => setTTSState({ pitch: v })}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </Modal>
