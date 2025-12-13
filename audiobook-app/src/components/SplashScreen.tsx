@@ -90,98 +90,146 @@ function PulseWaveSplash({ onComplete }: SplashScreenProps) {
 }
 
 // ============================================
-// Maze Brain - White lines forming a brain-shaped maze
+// Brain Animation - Detailed brain with lightning bolts
+// Starts B&W, lights up coral when reverberating
 // ============================================
-function MazeBrainAnimation({ phase }: { phase: number }) {
-  // Maze paths forming brain shape
-  const mazePaths = [
-    // Outer brain shape
-    "M60 5 L60 15 L45 15 L45 25 L30 25 L30 40 L20 40 L20 60 L25 60 L25 75 L35 75 L35 85 L50 85 L50 95 L70 95 L70 85 L85 85 L85 75 L95 75 L95 60 L100 60 L100 40 L90 40 L90 25 L75 25 L75 15 L60 15",
-    // Inner maze lines - left side
-    "M35 35 L35 45 L25 45 L25 55 L35 55 L35 65 L45 65 L45 55 L55 55",
-    "M40 30 L40 40 L50 40 L50 50 L40 50 L40 60",
-    "M30 50 L30 60 L40 60 L40 70 L50 70",
-    // Inner maze lines - right side
-    "M85 35 L85 45 L95 45 L95 55 L85 55 L85 65 L75 65 L75 55 L65 55",
-    "M80 30 L80 40 L70 40 L70 50 L80 50 L80 60",
-    "M90 50 L90 60 L80 60 L80 70 L70 70",
-    // Center connection
-    "M55 35 L55 45 L65 45 L65 35",
-    "M55 60 L55 75 L65 75 L65 60",
-    "M50 45 L70 45",
-    "M50 70 L70 70",
+function BrainWithLightning({ phase }: { phase: number }) {
+  const isActive = phase >= 2;
+
+  // Brain outline path - detailed with folds
+  const brainPath = `
+    M60 15
+    C45 15 35 20 30 30
+    C25 40 20 50 22 60
+    C24 70 30 78 40 82
+    C50 86 55 88 60 88
+    C65 88 70 86 80 82
+    C90 78 96 70 98 60
+    C100 50 95 40 90 30
+    C85 20 75 15 60 15
+    Z
+  `;
+
+  // Brain fold paths (internal details)
+  const foldPaths = [
+    "M35 35 Q45 30 50 40 Q55 50 45 55 Q35 50 35 40",
+    "M40 55 Q50 50 55 60 Q50 70 40 65 Q35 60 40 55",
+    "M55 30 Q60 25 65 30 Q70 35 65 40 Q60 35 55 35",
+    "M70 40 Q80 35 85 45 Q80 55 70 50 Q65 45 70 40",
+    "M65 55 Q75 50 80 60 Q75 70 65 65 Q60 60 65 55",
+    "M50 45 Q55 40 60 45 Q65 50 60 55 Q55 50 50 45",
+  ];
+
+  // Lightning bolt paths
+  const lightningBolts = [
+    { path: "M25 25 L20 35 L28 33 L18 50", angle: -30, x: -15, y: -10 },
+    { path: "M95 25 L100 35 L92 33 L102 50", angle: 30, x: 15, y: -10 },
+    { path: "M15 50 L8 55 L15 54 L5 65", angle: -45, x: -20, y: 5 },
+    { path: "M105 50 L112 55 L105 54 L115 65", angle: 45, x: 20, y: 5 },
   ];
 
   return (
     <motion.div
-      className="absolute -top-36"
+      className="absolute -top-40"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={phase >= 1 ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration: 0.5 }}
     >
-      <svg width="120" height="100" viewBox="0 0 120 100">
-        {/* Maze brain paths */}
-        {mazePaths.map((path, index) => (
+      <svg width="140" height="120" viewBox="-10 0 140 120">
+        <defs>
+          {/* Gradient for lit-up brain */}
+          <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ff6b6b" />
+            <stop offset="50%" stopColor="#f06595" />
+            <stop offset="100%" stopColor="#ff8787" />
+          </linearGradient>
+
+          {/* Glow filter */}
+          <filter id="brainGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Brain body - starts gray, becomes coral */}
+        <motion.path
+          d={brainPath}
+          initial={{ fill: "#4a5568", stroke: "#718096" }}
+          animate={isActive ? {
+            fill: ["#4a5568", "#ff6b6b", "#f06595"],
+            stroke: ["#718096", "#ff8787", "#ffa8a8"],
+          } : {}}
+          transition={{ duration: 0.8 }}
+          strokeWidth="2"
+          filter={isActive ? "url(#brainGlow)" : "none"}
+        />
+
+        {/* Brain folds - internal details */}
+        {foldPaths.map((path, index) => (
           <motion.path
             key={index}
             d={path}
             fill="none"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="square"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={phase >= 1 ? { pathLength: 1, opacity: 0.8 } : {}}
-            transition={{
-              duration: 0.8,
-              delay: index * 0.1,
-              ease: "easeOut"
-            }}
-          />
-        ))}
-
-        {/* Reverberating signal waves from brain */}
-        {[0, 1, 2].map((i) => (
-          <motion.rect
-            key={`wave-${i}`}
-            x="10"
-            y="25"
-            width="100"
-            height="50"
-            rx="25"
-            fill="none"
-            stroke="white"
-            strokeWidth="1"
-            initial={{ scale: 1, opacity: 0 }}
-            animate={phase >= 2 ? {
-              scale: [1, 1.3, 1.6],
-              opacity: [0.5, 0.25, 0],
+            initial={{ stroke: "#2d3748" }}
+            animate={isActive ? {
+              stroke: ["#2d3748", "#c53030", "#e53e3e"],
             } : {}}
+            transition={{ duration: 0.8, delay: index * 0.05 }}
+            strokeWidth="1.5"
+          />
+        ))}
+
+        {/* Lightning bolts - appear and animate when active */}
+        {lightningBolts.map((bolt, index) => (
+          <motion.g key={index}>
+            <motion.path
+              d={bolt.path}
+              fill="none"
+              stroke={isActive ? "#ffd43b" : "#a0aec0"}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={phase >= 1 ? {
+                pathLength: 1,
+                opacity: isActive ? [1, 0.5, 1] : 0.4,
+              } : {}}
+              transition={{
+                pathLength: { duration: 0.3, delay: 0.5 + index * 0.1 },
+                opacity: { duration: 0.3, repeat: isActive ? Infinity : 0, repeatType: "reverse" }
+              }}
+              filter={isActive ? "url(#brainGlow)" : "none"}
+            />
+          </motion.g>
+        ))}
+
+        {/* Energy waves emanating when active */}
+        {isActive && [0, 1, 2].map((i) => (
+          <motion.ellipse
+            key={`wave-${i}`}
+            cx="60"
+            cy="50"
+            rx="40"
+            ry="30"
+            fill="none"
+            stroke="#ff6b6b"
+            strokeWidth="1"
+            initial={{ scale: 1, opacity: 0.6 }}
+            animate={{
+              scale: [1, 1.5, 2],
+              opacity: [0.6, 0.3, 0],
+            }}
             transition={{
-              duration: 1.8,
+              duration: 1.5,
               repeat: Infinity,
-              delay: i * 0.5,
+              delay: i * 0.4,
               ease: "easeOut"
             }}
           />
         ))}
-
-        {/* Pulsing center node */}
-        <motion.circle
-          cx="60"
-          cy="50"
-          r="3"
-          fill="white"
-          initial={{ opacity: 0 }}
-          animate={phase >= 1 ? {
-            opacity: [0.5, 1, 0.5],
-            scale: [1, 1.2, 1],
-          } : {}}
-          transition={{
-            duration: 1,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
       </svg>
     </motion.div>
   );
@@ -308,8 +356,8 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
 
       {/* Content */}
       <div className="relative flex flex-col items-center">
-        {/* Maze Brain animation */}
-        <MazeBrainAnimation phase={phase} />
+        {/* Brain with lightning animation */}
+        <BrainWithLightning phase={phase} />
 
         {/* Glitch layers */}
         <div className="relative mt-8">
