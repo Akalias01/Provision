@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -9,52 +9,41 @@ function createWindow() {
     height: 900,
     minWidth: 800,
     minHeight: 600,
-    frame: false,
-    titleBarStyle: 'hidden',
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      nodeIntegration: false,
+      contextIsolation: true,
       webSecurity: false,
     },
-    icon: path.join(__dirname, 'public/icon.png'),
     backgroundColor: '#09090b',
     show: false,
+    autoHideMenuBar: true,
   });
 
-  // Load the app
-  if (process.env.NODE_ENV === 'development') {
+  // Load the app - always try dist first in production
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+
+  mainWindow.loadFile(indexPath).catch((err) => {
+    console.error('Failed to load:', err);
+    // Fallback to dev server if dist doesn't exist
     mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
-  }
+  });
 
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+    mainWindow.focus();
+  });
+
+  // Handle load failures
+  mainWindow.webContents.on('did-fail-load', () => {
+    console.log('Failed to load, retrying...');
+    mainWindow.loadFile(indexPath);
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
-
-// Window controls
-ipcMain.on('minimize-window', () => {
-  mainWindow?.minimize();
-});
-
-ipcMain.on('maximize-window', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow?.maximize();
-  }
-});
-
-ipcMain.on('close-window', () => {
-  mainWindow?.close();
-});
 
 app.whenReady().then(createWindow);
 

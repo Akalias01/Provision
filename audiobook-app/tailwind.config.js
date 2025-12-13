@@ -8,18 +8,19 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Dynamic primary colors - set via CSS variables
         primary: {
-          50: '#f0f4ff',
-          100: '#e0e9ff',
-          200: '#c7d6fe',
-          300: '#a5b8fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+          50: 'var(--primary-50, #ecfeff)',
+          100: 'var(--primary-100, #cffafe)',
+          200: 'var(--primary-200, #a5f3fc)',
+          300: 'var(--primary-300, #67e8f9)',
+          400: 'var(--primary-400, #22d3ee)',
+          500: 'var(--primary-500, #06b6d4)',
+          600: 'var(--primary-600, #0891b2)',
+          700: 'var(--primary-700, #0e7490)',
+          800: 'var(--primary-800, #155e75)',
+          900: 'var(--primary-900, #164e63)',
+          950: 'var(--primary-950, #083344)',
         },
         surface: {
           50: '#fafafa',
@@ -73,9 +74,9 @@ export default {
         xs: '2px',
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(99, 102, 241, 0.3)',
-        'glow-lg': '0 0 40px rgba(99, 102, 241, 0.4)',
-        'inner-glow': 'inset 0 0 20px rgba(99, 102, 241, 0.1)',
+        'glow': '0 0 20px var(--primary-500)',
+        'glow-lg': '0 0 40px var(--primary-500)',
+        'inner-glow': 'inset 0 0 20px rgba(6, 182, 212, 0.1)',
       },
     },
   },

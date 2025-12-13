@@ -1,75 +1,250 @@
 import { motion } from 'framer-motion';
 
 interface VocaLogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   animated?: boolean;
+  variant?: 'waveform' | 'headphones' | 'pulse' | 'minimal';
 }
 
-export function VocaLogo({ size = 'md', animated = true }: VocaLogoProps) {
+// ============================================
+// LOGO OPTION 1: Waveform (Modern, Clean)
+// ============================================
+function WaveformLogo({ iconSize, animated }: { iconSize: number; animated: boolean }) {
+  return (
+    <motion.div
+      whileHover={animated ? { scale: 1.05 } : undefined}
+      className="relative"
+    >
+      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--logo-start, #06b6d4)" />
+            <stop offset="100%" stopColor="var(--logo-end, #0891b2)" />
+          </linearGradient>
+        </defs>
+
+        {/* Circle background */}
+        <circle cx="50" cy="50" r="45" fill="url(#waveGrad)" />
+
+        {/* Sound wave bars */}
+        {[0, 1, 2, 3, 4].map((i) => {
+          const heights = [24, 36, 48, 36, 24];
+          const height = heights[i];
+          const x = 20 + i * 15;
+          return (
+            <motion.rect
+              key={i}
+              x={x}
+              y={50 - height / 2}
+              width="6"
+              height={height}
+              rx="3"
+              fill="white"
+              animate={animated ? {
+                height: [height, height * 0.5, height],
+                y: [50 - height / 2, 50 - (height * 0.5) / 2, 50 - height / 2],
+              } : {}}
+              transition={{
+                duration: 0.8,
+                repeat: Infinity,
+                delay: i * 0.1,
+                ease: "easeInOut"
+              }}
+            />
+          );
+        })}
+      </svg>
+    </motion.div>
+  );
+}
+
+// ============================================
+// LOGO OPTION 2: Headphones (Audio-focused)
+// ============================================
+function HeadphonesLogo({ iconSize, animated }: { iconSize: number; animated: boolean }) {
+  return (
+    <motion.div
+      whileHover={animated ? { scale: 1.05, rotate: 5 } : undefined}
+      className="relative"
+    >
+      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="headGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--logo-start, #06b6d4)" />
+            <stop offset="100%" stopColor="var(--logo-end, #0891b2)" />
+          </linearGradient>
+        </defs>
+
+        {/* Circle background */}
+        <circle cx="50" cy="50" r="45" fill="url(#headGrad)" />
+
+        {/* Headphone arc */}
+        <path
+          d="M25 55 Q25 30 50 25 Q75 30 75 55"
+          fill="none"
+          stroke="white"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+
+        {/* Left ear cup */}
+        <rect x="18" y="50" width="12" height="22" rx="4" fill="white" />
+
+        {/* Right ear cup */}
+        <rect x="70" y="50" width="12" height="22" rx="4" fill="white" />
+
+        {/* Sound waves from right cup */}
+        {animated && (
+          <>
+            <motion.path
+              d="M85 55 Q90 61 85 67"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              initial={{ opacity: 0, pathLength: 0 }}
+              animate={{ opacity: [0, 0.8, 0], pathLength: [0, 1, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+            <motion.path
+              d="M90 52 Q97 61 90 70"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              initial={{ opacity: 0, pathLength: 0 }}
+              animate={{ opacity: [0, 0.5, 0], pathLength: [0, 1, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+            />
+          </>
+        )}
+      </svg>
+    </motion.div>
+  );
+}
+
+// ============================================
+// LOGO OPTION 3: Pulse Circle (Energetic)
+// ============================================
+function PulseLogo({ iconSize, animated }: { iconSize: number; animated: boolean }) {
+  return (
+    <motion.div
+      whileHover={animated ? { scale: 1.05 } : undefined}
+      className="relative"
+    >
+      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--logo-start, #06b6d4)" />
+            <stop offset="100%" stopColor="var(--logo-end, #0891b2)" />
+          </linearGradient>
+        </defs>
+
+        {/* Outer pulse rings */}
+        {animated && [0, 1].map((i) => (
+          <motion.circle
+            key={i}
+            cx="50"
+            cy="50"
+            r="35"
+            fill="none"
+            stroke="url(#pulseGrad)"
+            strokeWidth="2"
+            initial={{ r: 35, opacity: 0.8 }}
+            animate={{ r: 50, opacity: 0 }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              delay: i * 0.5,
+            }}
+          />
+        ))}
+
+        {/* Main circle */}
+        <circle cx="50" cy="50" r="35" fill="url(#pulseGrad)" />
+
+        {/* Play button / V shape */}
+        <path
+          d="M40 35 L40 65 L65 50 Z"
+          fill="white"
+        />
+      </svg>
+    </motion.div>
+  );
+}
+
+// ============================================
+// LOGO OPTION 4: Minimal V (Ultra Clean)
+// ============================================
+function MinimalLogo({ iconSize, animated }: { iconSize: number; animated: boolean }) {
+  return (
+    <motion.div
+      whileHover={animated ? { scale: 1.05 } : undefined}
+      className="relative"
+    >
+      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="minGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--logo-start, #06b6d4)" />
+            <stop offset="100%" stopColor="var(--logo-end, #0891b2)" />
+          </linearGradient>
+        </defs>
+
+        {/* Circle background */}
+        <circle cx="50" cy="50" r="45" fill="url(#minGrad)" />
+
+        {/* Stylized V with wave */}
+        <motion.path
+          d="M28 30 L50 70 L72 30"
+          fill="none"
+          stroke="white"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          animate={animated ? {
+            d: [
+              "M28 30 L50 70 L72 30",
+              "M28 35 L50 65 L72 35",
+              "M28 30 L50 70 L72 30",
+            ]
+          } : {}}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        {/* Sound dot */}
+        <motion.circle
+          cx="50"
+          cy="50"
+          r="4"
+          fill="white"
+          animate={animated ? { scale: [1, 1.3, 1], opacity: [1, 0.7, 1] } : {}}
+          transition={{ duration: 1, repeat: Infinity }}
+        />
+      </svg>
+    </motion.div>
+  );
+}
+
+export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }: VocaLogoProps) {
   const sizes = {
     sm: { icon: 32, text: 'text-lg' },
     md: { icon: 40, text: 'text-xl' },
     lg: { icon: 56, text: 'text-3xl' },
+    xl: { icon: 72, text: 'text-4xl' },
   };
 
   const { icon, text } = sizes[size];
 
+  const LogoComponent = {
+    waveform: WaveformLogo,
+    headphones: HeadphonesLogo,
+    pulse: PulseLogo,
+    minimal: MinimalLogo,
+  }[variant];
+
   return (
     <div className="flex items-center gap-3">
-      {/* Brain + Sound Wave Icon */}
-      <motion.div
-        whileHover={animated ? { scale: 1.05 } : undefined}
-        className="relative"
-      >
-        <svg
-          width={icon}
-          height={icon}
-          viewBox="0 0 100 100"
-          className="drop-shadow-lg"
-        >
-          {/* Background circle */}
-          <defs>
-            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#818cf8" />
-              <stop offset="100%" stopColor="#4f46e5" />
-            </linearGradient>
-            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#c7d2fe" />
-              <stop offset="100%" stopColor="#818cf8" />
-            </linearGradient>
-          </defs>
-
-          {/* Circle background */}
-          <circle cx="50" cy="50" r="45" fill="url(#logoGradient)" />
-
-          {/* Simplified brain outline */}
-          <path
-            d="M50 25 C38 25 30 35 30 45 C30 52 33 58 38 62 C35 66 34 72 36 76 C38 80 43 80 47 78 C48 82 49 84 50 84 C51 84 52 82 53 78 C57 80 62 80 64 76 C66 72 65 66 62 62 C67 58 70 52 70 45 C70 35 62 25 50 25"
-            fill="none"
-            stroke="white"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-
-          {/* Sound waves on the right */}
-          <path
-            d="M72 40 Q78 50 72 60"
-            fill="none"
-            stroke="url(#waveGradient)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            opacity="0.9"
-          />
-          <path
-            d="M78 35 Q87 50 78 65"
-            fill="none"
-            stroke="url(#waveGradient)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            opacity="0.6"
-          />
-        </svg>
-      </motion.div>
+      <LogoComponent iconSize={icon} animated={animated} />
 
       {/* VOCA Text */}
       <h1 className={`${text} font-black tracking-tight`}>

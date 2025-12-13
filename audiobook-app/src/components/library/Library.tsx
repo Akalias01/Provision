@@ -18,10 +18,13 @@ import {
   CheckCircle,
   Magnet,
   Loader2,
+  Settings,
+  Palette,
+  Sparkles,
 } from 'lucide-react';
 import { Button, Modal, VocaLogo } from '../ui';
 import { BookCard } from './BookCard';
-import { useStore, type ProgressFilter } from '../../store/useStore';
+import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import type { Book, BookFormat } from '../../types';
 
 // Fetch book metadata from Open Library API
@@ -62,6 +65,7 @@ export function Library() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isTorrentModalOpen, setIsTorrentModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [torrentUrl, setTorrentUrl] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [dragOver, setDragOver] = useState(false);
@@ -82,6 +86,12 @@ export function Library() {
     setProgressFilter,
     isDarkMode,
     toggleDarkMode,
+    colorTheme,
+    setColorTheme,
+    logoVariant,
+    setLogoVariant,
+    splashVariant,
+    setSplashVariant,
     activeTorrents,
     addTorrent,
     updateTorrent,
@@ -216,6 +226,23 @@ export function Library() {
     { value: 'finished', label: 'Finished', icon: CheckCircle },
   ];
 
+  const logoVariants: { value: LogoVariant; label: string }[] = [
+    { value: 'waveform', label: 'Waveform' },
+    { value: 'headphones', label: 'Headphones' },
+    { value: 'pulse', label: 'Pulse' },
+    { value: 'minimal', label: 'Minimal' },
+  ];
+
+  const splashVariants: { value: SplashVariant; label: string }[] = [
+    { value: 'pulseWave', label: 'Pulse Wave' },
+    { value: 'glitchCyber', label: 'Glitch Cyber' },
+    { value: 'waveformMorph', label: 'Waveform Morph' },
+    { value: 'neonFlicker', label: 'Neon Flicker' },
+  ];
+
+  // Check if library is empty (not just filtered)
+  const isLibraryEmpty = books.length === 0;
+
   return (
     <div
       className="min-h-screen bg-surface-50 dark:bg-surface-950 transition-colors duration-300"
@@ -293,7 +320,7 @@ export function Library() {
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
             >
-              <VocaLogo size="md" />
+              <VocaLogo size="md" variant={logoVariant} />
             </motion.div>
 
             {/* Search */}
@@ -336,6 +363,9 @@ export function Library() {
                   <Moon className="w-5 h-5" />
                 )}
               </Button>
+              <Button variant="icon" onClick={() => setIsSettingsModalOpen(true)}>
+                <Settings className="w-5 h-5" />
+              </Button>
               <Button variant="ghost" onClick={() => setIsTorrentModalOpen(true)}>
                 <Magnet className="w-5 h-5" />
               </Button>
@@ -353,74 +383,76 @@ export function Library() {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-wrap items-center justify-between gap-4 mb-8"
-        >
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Format Filter */}
-            <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
-              {formatFilterOptions.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  onClick={() => setFormatFilter(value as BookFormat | 'all')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    formatFilter === value
-                      ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
-                      : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
+        {/* Show filters only if library is not empty */}
+        {!isLibraryEmpty && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-wrap items-center justify-between gap-4 mb-8"
+          >
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Format Filter */}
+              <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
+                {formatFilterOptions.map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setFormatFilter(value as BookFormat | 'all')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      formatFilter === value
+                        ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                        : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Progress Filter */}
+              <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
+                {progressFilterOptions.map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setProgressFilter(value as ProgressFilter)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      progressFilter === value
+                        ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                        : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Progress Filter */}
             <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
-              {progressFilterOptions.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  onClick={() => setProgressFilter(value as ProgressFilter)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    progressFilter === value
-                      ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
-                      : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{label}</span>
-                </button>
-              ))}
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-surface-700 shadow-sm'
+                    : 'text-surface-500 hover:text-surface-700'
+                }`}
+              >
+                <Grid3X3 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-surface-700 shadow-sm'
+                    : 'text-surface-500 hover:text-surface-700'
+                }`}
+              >
+                <List className="w-5 h-5" />
+              </button>
             </div>
-          </div>
-
-          <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === 'grid'
-                  ? 'bg-white dark:bg-surface-700 shadow-sm'
-                  : 'text-surface-500 hover:text-surface-700'
-              }`}
-            >
-              <Grid3X3 className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === 'list'
-                  ? 'bg-white dark:bg-surface-700 shadow-sm'
-                  : 'text-surface-500 hover:text-surface-700'
-              }`}
-            >
-              <List className="w-5 h-5" />
-            </button>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Loading indicator for metadata */}
         {isLoadingMetadata && (
@@ -430,7 +462,7 @@ export function Library() {
           </div>
         )}
 
-        {/* Books grid */}
+        {/* Books grid or Empty State */}
         {filteredBooks.length > 0 ? (
           <div
             className={
@@ -449,7 +481,83 @@ export function Library() {
               />
             ))}
           </div>
+        ) : isLibraryEmpty ? (
+          /* Empty Library - First time user experience */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-16"
+          >
+            {/* Large animated logo */}
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', duration: 0.8 }}
+              className="mb-8"
+            >
+              <VocaLogo size="xl" variant={logoVariant} />
+            </motion.div>
+
+            <h2 className="text-3xl font-bold text-surface-900 dark:text-white mb-4 text-center">
+              Welcome to VOCA
+            </h2>
+            <p className="text-lg text-surface-500 dark:text-surface-400 mb-8 text-center max-w-md">
+              Your personal audiobook and ebook library. Import your first book to get started!
+            </p>
+
+            {/* Import options */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-12">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-2xl font-semibold shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-shadow"
+              >
+                <Upload className="w-6 h-6" />
+                Import Your First Book
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsTorrentModalOpen(true)}
+                className="flex items-center gap-3 px-8 py-4 bg-surface-100 dark:bg-surface-800 text-surface-700 dark:text-surface-200 rounded-2xl font-semibold hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+              >
+                <Magnet className="w-6 h-6" />
+                Download from Torrent
+              </motion.button>
+            </div>
+
+            {/* Supported formats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl">
+              {[
+                { icon: Headphones, label: 'Audiobooks', formats: 'MP3, M4B, AAC, OGG, FLAC', color: 'from-cyan-500 to-teal-500' },
+                { icon: BookOpen, label: 'E-Books', formats: 'EPUB format with TTS', color: 'from-violet-500 to-purple-500' },
+                { icon: FileText, label: 'Documents', formats: 'PDF with text-to-speech', color: 'from-orange-500 to-red-500' },
+              ].map(({ icon: Icon, label, formats, color }) => (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-2xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 text-center"
+                >
+                  <div className={`w-14 h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center`}>
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-surface-900 dark:text-white mb-1">{label}</h3>
+                  <p className="text-sm text-surface-500">{formats}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Drag and drop hint */}
+            <p className="mt-8 text-sm text-surface-400 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              You can also drag and drop files anywhere on this page
+            </p>
+          </motion.div>
         ) : (
+          /* Filtered results empty */
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -459,24 +567,31 @@ export function Library() {
               <BookOpen className="w-10 h-10 text-surface-400" />
             </div>
             <h3 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">
-              {searchQuery || formatFilter !== 'all' || progressFilter !== 'all'
-                ? 'No books found'
-                : 'Your library is empty'}
+              No books found
             </h3>
             <p className="text-surface-500 dark:text-surface-400 mb-6">
-              {searchQuery || formatFilter !== 'all' || progressFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Add your first audiobook, ebook, or PDF to get started'}
+              Try adjusting your filters or search query
             </p>
-            {!searchQuery && formatFilter === 'all' && progressFilter === 'all' && (
-              <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>
-                <Plus className="w-5 h-5" />
-                Add Your First Book
-              </Button>
-            )}
+            <Button variant="secondary" onClick={() => {
+              setSearchQuery('');
+              setFormatFilter('all');
+              setProgressFilter('all');
+            }}>
+              Clear Filters
+            </Button>
           </motion.div>
         )}
       </main>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".mp3,.m4b,.m4a,.aac,.ogg,.flac,.wav,.epub,.pdf"
+        onChange={(e) => handleFileSelect(e.target.files)}
+        className="hidden"
+      />
 
       {/* Add Book Modal */}
       <Modal
@@ -499,15 +614,6 @@ export function Library() {
               Supports MP3, M4B, AAC, OGG, FLAC, WAV, EPUB, and PDF
             </p>
           </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".mp3,.m4b,.m4a,.aac,.ogg,.flac,.wav,.epub,.pdf"
-            onChange={(e) => handleFileSelect(e.target.files)}
-            className="hidden"
-          />
 
           {/* Supported formats */}
           <div className="grid grid-cols-3 gap-4">
@@ -566,6 +672,121 @@ export function Library() {
             >
               <Download className="w-4 h-4" />
               Download
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Settings Modal */}
+      <Modal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        title="Appearance Settings"
+        size="lg"
+      >
+        <div className="space-y-8">
+          {/* Color Theme */}
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-surface-900 dark:text-white mb-4">
+              <Palette className="w-5 h-5" />
+              Color Theme
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {(Object.entries(colorThemes) as [ColorTheme, typeof colorThemes[ColorTheme]][]).map(([key, theme]) => (
+                <button
+                  key={key}
+                  onClick={() => setColorTheme(key)}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    colorTheme === key
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600'
+                  }`}
+                >
+                  <div
+                    className="w-full h-8 rounded-lg mb-2"
+                    style={{
+                      background: `linear-gradient(135deg, ${theme.logoStart}, ${theme.logoEnd})`
+                    }}
+                  />
+                  <p className="text-sm font-medium text-surface-900 dark:text-white">
+                    {theme.name}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Logo Style */}
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-surface-900 dark:text-white mb-4">
+              <Sparkles className="w-5 h-5" />
+              Logo Style
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {logoVariants.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setLogoVariant(value)}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    logoVariant === value
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600'
+                  }`}
+                >
+                  <div className="flex justify-center mb-2">
+                    <VocaLogo size="sm" variant={value} animated={false} />
+                  </div>
+                  <p className="text-xs font-medium text-surface-900 dark:text-white text-center">
+                    {label}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Splash Animation */}
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-surface-900 dark:text-white mb-4">
+              <Play className="w-5 h-5" />
+              Splash Animation
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {splashVariants.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setSplashVariant(value)}
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    splashVariant === value
+                      ? 'border-primary-500 bg-primary-500/10'
+                      : 'border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600'
+                  }`}
+                >
+                  <p className="font-medium text-surface-900 dark:text-white">
+                    {label}
+                  </p>
+                  <p className="text-xs text-surface-500 mt-1">
+                    {value === 'pulseWave' && 'Clean, modern pulse rings'}
+                    {value === 'glitchCyber' && 'Edgy neon glitch effect'}
+                    {value === 'waveformMorph' && 'Smooth animated waveforms'}
+                    {value === 'neonFlicker' && 'Retro neon sign flicker'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Preview Splash Button */}
+          <div className="pt-4 border-t border-surface-200 dark:border-surface-700">
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                setIsSettingsModalOpen(false);
+                useStore.getState().setShowSplash(true);
+              }}
+            >
+              <Play className="w-4 h-4" />
+              Preview Splash Animation
             </Button>
           </div>
         </div>
