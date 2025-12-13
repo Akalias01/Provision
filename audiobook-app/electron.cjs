@@ -16,68 +16,63 @@ function createWindow() {
       webSecurity: false,
     },
     backgroundColor: '#09090b',
-    show: false,
-    autoHideMenuBar: true,
+    // Show immediately for debugging
+    show: true,
+    autoHideMenuBar: false,
   });
 
-  // Determine the correct path for both dev and production
-  const isDev = !app.isPackaged;
+  // ALWAYS open DevTools for debugging
+  mainWindow.webContents.openDevTools();
 
-  let indexPath;
-  if (isDev) {
-    // Development: use __dirname
-    indexPath = path.join(__dirname, 'dist', 'index.html');
+  // Try to find the index.html
+  const distPath = path.join(__dirname, 'dist', 'index.html');
+
+  console.log('==========================================');
+  console.log('VOCA Electron Debug Info:');
+  console.log('__dirname:', __dirname);
+  console.log('Looking for:', distPath);
+  console.log('File exists:', fs.existsSync(distPath));
+  console.log('app.isPackaged:', app.isPackaged);
+  console.log('app.getAppPath():', app.getAppPath());
+  console.log('==========================================');
+
+  if (fs.existsSync(distPath)) {
+    console.log('Loading file:', distPath);
+    mainWindow.loadFile(distPath);
   } else {
-    // Production: packaged app - files are in resources/app/dist
-    indexPath = path.join(process.resourcesPath, 'app', 'dist', 'index.html');
-
-    // Fallback: try app.getAppPath()
-    if (!fs.existsSync(indexPath)) {
-      indexPath = path.join(app.getAppPath(), 'dist', 'index.html');
-    }
-  }
-
-  console.log('Loading from:', indexPath);
-  console.log('File exists:', fs.existsSync(indexPath));
-  console.log('App path:', app.getAppPath());
-  console.log('Is packaged:', app.isPackaged);
-
-  // Load the file
-  if (fs.existsSync(indexPath)) {
-    mainWindow.loadFile(indexPath).then(() => {
-      console.log('Loaded successfully');
-    }).catch((err) => {
-      console.error('Failed to load file:', err);
-      // Show error in window
-      mainWindow.loadURL(`data:text/html,<h1>Error loading app</h1><p>${err.message}</p><p>Path: ${indexPath}</p>`);
-    });
-  } else {
-    // File doesn't exist - try dev server or show error
-    console.log('Index file not found, trying dev server...');
-    mainWindow.loadURL('http://localhost:5173').catch(() => {
+    console.log('dist/index.html not found! Trying dev server...');
+    mainWindow.loadURL('http://localhost:5173').catch((err) => {
+      console.error('Dev server also failed:', err);
       mainWindow.loadURL(`data:text/html,
         <html>
-          <body style="background:#09090b;color:white;font-family:sans-serif;padding:40px;">
-            <h1>VOCA - Loading Error</h1>
-            <p>Could not find the app files.</p>
-            <p>Tried path: ${indexPath}</p>
-            <p>App path: ${app.getAppPath()}</p>
-            <p>Resources path: ${process.resourcesPath}</p>
-          </body>
+        <head><title>VOCA Error</title></head>
+        <body style="background:#1a1a2e;color:white;font-family:system-ui;padding:40px;">
+          <h1 style="color:#f43f5e;">VOCA - File Not Found</h1>
+          <p>Could not find: <code>${distPath}</code></p>
+          <p>Please run <code>npm run build</code> first.</p>
+          <h3>Debug Info:</h3>
+          <pre style="background:#0d0d1a;padding:20px;border-radius:8px;">
+__dirname: ${__dirname}
+app.getAppPath(): ${app.getAppPath()}
+          </pre>
+        </body>
         </html>
       `);
     });
   }
 
-  // Show window when ready
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    mainWindow.focus();
+  // Log when content loads
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Page finished loading!');
+  });
 
-    // Open DevTools in dev mode for debugging
-    if (isDev) {
-      mainWindow.webContents.openDevTools();
-    }
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Failed to load:', errorCode, errorDescription);
+  });
+
+  // Log any console messages from the renderer
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log('Renderer:', message);
   });
 
   mainWindow.on('closed', () => {
