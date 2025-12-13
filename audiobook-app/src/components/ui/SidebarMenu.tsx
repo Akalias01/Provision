@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
   Menu,
   X,
@@ -22,12 +22,15 @@ interface SidebarMenuProps {
   onOpenSettings: () => void;
 }
 
+const SIDEBAR_WIDTH = 320;
+
 export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+  const dragControls = useDragControls();
 
   const {
     books,
@@ -36,6 +39,26 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     language,
     setLanguage,
   } = useStore();
+
+  // Handle escape key to close menu
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  // Push main content when sidebar opens
+  useEffect(() => {
+    const mainContent = document.getElementById('main-app-content');
+    if (mainContent) {
+      mainContent.style.transition = 'transform 0.3s ease-out';
+      mainContent.style.transform = isOpen ? `translateX(${SIDEBAR_WIDTH}px)` : 'translateX(0)';
+    }
+  }, [isOpen]);
 
   const menuItems = [
     {
@@ -109,81 +132,105 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
   const epubBooks = books.filter(b => b.format === 'epub').length;
   const pdfBooks = books.filter(b => b.format === 'pdf').length;
 
+  const toggleMenu = () => setIsOpen(!isOpen);
+
   return (
     <>
-      {/* Menu Toggle Button */}
-      <Button variant="icon" onClick={() => setIsOpen(true)}>
-        <Menu className="w-5 h-5" />
+      {/* Menu Toggle Button - Hamburger */}
+      <Button variant="icon" onClick={toggleMenu} className="relative z-[100]">
+        <motion.div
+          animate={isOpen ? { rotate: 90 } : { rotate: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </motion.div>
       </Button>
 
-      {/* Backdrop */}
+      {/* Sidebar - Fixed position, slides from left */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-          />
-        )}
-      </AnimatePresence>
+          <>
+            {/* Backdrop - clicking closes menu */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-black/30 z-[998]"
+              style={{ backdropFilter: 'blur(2px)' }}
+            />
 
-      {/* Sidebar */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.aside
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-80 bg-white dark:bg-surface-900 shadow-2xl z-50 flex flex-col"
-          >
-            {/* Header */}
-            <div className="p-6 border-b border-surface-200 dark:border-surface-700">
-              <div className="flex items-center justify-between">
-                <VocaLogo size="md" variant={logoVariant} animated={false} />
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Menu Items */}
-            <nav className="flex-1 overflow-y-auto p-4">
-              <div className="space-y-1">
-                {menuItems.map((item) => (
+            {/* Sidebar Panel */}
+            <motion.aside
+              initial={{ x: -SIDEBAR_WIDTH }}
+              animate={{ x: 0 }}
+              exit={{ x: -SIDEBAR_WIDTH }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              drag="x"
+              dragControls={dragControls}
+              dragConstraints={{ left: -SIDEBAR_WIDTH, right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -100 || info.velocity.x < -500) {
+                  setIsOpen(false);
+                }
+              }}
+              className="fixed left-0 top-0 h-full bg-white dark:bg-surface-900 shadow-2xl z-[999] flex flex-col"
+              style={{ width: SIDEBAR_WIDTH }}
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-surface-200 dark:border-surface-700">
+                <div className="flex items-center justify-between">
+                  <VocaLogo size="md" variant={logoVariant} animated={false} />
                   <button
-                    key={item.id}
-                    onClick={item.onClick}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors group"
+                    onClick={() => setIsOpen(false)}
+                    className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
-                      <item.icon className="w-5 h-5 text-primary-500" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-surface-900 dark:text-white">
-                        {item.label}
-                      </p>
-                      <p className="text-sm text-surface-500">{item.description}</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-surface-400 group-hover:text-surface-600 dark:group-hover:text-surface-300 transition-colors" />
+                    <X className="w-5 h-5 text-surface-500" />
                   </button>
-                ))}
+                </div>
               </div>
-            </nav>
 
-            {/* Footer */}
-            <div className="p-4 border-t border-surface-200 dark:border-surface-700">
-              <div className="text-center text-sm text-surface-500">
-                <p>VOCA v1.0.0</p>
-                <p className="text-xs mt-1">{totalBooks} books in library</p>
+              {/* Menu Items */}
+              <nav className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-1">
+                  {menuItems.map((item, index) => (
+                    <motion.button
+                      key={item.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={item.onClick}
+                      className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center group-hover:bg-primary-500/20 transition-colors">
+                        <item.icon className="w-5 h-5 text-primary-500" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-medium text-surface-900 dark:text-white">
+                          {item.label}
+                        </p>
+                        <p className="text-sm text-surface-500">{item.description}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-surface-400 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
+                    </motion.button>
+                  ))}
+                </div>
+              </nav>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-surface-200 dark:border-surface-700">
+                <div className="text-center text-sm text-surface-500">
+                  <p className="font-medium">VOCA v1.0.0</p>
+                  <p className="text-xs mt-1">{totalBooks} books in library</p>
+                </div>
               </div>
-            </div>
-          </motion.aside>
+
+              {/* Drag handle indicator */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-16 bg-surface-300 dark:bg-surface-600 rounded-l-full opacity-50" />
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
 
@@ -202,8 +249,6 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
           <div className="space-y-3">
             <button
               onClick={() => {
-                // In Electron, we'd use dialog.showOpenDialog
-                // For now, we'll use the file input with webkitdirectory
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.setAttribute('webkitdirectory', '');
@@ -212,7 +257,6 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
                   const files = (e.target as HTMLInputElement).files;
                   if (files) {
                     console.log('Selected folder with', files.length, 'files');
-                    // Process files here
                   }
                 };
                 input.click();
@@ -335,7 +379,6 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
 
           <button
             onClick={() => {
-              // Google Drive OAuth would go here
               alert('Google Drive integration requires OAuth setup. Coming soon!');
             }}
             className="w-full flex items-center gap-4 p-4 border-2 border-surface-200 dark:border-surface-700 rounded-xl hover:border-primary-500 transition-colors"

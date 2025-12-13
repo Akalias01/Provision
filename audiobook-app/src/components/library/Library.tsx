@@ -249,6 +249,7 @@ export function Library() {
 
   return (
     <div
+      id="main-app-content"
       className="min-h-screen bg-surface-50 dark:bg-surface-950 transition-colors duration-300"
       onDragOver={(e) => {
         e.preventDefault();
