@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu,
   X,
@@ -30,7 +31,6 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
-  const dragControls = useDragControls();
 
   const {
     books,
@@ -55,9 +55,14 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
   useEffect(() => {
     const mainContent = document.getElementById('main-app-content');
     if (mainContent) {
-      mainContent.style.transition = 'transform 0.3s ease-out';
-      mainContent.style.transform = isOpen ? `translateX(${SIDEBAR_WIDTH}px)` : 'translateX(0)';
+      mainContent.style.transition = 'margin-left 0.3s ease-out';
+      mainContent.style.marginLeft = isOpen ? `${SIDEBAR_WIDTH}px` : '0';
     }
+    // Prevent body scroll when menu is open
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isOpen]);
 
   const menuItems = [
@@ -134,10 +139,111 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
+  // Sidebar content - rendered via portal to document.body
+  const sidebarContent = (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop - clicking closes menu */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              zIndex: 9998,
+            }}
+          />
+
+          {/* Sidebar Panel */}
+          <motion.aside
+            initial={{ x: -SIDEBAR_WIDTH }}
+            animate={{ x: 0 }}
+            exit={{ x: -SIDEBAR_WIDTH }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            drag="x"
+            dragConstraints={{ left: -SIDEBAR_WIDTH, right: 0 }}
+            dragElastic={0.1}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -100 || info.velocity.x < -500) {
+                setIsOpen(false);
+              }
+            }}
+            style={{
+              position: 'fixed',
+              left: 0,
+              top: 0,
+              height: '100vh',
+              width: SIDEBAR_WIDTH,
+              backgroundColor: 'var(--sidebar-bg, #fff)',
+              zIndex: 9999,
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '4px 0 25px rgba(0, 0, 0, 0.3)',
+            }}
+            className="bg-white dark:bg-surface-900"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-surface-200 dark:border-surface-700">
+              <div className="flex items-center justify-between">
+                <VocaLogo size="md" variant={logoVariant} animated={false} />
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                >
+                  <X className="w-5 h-5 text-surface-500" />
+                </button>
+              </div>
+            </div>
+
+            {/* Menu Items */}
+            <nav className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-1">
+                {menuItems.map((item, index) => (
+                  <motion.button
+                    key={item.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={item.onClick}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center group-hover:bg-primary-500/20 transition-colors">
+                      <item.icon className="w-5 h-5 text-primary-500" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="font-medium text-surface-900 dark:text-white">
+                        {item.label}
+                      </p>
+                      <p className="text-sm text-surface-500">{item.description}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-surface-400 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
+                  </motion.button>
+                ))}
+              </div>
+            </nav>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-surface-200 dark:border-surface-700">
+              <div className="text-center text-sm text-surface-500">
+                <p className="font-medium">VOCA v1.0.0</p>
+                <p className="text-xs mt-1">{totalBooks} books in library</p>
+              </div>
+            </div>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
   return (
     <>
       {/* Menu Toggle Button - Hamburger */}
-      <Button variant="icon" onClick={toggleMenu} className="relative z-[100]">
+      <Button variant="icon" onClick={toggleMenu}>
         <motion.div
           animate={isOpen ? { rotate: 90 } : { rotate: 0 }}
           transition={{ duration: 0.2 }}
@@ -146,93 +252,8 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
         </motion.div>
       </Button>
 
-      {/* Sidebar - Fixed position, slides from left */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop - clicking closes menu */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black/30 z-[998]"
-              style={{ backdropFilter: 'blur(2px)' }}
-            />
-
-            {/* Sidebar Panel */}
-            <motion.aside
-              initial={{ x: -SIDEBAR_WIDTH }}
-              animate={{ x: 0 }}
-              exit={{ x: -SIDEBAR_WIDTH }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              drag="x"
-              dragControls={dragControls}
-              dragConstraints={{ left: -SIDEBAR_WIDTH, right: 0 }}
-              dragElastic={0.1}
-              onDragEnd={(_, info) => {
-                if (info.offset.x < -100 || info.velocity.x < -500) {
-                  setIsOpen(false);
-                }
-              }}
-              className="fixed left-0 top-0 h-full bg-white dark:bg-surface-900 shadow-2xl z-[999] flex flex-col"
-              style={{ width: SIDEBAR_WIDTH }}
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-surface-200 dark:border-surface-700">
-                <div className="flex items-center justify-between">
-                  <VocaLogo size="md" variant={logoVariant} animated={false} />
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
-                  >
-                    <X className="w-5 h-5 text-surface-500" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Menu Items */}
-              <nav className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-1">
-                  {menuItems.map((item, index) => (
-                    <motion.button
-                      key={item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      onClick={item.onClick}
-                      className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors group"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center group-hover:bg-primary-500/20 transition-colors">
-                        <item.icon className="w-5 h-5 text-primary-500" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p className="font-medium text-surface-900 dark:text-white">
-                          {item.label}
-                        </p>
-                        <p className="text-sm text-surface-500">{item.description}</p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-surface-400 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
-                    </motion.button>
-                  ))}
-                </div>
-              </nav>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-surface-200 dark:border-surface-700">
-                <div className="text-center text-sm text-surface-500">
-                  <p className="font-medium">VOCA v1.0.0</p>
-                  <p className="text-xs mt-1">{totalBooks} books in library</p>
-                </div>
-              </div>
-
-              {/* Drag handle indicator */}
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-16 bg-surface-300 dark:bg-surface-600 rounded-l-full opacity-50" />
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+      {/* Render sidebar via portal to document.body */}
+      {typeof document !== 'undefined' && createPortal(sidebarContent, document.body)}
 
       {/* Folder Scan Modal */}
       <Modal
