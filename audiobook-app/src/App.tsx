@@ -60,16 +60,24 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-50 dark:bg-surface-950">
-      {/* Splash Screen - temporarily disabled for debugging */}
-      {/* {showSplash && (
-        <SplashScreen onComplete={() => setShowSplash(false)} />
-      )} */}
+    <div style={{ minHeight: '100vh', background: '#1e1e2e', padding: '40px' }}>
+      {/* DEBUG TEST - Remove after fixing */}
+      <h1 style={{ color: '#ff0000', fontSize: '48px', marginBottom: '20px' }}>
+        VOCA IS LOADING!
+      </h1>
+      <p style={{ color: '#00ff00', fontSize: '24px' }}>
+        If you can see this, React is working.
+      </p>
+      <p style={{ color: '#00ffff', fontSize: '18px', marginTop: '20px' }}>
+        Current view: {currentView}
+      </p>
 
-      {/* Main App */}
-      <AnimatePresence mode="wait">
-        {renderView()}
-      </AnimatePresence>
+      {/* Original App Content */}
+      <div style={{ marginTop: '40px' }}>
+        <AnimatePresence mode="wait">
+          {renderView()}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
