@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -10,13 +10,20 @@ import {
   Rewind,
   FastForward,
   BookOpen,
-  List,
   ChevronDown,
+  Moon,
+  Bookmark,
+  BookmarkPlus,
+  Settings,
+  Clock,
+  Trash2,
+  Edit3,
+  Check,
 } from 'lucide-react';
-import { Button, Slider } from '../ui';
+import { Button, Slider, Modal } from '../ui';
 import { Waveform } from './Waveform';
 import { Equalizer } from './Equalizer';
-import { useStore } from '../../store/useStore';
+import { useStore, type SleepTimerMode, type SkipInterval } from '../../store/useStore';
 import { formatTime } from '../../utils/formatTime';
 
 interface AudioPlayerProps {
@@ -25,16 +32,34 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({ onBack }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [bookmarkNote, setBookmarkNote] = useState('');
+  const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState('');
+
   const {
     currentBook,
     playerState,
     setPlayerState,
     updateBook,
     setCurrentView,
+    sleepTimerMode,
+    sleepTimerRemaining,
+    setSleepTimerMode,
+    setSleepTimerRemaining,
+    skipInterval,
+    setSkipInterval,
+    addBookmark,
+    removeBookmark,
+    updateBookmarkNote,
   } = useStore();
 
   const { isPlaying, currentTime, duration, volume, playbackRate, isMuted } = playerState;
 
+  // Audio setup
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentBook) return;
@@ -68,6 +93,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     };
   }, [currentBook]);
 
+  // Play/pause control
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -79,17 +105,46 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     }
   }, [isPlaying]);
 
+  // Volume control
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
     }
   }, [volume, isMuted]);
 
+  // Playback rate control
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate]);
+
+  // Sleep timer countdown
+  useEffect(() => {
+    if (sleepTimerRemaining !== null && sleepTimerRemaining > 0 && isPlaying) {
+      sleepTimerRef.current = setInterval(() => {
+        setSleepTimerRemaining(sleepTimerRemaining - 1);
+      }, 1000);
+
+      return () => {
+        if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
+      };
+    } else if (sleepTimerRemaining === 0) {
+      setPlayerState({ isPlaying: false });
+      setSleepTimerMode('off');
+      setSleepTimerRemaining(null);
+    }
+  }, [sleepTimerRemaining, isPlaying]);
+
+  // Start sleep timer when mode changes
+  useEffect(() => {
+    if (sleepTimerMode !== 'off' && sleepTimerMode !== 'endOfChapter') {
+      const minutes = parseInt(sleepTimerMode);
+      setSleepTimerRemaining(minutes * 60);
+    } else if (sleepTimerMode === 'off') {
+      setSleepTimerRemaining(null);
+    }
+  }, [sleepTimerMode]);
 
   const handleSeek = useCallback((value: number) => {
     if (audioRef.current) {
@@ -117,9 +172,44 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     setPlayerState({ playbackRate: speeds[nextIndex] });
   }, [playbackRate]);
 
+  const handleAddBookmark = useCallback(() => {
+    if (!currentBook) return;
+    const bookmark = {
+      id: crypto.randomUUID(),
+      position: currentTime,
+      note: bookmarkNote || undefined,
+      createdAt: new Date(),
+    };
+    addBookmark(currentBook.id, bookmark);
+    setBookmarkNote('');
+  }, [currentBook, currentTime, bookmarkNote, addBookmark]);
+
+  const handleJumpToBookmark = useCallback((position: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = position;
+      setPlayerState({ currentTime: position });
+    }
+    setShowBookmarks(false);
+  }, []);
+
   const progress = duration > 0 ? currentTime / duration : 0;
 
+  const sleepTimerOptions: { value: SleepTimerMode; label: string }[] = [
+    { value: 'off', label: 'Off' },
+    { value: '5', label: '5 min' },
+    { value: '10', label: '10 min' },
+    { value: '15', label: '15 min' },
+    { value: '30', label: '30 min' },
+    { value: '45', label: '45 min' },
+    { value: '60', label: '60 min' },
+    { value: 'endOfChapter', label: 'End of Chapter' },
+  ];
+
+  const skipIntervalOptions: SkipInterval[] = [10, 15, 30, 45, 60];
+
   if (!currentBook) return null;
+
+  const bookmarks = currentBook.bookmarks || [];
 
   return (
     <motion.div
@@ -138,9 +228,14 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
         <span className="text-sm text-surface-500 dark:text-surface-400">
           Now Playing
         </span>
-        <Button variant="icon">
-          <List className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="icon" onClick={() => setShowBookmarks(true)}>
+            <Bookmark className="w-5 h-5" />
+          </Button>
+          <Button variant="icon" onClick={() => setShowSettings(true)}>
+            <Settings className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Cover Art */}
@@ -225,11 +320,11 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
           <Button
             variant="ghost"
             size="lg"
-            onClick={() => handleSkip(-30)}
+            onClick={() => handleSkip(-skipInterval)}
             className="relative"
           >
             <Rewind className="w-6 h-6" />
-            <span className="absolute -bottom-1 text-[10px] font-medium">30</span>
+            <span className="absolute -bottom-1 text-[10px] font-medium">{skipInterval}</span>
           </Button>
 
           {/* Previous */}
@@ -276,11 +371,11 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
           <Button
             variant="ghost"
             size="lg"
-            onClick={() => handleSkip(30)}
+            onClick={() => handleSkip(skipInterval)}
             className="relative"
           >
             <FastForward className="w-6 h-6" />
-            <span className="absolute -bottom-1 text-[10px] font-medium">30</span>
+            <span className="absolute -bottom-1 text-[10px] font-medium">{skipInterval}</span>
           </Button>
         </div>
 
@@ -294,6 +389,30 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
             className="text-xs font-semibold min-w-[60px]"
           >
             {playbackRate}x
+          </Button>
+
+          {/* Sleep Timer */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSleepTimer(true)}
+            className="relative"
+          >
+            <Moon className="w-5 h-5" />
+            {sleepTimerRemaining !== null && (
+              <span className="absolute -top-1 -right-1 text-[10px] bg-primary-500 text-white rounded-full px-1">
+                {Math.ceil(sleepTimerRemaining / 60)}
+              </span>
+            )}
+          </Button>
+
+          {/* Quick Bookmark */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAddBookmark}
+          >
+            <BookmarkPlus className="w-5 h-5" />
           </Button>
 
           {/* Equalizer */}
@@ -323,6 +442,188 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
           </div>
         </div>
       </div>
+
+      {/* Sleep Timer Modal */}
+      <Modal
+        isOpen={showSleepTimer}
+        onClose={() => setShowSleepTimer(false)}
+        title="Sleep Timer"
+        size="sm"
+      >
+        <div className="space-y-2">
+          {sleepTimerOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => {
+                setSleepTimerMode(option.value);
+                setShowSleepTimer(false);
+              }}
+              className={`w-full p-4 rounded-xl flex items-center justify-between transition-colors ${
+                sleepTimerMode === option.value
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+              }`}
+            >
+              <span className="font-medium">{option.label}</span>
+              {sleepTimerMode === option.value && sleepTimerRemaining !== null && (
+                <span className="text-sm opacity-80">
+                  {formatTime(sleepTimerRemaining)}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      {/* Bookmarks Modal */}
+      <Modal
+        isOpen={showBookmarks}
+        onClose={() => setShowBookmarks(false)}
+        title="Bookmarks"
+        size="md"
+      >
+        <div className="space-y-4">
+          {/* Add new bookmark */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Add note (optional)..."
+              value={bookmarkNote}
+              onChange={(e) => setBookmarkNote(e.target.value)}
+              className="input flex-1"
+            />
+            <Button variant="primary" onClick={handleAddBookmark}>
+              <BookmarkPlus className="w-4 h-4" />
+              Add
+            </Button>
+          </div>
+
+          {/* Bookmark list */}
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {bookmarks.length === 0 ? (
+              <p className="text-center text-surface-500 py-8">No bookmarks yet</p>
+            ) : (
+              bookmarks
+                .sort((a, b) => a.position - b.position)
+                .map((bookmark) => (
+                  <div
+                    key={bookmark.id}
+                    className="flex items-center gap-3 p-3 bg-surface-100 dark:bg-surface-800 rounded-xl"
+                  >
+                    <button
+                      onClick={() => handleJumpToBookmark(bookmark.position)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-primary-500" />
+                        <span className="font-medium text-surface-900 dark:text-white">
+                          {formatTime(bookmark.position)}
+                        </span>
+                      </div>
+                      {editingBookmarkId === bookmark.id ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="text"
+                            value={editingNote}
+                            onChange={(e) => setEditingNote(e.target.value)}
+                            className="input text-sm py-1 flex-1"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (currentBook) {
+                                updateBookmarkNote(currentBook.id, bookmark.id, editingNote);
+                              }
+                              setEditingBookmarkId(null);
+                            }}
+                            className="p-1 text-green-500 hover:bg-green-500/10 rounded"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : bookmark.note ? (
+                        <p className="text-sm text-surface-500 mt-1">{bookmark.note}</p>
+                      ) : null}
+                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingBookmarkId(bookmark.id);
+                          setEditingNote(bookmark.note || '');
+                        }}
+                        className="p-2 text-surface-400 hover:text-primary-500 hover:bg-primary-500/10 rounded-lg"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
+                        className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Settings Modal */}
+      <Modal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Player Settings"
+        size="sm"
+      >
+        <div className="space-y-6">
+          {/* Skip Interval */}
+          <div>
+            <h4 className="text-sm font-medium text-surface-900 dark:text-white mb-3">
+              Skip Interval
+            </h4>
+            <div className="flex gap-2">
+              {skipIntervalOptions.map((interval) => (
+                <button
+                  key={interval}
+                  onClick={() => setSkipInterval(interval)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    skipInterval === interval
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+                  }`}
+                >
+                  {interval}s
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Playback Speed */}
+          <div>
+            <h4 className="text-sm font-medium text-surface-900 dark:text-white mb-3">
+              Playback Speed
+            </h4>
+            <div className="flex gap-2 flex-wrap">
+              {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => setPlayerState({ playbackRate: speed })}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    playbackRate === speed
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+                  }`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   );
 }

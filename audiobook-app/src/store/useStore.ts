@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Book, PlayerState, TTSState, ReaderSettings, BookFormat } from '../types';
+import type { Book, PlayerState, TTSState, ReaderSettings, BookFormat, Bookmark } from '../types';
 
 export type ProgressFilter = 'all' | 'not_started' | 'in_progress' | 'finished';
-export type ColorTheme = 'cyber-glitch' | 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow' | 'amber-gold' | 'rose-pink' | 'sunset-orange' | 'midnight-indigo' | 'lime-fresh';
+export type ColorTheme = 'cyber-glitch' | 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow' | 'amber-gold' | 'rose-pink' | 'sunset-orange' | 'midnight-indigo' | 'lime-fresh' | 'aurora-multi' | 'sunset-gradient' | 'ocean-sunset' | 'forest-aurora' | 'candy-pop';
 export type LogoVariant = 'waveform' | 'headphones' | 'pulse' | 'minimal';
 export type SplashVariant = 'pulseWave' | 'glitchCyber' | 'waveformMorph' | 'neonFlicker';
+export type SleepTimerMode = 'off' | '5' | '10' | '15' | '30' | '45' | '60' | 'endOfChapter';
+export type SkipInterval = 10 | 15 | 30 | 45 | 60;
 
 // Color theme definitions
 export const colorThemes: Record<ColorTheme, {
@@ -216,6 +218,106 @@ export const colorThemes: Record<ColorTheme, {
     logoStart: '#84cc16',
     logoEnd: '#65a30d',
   },
+  'aurora-multi': {
+    name: 'Aurora',
+    isMultiColor: true,
+    colors: {
+      '--primary-50': '#ecfeff',
+      '--primary-100': '#cffafe',
+      '--primary-200': '#a5f3fc',
+      '--primary-300': '#67e8f9',
+      '--primary-400': '#22d3ee',
+      '--primary-500': '#06b6d4',
+      '--primary-600': '#0891b2',
+      '--primary-700': '#0e7490',
+      '--primary-800': '#155e75',
+      '--primary-900': '#164e63',
+      '--primary-950': '#083344',
+    },
+    logoStart: '#06b6d4',
+    logoMid: '#a855f7',
+    logoEnd: '#ec4899',
+  },
+  'sunset-gradient': {
+    name: 'Sunset',
+    isMultiColor: true,
+    colors: {
+      '--primary-50': '#fff7ed',
+      '--primary-100': '#ffedd5',
+      '--primary-200': '#fed7aa',
+      '--primary-300': '#fdba74',
+      '--primary-400': '#fb923c',
+      '--primary-500': '#f97316',
+      '--primary-600': '#ea580c',
+      '--primary-700': '#c2410c',
+      '--primary-800': '#9a3412',
+      '--primary-900': '#7c2d12',
+      '--primary-950': '#431407',
+    },
+    logoStart: '#f97316',
+    logoMid: '#f43f5e',
+    logoEnd: '#a855f7',
+  },
+  'ocean-sunset': {
+    name: 'Ocean Sunset',
+    isMultiColor: true,
+    colors: {
+      '--primary-50': '#eff6ff',
+      '--primary-100': '#dbeafe',
+      '--primary-200': '#bfdbfe',
+      '--primary-300': '#93c5fd',
+      '--primary-400': '#60a5fa',
+      '--primary-500': '#3b82f6',
+      '--primary-600': '#2563eb',
+      '--primary-700': '#1d4ed8',
+      '--primary-800': '#1e40af',
+      '--primary-900': '#1e3a8a',
+      '--primary-950': '#172554',
+    },
+    logoStart: '#3b82f6',
+    logoMid: '#8b5cf6',
+    logoEnd: '#f43f5e',
+  },
+  'forest-aurora': {
+    name: 'Forest Aurora',
+    isMultiColor: true,
+    colors: {
+      '--primary-50': '#ecfdf5',
+      '--primary-100': '#d1fae5',
+      '--primary-200': '#a7f3d0',
+      '--primary-300': '#6ee7b7',
+      '--primary-400': '#34d399',
+      '--primary-500': '#10b981',
+      '--primary-600': '#059669',
+      '--primary-700': '#047857',
+      '--primary-800': '#065f46',
+      '--primary-900': '#064e3b',
+      '--primary-950': '#022c22',
+    },
+    logoStart: '#10b981',
+    logoMid: '#06b6d4',
+    logoEnd: '#8b5cf6',
+  },
+  'candy-pop': {
+    name: 'Candy Pop',
+    isMultiColor: true,
+    colors: {
+      '--primary-50': '#fdf2f8',
+      '--primary-100': '#fce7f3',
+      '--primary-200': '#fbcfe8',
+      '--primary-300': '#f9a8d4',
+      '--primary-400': '#f472b6',
+      '--primary-500': '#ec4899',
+      '--primary-600': '#db2777',
+      '--primary-700': '#be185d',
+      '--primary-800': '#9d174d',
+      '--primary-900': '#831843',
+      '--primary-950': '#500724',
+    },
+    logoStart: '#ec4899',
+    logoMid: '#f59e0b',
+    logoEnd: '#06b6d4',
+  },
 };
 
 interface AppState {
@@ -278,6 +380,21 @@ interface AppState {
   addTorrent: (torrent: { id: string; name: string; progress: number }) => void;
   updateTorrent: (id: string, progress: number) => void;
   removeTorrent: (id: string) => void;
+
+  // Sleep Timer
+  sleepTimerMode: SleepTimerMode;
+  sleepTimerRemaining: number | null; // seconds remaining
+  setSleepTimerMode: (mode: SleepTimerMode) => void;
+  setSleepTimerRemaining: (seconds: number | null) => void;
+
+  // Skip Interval
+  skipInterval: SkipInterval;
+  setSkipInterval: (interval: SkipInterval) => void;
+
+  // Bookmarks
+  addBookmark: (bookId: string, bookmark: Bookmark) => void;
+  removeBookmark: (bookId: string, bookmarkId: string) => void;
+  updateBookmarkNote: (bookId: string, bookmarkId: string, note: string) => void;
 }
 
 // Apply color theme to document
@@ -415,6 +532,47 @@ export const useStore = create<AppState>()(
         set((state) => ({
           activeTorrents: state.activeTorrents.filter((t) => t.id !== id),
         })),
+
+      // Sleep Timer
+      sleepTimerMode: 'off',
+      sleepTimerRemaining: null,
+      setSleepTimerMode: (mode) => set({ sleepTimerMode: mode }),
+      setSleepTimerRemaining: (seconds) => set({ sleepTimerRemaining: seconds }),
+
+      // Skip Interval
+      skipInterval: 30,
+      setSkipInterval: (interval) => set({ skipInterval: interval }),
+
+      // Bookmarks
+      addBookmark: (bookId, bookmark) =>
+        set((state) => ({
+          books: state.books.map((b) =>
+            b.id === bookId
+              ? { ...b, bookmarks: [...(b.bookmarks || []), bookmark] }
+              : b
+          ),
+        })),
+      removeBookmark: (bookId, bookmarkId) =>
+        set((state) => ({
+          books: state.books.map((b) =>
+            b.id === bookId
+              ? { ...b, bookmarks: (b.bookmarks || []).filter((bm) => bm.id !== bookmarkId) }
+              : b
+          ),
+        })),
+      updateBookmarkNote: (bookId, bookmarkId, note) =>
+        set((state) => ({
+          books: state.books.map((b) =>
+            b.id === bookId
+              ? {
+                  ...b,
+                  bookmarks: (b.bookmarks || []).map((bm) =>
+                    bm.id === bookmarkId ? { ...bm, note } : bm
+                  ),
+                }
+              : b
+          ),
+        })),
     }),
     {
       name: 'voca-storage',
@@ -434,6 +592,7 @@ export const useStore = create<AppState>()(
           rate: state.ttsState.rate,
           pitch: state.ttsState.pitch,
         },
+        skipInterval: state.skipInterval,
       }),
     }
   )

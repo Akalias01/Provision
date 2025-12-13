@@ -13,6 +13,12 @@ import {
   Sun,
   Moon,
   Type,
+  Bookmark,
+  BookmarkPlus,
+  Trash2,
+  Edit3,
+  Check,
+  Clock,
 } from 'lucide-react';
 import { Button, Slider, Modal } from '../ui';
 import { useStore } from '../../store/useStore';
@@ -30,15 +36,22 @@ export function EpubReader() {
     setTTSState,
     updateBook,
     setCurrentView,
+    addBookmark,
+    removeBookmark,
+    updateBookmarkNote,
   } = useStore();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showToc, setShowToc] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
   const [toc, setToc] = useState<{ label: string; href: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bookmarkNote, setBookmarkNote] = useState('');
+  const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
+  const [editingNote, setEditingNote] = useState('');
 
   const { fontSize, fontFamily, lineHeight, theme, marginSize } = readerSettings;
   const { isReading } = ttsState;
@@ -223,7 +236,30 @@ export function EpubReader() {
     }
   }, [isReading, ttsState.rate, ttsState.pitch]);
 
+  // Bookmark functionality
+  const handleAddBookmark = useCallback(() => {
+    if (!currentBook) return;
+    const bookmark = {
+      id: crypto.randomUUID(),
+      position: currentPage / totalPages, // Store as percentage
+      note: bookmarkNote || undefined,
+      createdAt: new Date(),
+    };
+    addBookmark(currentBook.id, bookmark);
+    setBookmarkNote('');
+  }, [currentBook, currentPage, totalPages, bookmarkNote, addBookmark]);
+
+  const handleJumpToBookmark = useCallback((position: number) => {
+    if (bookRef.current?.locations) {
+      const cfi = bookRef.current.locations.cfiFromPercentage(position);
+      renditionRef.current?.display(cfi);
+    }
+    setShowBookmarks(false);
+  }, []);
+
   if (!currentBook) return null;
+
+  const bookmarks = currentBook.bookmarks || [];
 
   const themeClasses = {
     light: 'bg-white text-surface-900',
@@ -254,6 +290,9 @@ export function EpubReader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={() => setShowBookmarks(true)}>
+            <Bookmark className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" onClick={() => setShowToc(true)}>
             <List className="w-5 h-5" />
           </Button>
@@ -473,6 +512,97 @@ export function EpubReader() {
               {item.label}
             </button>
           ))}
+        </div>
+      </Modal>
+
+      {/* Bookmarks Modal */}
+      <Modal isOpen={showBookmarks} onClose={() => setShowBookmarks(false)} title="Bookmarks">
+        <div className="space-y-4">
+          {/* Add new bookmark */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Add note (optional)..."
+              value={bookmarkNote}
+              onChange={(e) => setBookmarkNote(e.target.value)}
+              className="input flex-1"
+            />
+            <Button variant="primary" onClick={handleAddBookmark}>
+              <BookmarkPlus className="w-4 h-4" />
+              Add
+            </Button>
+          </div>
+
+          {/* Bookmark list */}
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {bookmarks.length === 0 ? (
+              <p className="text-center text-surface-500 py-8">No bookmarks yet</p>
+            ) : (
+              bookmarks
+                .sort((a, b) => a.position - b.position)
+                .map((bookmark) => (
+                  <div
+                    key={bookmark.id}
+                    className="flex items-center gap-3 p-3 bg-surface-100 dark:bg-surface-800 rounded-xl"
+                  >
+                    <button
+                      onClick={() => handleJumpToBookmark(bookmark.position)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-primary-500" />
+                        <span className="font-medium text-surface-900 dark:text-white">
+                          Page {Math.round(bookmark.position * totalPages)} ({Math.round(bookmark.position * 100)}%)
+                        </span>
+                      </div>
+                      {editingBookmarkId === bookmark.id ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="text"
+                            value={editingNote}
+                            onChange={(e) => setEditingNote(e.target.value)}
+                            className="input text-sm py-1 flex-1"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (currentBook) {
+                                updateBookmarkNote(currentBook.id, bookmark.id, editingNote);
+                              }
+                              setEditingBookmarkId(null);
+                            }}
+                            className="p-1 text-green-500 hover:bg-green-500/10 rounded"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : bookmark.note ? (
+                        <p className="text-sm text-surface-500 mt-1">{bookmark.note}</p>
+                      ) : null}
+                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingBookmarkId(bookmark.id);
+                          setEditingNote(bookmark.note || '');
+                        }}
+                        className="p-2 text-surface-400 hover:text-primary-500 hover:bg-primary-500/10 rounded-lg"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
+                        className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
         </div>
       </Modal>
     </div>
