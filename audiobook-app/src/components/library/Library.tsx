@@ -21,6 +21,8 @@ import {
   Settings,
   Palette,
   Sparkles,
+  FolderSearch,
+  FileDown,
 } from 'lucide-react';
 import { Button, Modal, VocaLogo } from '../ui';
 import { BookCard } from './BookCard';
@@ -63,6 +65,7 @@ async function fetchBookMetadata(title: string, author: string): Promise<{ cover
 
 export function Library() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const torrentInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isTorrentModalOpen, setIsTorrentModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -70,6 +73,7 @@ export function Library() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [dragOver, setDragOver] = useState(false);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
+  const [foundTorrentFiles, setFoundTorrentFiles] = useState<File[]>([]);
 
   const {
     books,
@@ -640,39 +644,127 @@ export function Library() {
       {/* Torrent Download Modal */}
       <Modal
         isOpen={isTorrentModalOpen}
-        onClose={() => setIsTorrentModalOpen(false)}
-        title="Download from Torrent"
-        size="md"
+        onClose={() => {
+          setIsTorrentModalOpen(false);
+          setFoundTorrentFiles([]);
+        }}
+        title="Torrent Downloads"
+        size="lg"
       >
-        <div className="space-y-4">
-          <p className="text-sm text-surface-500 dark:text-surface-400">
-            Enter a magnet link or torrent URL to download audiobooks or ebooks.
-            Only download content you have the right to access.
-          </p>
-          <input
-            type="text"
-            placeholder="magnet:?xt=urn:btih:... or https://..."
-            value={torrentUrl}
-            onChange={(e) => setTorrentUrl(e.target.value)}
-            className="input"
-          />
-          <div className="flex gap-3">
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={() => setIsTorrentModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              className="flex-1"
-              onClick={handleTorrentDownload}
-              disabled={!torrentUrl.trim()}
-            >
-              <Download className="w-4 h-4" />
-              Download
-            </Button>
+        <div className="space-y-6">
+          {/* Browse for torrent files section */}
+          <div>
+            <h4 className="flex items-center gap-2 font-medium text-surface-900 dark:text-white mb-3">
+              <FolderSearch className="w-5 h-5 text-primary-500" />
+              Browse for Torrent Files
+            </h4>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => torrentInputRef.current?.click()}
+              >
+                <FileDown className="w-4 h-4" />
+                Select .torrent Files
+              </Button>
+            </div>
+            <input
+              ref={torrentInputRef}
+              type="file"
+              accept=".torrent"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                setFoundTorrentFiles(files);
+              }}
+              className="hidden"
+            />
+
+            {/* Show found torrent files */}
+            {foundTorrentFiles.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-surface-500">Found {foundTorrentFiles.length} torrent file(s):</p>
+                {foundTorrentFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-surface-100 dark:bg-surface-800 rounded-xl"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Magnet className="w-5 h-5 text-primary-500" />
+                      <span className="text-sm font-medium truncate max-w-[300px]">{file.name}</span>
+                    </div>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        // Start download for this torrent
+                        const torrentId = crypto.randomUUID();
+                        addTorrent({ id: torrentId, name: file.name, progress: 0 });
+
+                        // Simulate progress
+                        let progress = 0;
+                        const interval = setInterval(() => {
+                          progress += Math.random() * 10;
+                          if (progress >= 100) {
+                            progress = 100;
+                            clearInterval(interval);
+                            setTimeout(() => removeTorrent(torrentId), 2000);
+                          }
+                          updateTorrent(torrentId, progress);
+                        }, 500);
+
+                        // Remove from list
+                        setFoundTorrentFiles(prev => prev.filter((_, i) => i !== index));
+                      }}
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-surface-200 dark:border-surface-700" />
+
+          {/* Magnet link section */}
+          <div>
+            <h4 className="flex items-center gap-2 font-medium text-surface-900 dark:text-white mb-3">
+              <Magnet className="w-5 h-5 text-primary-500" />
+              Enter Magnet Link
+            </h4>
+            <p className="text-sm text-surface-500 dark:text-surface-400 mb-3">
+              Paste a magnet link to download audiobooks or ebooks.
+              Only download content you have the right to access.
+            </p>
+            <input
+              type="text"
+              placeholder="magnet:?xt=urn:btih:..."
+              value={torrentUrl}
+              onChange={(e) => setTorrentUrl(e.target.value)}
+              className="input"
+            />
+            <div className="flex gap-3 mt-4">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setIsTorrentModalOpen(false);
+                  setFoundTorrentFiles([]);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={handleTorrentDownload}
+                disabled={!torrentUrl.trim()}
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>

@@ -1,4 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -155,6 +158,19 @@
     @apply w-1 rounded-full;
     @apply transform origin-bottom;
     background-color: var(--primary-500, #06b6d4);
+  }
+
+  /* Cool VOCA logo font styles */
+  .voca-font-orbitron {
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .voca-font-audiowide {
+    font-family: 'Audiowide', sans-serif;
+  }
+
+  .voca-font-rajdhani {
+    font-family: 'Rajdhani', sans-serif;
   }
 }
 

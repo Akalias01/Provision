@@ -246,12 +246,20 @@ export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }:
     <div className="flex items-center gap-3">
       <LogoComponent iconSize={icon} animated={animated} />
 
-      {/* VOCA Text */}
-      <h1 className={`${text} font-black tracking-tight`}>
-        <span className="bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 bg-clip-text text-transparent">
+      {/* VOCA Text - Using Orbitron font for a techy/cool look */}
+      <motion.h1
+        className={`${text} font-bold tracking-widest voca-font-orbitron`}
+        whileHover={animated ? { scale: 1.02 } : undefined}
+      >
+        <span
+          className="bg-clip-text text-transparent"
+          style={{
+            backgroundImage: 'linear-gradient(135deg, var(--primary-400, #22d3ee), var(--primary-500, #06b6d4), var(--primary-600, #0891b2))',
+          }}
+        >
           VOCA
         </span>
-      </h1>
+      </motion.h1>
     </div>
   );
 }

@@ -51,14 +51,30 @@ export function EpubReader() {
 
     const initBook = async () => {
       try {
-        const book = ePub(currentBook.fileUrl);
+        // Fetch the file as ArrayBuffer for better compatibility
+        let bookData: ArrayBuffer | string = currentBook.fileUrl;
+
+        if (currentBook.fileUrl.startsWith('blob:')) {
+          try {
+            const response = await fetch(currentBook.fileUrl);
+            bookData = await response.arrayBuffer();
+          } catch (fetchErr) {
+            console.warn('Could not fetch blob, using URL directly:', fetchErr);
+          }
+        }
+
+        const book = ePub(bookData);
         bookRef.current = book;
+
+        // Wait for book to be ready before rendering
+        await book.ready;
 
         const rendition = book.renderTo(containerRef.current!, {
           width: '100%',
           height: '100%',
           spread: 'none',
           flow: 'paginated',
+          allowScriptedContent: true,
         });
 
         renditionRef.current = rendition;
@@ -80,7 +96,6 @@ export function EpubReader() {
 
         // Track pagination
         try {
-          await book.ready;
           await book.locations.generate(1024);
           setTotalPages(book.locations.length());
         } catch (e) {
