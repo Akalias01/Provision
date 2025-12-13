@@ -38,6 +38,7 @@ export function EpubReader() {
   const [showToc, setShowToc] = useState(false);
   const [toc, setToc] = useState<{ label: string; href: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const { fontSize, fontFamily, lineHeight, theme, marginSize } = readerSettings;
   const { isReading } = ttsState;
@@ -46,51 +47,72 @@ export function EpubReader() {
     if (!containerRef.current || !currentBook) return;
 
     setIsLoading(true);
-    const book = ePub(currentBook.fileUrl);
-    bookRef.current = book;
+    setError(null);
 
-    const rendition = book.renderTo(containerRef.current, {
-      width: '100%',
-      height: '100%',
-      spread: 'none',
-      flow: 'paginated',
-    });
+    const initBook = async () => {
+      try {
+        const book = ePub(currentBook.fileUrl);
+        bookRef.current = book;
 
-    renditionRef.current = rendition;
+        const rendition = book.renderTo(containerRef.current!, {
+          width: '100%',
+          height: '100%',
+          spread: 'none',
+          flow: 'paginated',
+        });
 
-    // Apply theme
-    applyTheme(rendition);
+        renditionRef.current = rendition;
 
-    // Load book
-    rendition.display().then(() => {
-      setIsLoading(false);
-    });
+        // Apply theme
+        applyTheme(rendition);
 
-    // Get TOC
-    book.loaded.navigation.then((nav) => {
-      setToc(nav.toc.map((item) => ({ label: item.label, href: item.href })));
-    });
+        // Load book
+        await rendition.display();
+        setIsLoading(false);
 
-    // Track pagination
-    book.ready.then(() => {
-      return book.locations.generate(1024);
-    }).then(() => {
-      setTotalPages(book.locations.length());
-    });
+        // Get TOC
+        try {
+          const nav = await book.loaded.navigation;
+          setToc(nav.toc.map((item) => ({ label: item.label, href: item.href })));
+        } catch (e) {
+          console.warn('Could not load TOC:', e);
+        }
 
-    // Track location changes
-    rendition.on('locationChanged', (location: { start: { percentage: number } }) => {
-      const percentage = location.start.percentage;
-      if (bookRef.current?.locations) {
-        const page = Math.ceil(percentage * (bookRef.current.locations.length() || 1));
-        setCurrentPage(page || 1);
-        updateBook(currentBook.id, { currentPosition: percentage });
+        // Track pagination
+        try {
+          await book.ready;
+          await book.locations.generate(1024);
+          setTotalPages(book.locations.length());
+        } catch (e) {
+          console.warn('Could not generate locations:', e);
+        }
+
+        // Track location changes
+        rendition.on('locationChanged', (location: { start: { percentage: number } }) => {
+          const percentage = location.start.percentage;
+          if (bookRef.current?.locations) {
+            const page = Math.ceil(percentage * (bookRef.current.locations.length() || 1));
+            setCurrentPage(page || 1);
+            updateBook(currentBook.id, { currentPosition: percentage });
+          }
+        });
+
+      } catch (err) {
+        console.error('Error loading EPUB:', err);
+        setError('Failed to load this EPUB file. The file may be corrupted or in an unsupported format.');
+        setIsLoading(false);
       }
-    });
+    };
+
+    initBook();
 
     return () => {
-      rendition.destroy();
-      book.destroy();
+      if (renditionRef.current) {
+        renditionRef.current.destroy();
+      }
+      if (bookRef.current) {
+        bookRef.current.destroy();
+      }
     };
   }, [currentBook?.fileUrl]);
 
@@ -238,9 +260,22 @@ export function EpubReader() {
           </div>
         )}
 
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center p-8">
+            <div className="text-center">
+              <BookOpen className="w-16 h-16 mx-auto mb-4 text-surface-400" />
+              <h3 className="text-lg font-semibold mb-2">Unable to Load Book</h3>
+              <p className="text-surface-500 mb-4">{error}</p>
+              <Button variant="secondary" onClick={() => setCurrentView('library')}>
+                Back to Library
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div
           ref={containerRef}
-          className="h-full"
+          className={`h-full ${error ? 'hidden' : ''}`}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;
