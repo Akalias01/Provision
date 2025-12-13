@@ -2,10 +2,16 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Book, PlayerState, TTSState, ReaderSettings, BookFormat } from '../types';
 
+export type ProgressFilter = 'all' | 'not_started' | 'in_progress' | 'finished';
+
 interface AppState {
   // Theme
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+
+  // Splash screen
+  showSplash: boolean;
+  setShowSplash: (show: boolean) => void;
 
   // Library
   books: Book[];
@@ -37,9 +43,17 @@ interface AppState {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 
-  // Filter
+  // Filters
   formatFilter: BookFormat | 'all';
   setFormatFilter: (filter: BookFormat | 'all') => void;
+  progressFilter: ProgressFilter;
+  setProgressFilter: (filter: ProgressFilter) => void;
+
+  // Torrent
+  activeTorrents: { id: string; name: string; progress: number }[];
+  addTorrent: (torrent: { id: string; name: string; progress: number }) => void;
+  updateTorrent: (id: string, progress: number) => void;
+  removeTorrent: (id: string) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -57,6 +71,10 @@ export const useStore = create<AppState>()(
           }
           return { isDarkMode: newDarkMode };
         }),
+
+      // Splash screen
+      showSplash: true,
+      setShowSplash: (show) => set({ showSplash: show }),
 
       // Library
       books: [],
@@ -123,12 +141,29 @@ export const useStore = create<AppState>()(
       searchQuery: '',
       setSearchQuery: (query) => set({ searchQuery: query }),
 
-      // Filter
+      // Filters
       formatFilter: 'all',
       setFormatFilter: (filter) => set({ formatFilter: filter }),
+      progressFilter: 'all',
+      setProgressFilter: (filter) => set({ progressFilter: filter }),
+
+      // Torrent
+      activeTorrents: [],
+      addTorrent: (torrent) =>
+        set((state) => ({ activeTorrents: [...state.activeTorrents, torrent] })),
+      updateTorrent: (id, progress) =>
+        set((state) => ({
+          activeTorrents: state.activeTorrents.map((t) =>
+            t.id === id ? { ...t, progress } : t
+          ),
+        })),
+      removeTorrent: (id) =>
+        set((state) => ({
+          activeTorrents: state.activeTorrents.filter((t) => t.id !== id),
+        })),
     }),
     {
-      name: 'audiobook-storage',
+      name: 'voca-storage',
       partialize: (state) => ({
         isDarkMode: state.isDarkMode,
         books: state.books,
@@ -148,7 +183,7 @@ export const useStore = create<AppState>()(
 
 // Initialize dark mode on load
 if (typeof window !== 'undefined') {
-  const stored = localStorage.getItem('audiobook-storage');
+  const stored = localStorage.getItem('voca-storage');
   if (stored) {
     const data = JSON.parse(stored);
     if (data.state?.isDarkMode) {

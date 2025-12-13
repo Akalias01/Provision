@@ -2,10 +2,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Library } from './components/library';
 import { AudioPlayer } from './components/player';
 import { EpubReader, PdfReader } from './components/reader';
+import { SplashScreen } from './components/SplashScreen';
 import { useStore } from './store/useStore';
 
 function App() {
-  const { currentView, currentBook } = useStore();
+  const { currentView, currentBook, showSplash, setShowSplash } = useStore();
 
   const renderView = () => {
     switch (currentView) {
@@ -58,6 +59,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-surface-50 dark:bg-surface-950">
+      {/* Splash Screen */}
+      {showSplash && (
+        <SplashScreen onComplete={() => setShowSplash(false)} />
+      )}
+
+      {/* Main App */}
       <AnimatePresence mode="wait">
         {renderView()}
       </AnimatePresence>

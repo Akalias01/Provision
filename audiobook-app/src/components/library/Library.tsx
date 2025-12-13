@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -8,36 +8,92 @@ import {
   BookOpen,
   Headphones,
   FileText,
-  Filter,
   Grid3X3,
   List,
   Upload,
   X,
+  Download,
+  Play,
+  Clock,
+  CheckCircle,
+  Magnet,
+  Loader2,
 } from 'lucide-react';
-import { Button, Modal } from '../ui';
+import { Button, Modal, VocaLogo } from '../ui';
 import { BookCard } from './BookCard';
-import { useStore } from '../../store/useStore';
+import { useStore, type ProgressFilter } from '../../store/useStore';
 import type { Book, BookFormat } from '../../types';
+
+// Fetch book metadata from Open Library API
+async function fetchBookMetadata(title: string, author: string): Promise<{ cover?: string; description?: string }> {
+  try {
+    const query = encodeURIComponent(`${title} ${author}`);
+    const response = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=1`);
+    const data = await response.json();
+
+    if (data.docs && data.docs.length > 0) {
+      const book = data.docs[0];
+      const coverId = book.cover_i;
+      const cover = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : undefined;
+
+      // Fetch description if available
+      let description: string | undefined;
+      if (book.key) {
+        try {
+          const workResponse = await fetch(`https://openlibrary.org${book.key}.json`);
+          const workData = await workResponse.json();
+          description = typeof workData.description === 'string'
+            ? workData.description
+            : workData.description?.value;
+        } catch {
+          // Ignore description fetch errors
+        }
+      }
+
+      return { cover, description };
+    }
+  } catch (error) {
+    console.error('Error fetching book metadata:', error);
+  }
+  return {};
+}
 
 export function Library() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isTorrentModalOpen, setIsTorrentModalOpen] = useState(false);
+  const [torrentUrl, setTorrentUrl] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [dragOver, setDragOver] = useState(false);
+  const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
 
   const {
     books,
     addBook,
     removeBook,
+    updateBook,
     setCurrentBook,
     setCurrentView,
     searchQuery,
     setSearchQuery,
     formatFilter,
     setFormatFilter,
+    progressFilter,
+    setProgressFilter,
     isDarkMode,
     toggleDarkMode,
+    activeTorrents,
+    addTorrent,
+    updateTorrent,
+    removeTorrent,
   } = useStore();
+
+  // Get progress status of a book
+  const getProgressStatus = (book: Book): ProgressFilter => {
+    if (book.isFinished || book.currentPosition >= 0.95) return 'finished';
+    if (book.currentPosition > 0.01) return 'in_progress';
+    return 'not_started';
+  };
 
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
@@ -45,20 +101,24 @@ export function Library() {
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         book.author.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesFormat = formatFilter === 'all' || book.format === formatFilter;
-      return matchesSearch && matchesFormat;
+      const matchesProgress = progressFilter === 'all' || getProgressStatus(book) === progressFilter;
+      return matchesSearch && matchesFormat && matchesProgress;
     });
-  }, [books, searchQuery, formatFilter]);
+  }, [books, searchQuery, formatFilter, progressFilter]);
 
-  const handleFileSelect = async (files: FileList | null) => {
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files) return;
+    setIsLoadingMetadata(true);
 
     for (const file of Array.from(files)) {
       const format = getFileFormat(file.name);
       if (!format) continue;
 
+      const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ').replace(/-/g, ' ');
+
       const book: Book = {
         id: crypto.randomUUID(),
-        title: file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
+        title: cleanTitle,
         author: 'Unknown Author',
         format,
         fileUrl: URL.createObjectURL(file),
@@ -70,15 +130,29 @@ export function Library() {
       if (format === 'audio') {
         const audio = new Audio(book.fileUrl);
         audio.addEventListener('loadedmetadata', () => {
-          useStore.getState().updateBook(book.id, { duration: audio.duration });
+          updateBook(book.id, { duration: audio.duration });
         });
       }
 
       addBook(book);
+
+      // Fetch metadata (cover and description) from Open Library
+      try {
+        const metadata = await fetchBookMetadata(cleanTitle, '');
+        if (metadata.cover || metadata.description) {
+          updateBook(book.id, {
+            cover: metadata.cover,
+            description: metadata.description,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
+      }
     }
 
+    setIsLoadingMetadata(false);
     setIsAddModalOpen(false);
-  };
+  }, [addBook, updateBook]);
 
   const getFileFormat = (filename: string): BookFormat | null => {
     const ext = filename.split('.').pop()?.toLowerCase();
@@ -104,11 +178,42 @@ export function Library() {
     handleFileSelect(e.dataTransfer.files);
   };
 
-  const filterOptions = [
+  const handleTorrentDownload = useCallback(() => {
+    if (!torrentUrl.trim()) return;
+
+    // Note: WebTorrent would be used here in the actual Electron app
+    // For now, we'll show a placeholder
+    const torrentId = crypto.randomUUID();
+    addTorrent({ id: torrentId, name: torrentUrl.slice(0, 50), progress: 0 });
+
+    // Simulate progress (in real app, this would come from WebTorrent)
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 10;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setTimeout(() => removeTorrent(torrentId), 2000);
+      }
+      updateTorrent(torrentId, progress);
+    }, 500);
+
+    setTorrentUrl('');
+    setIsTorrentModalOpen(false);
+  }, [torrentUrl, addTorrent, updateTorrent, removeTorrent]);
+
+  const formatFilterOptions = [
     { value: 'all', label: 'All', icon: Grid3X3 },
     { value: 'audio', label: 'Audio', icon: Headphones },
     { value: 'epub', label: 'EPUB', icon: BookOpen },
     { value: 'pdf', label: 'PDF', icon: FileText },
+  ];
+
+  const progressFilterOptions = [
+    { value: 'all', label: 'All', icon: Grid3X3 },
+    { value: 'not_started', label: 'Not Started', icon: Clock },
+    { value: 'in_progress', label: 'In Progress', icon: Play },
+    { value: 'finished', label: 'Finished', icon: CheckCircle },
   ];
 
   return (
@@ -147,6 +252,38 @@ export function Library() {
         )}
       </AnimatePresence>
 
+      {/* Active Torrents */}
+      <AnimatePresence>
+        {activeTorrents.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 right-4 z-40 space-y-2"
+          >
+            {activeTorrents.map((torrent) => (
+              <div
+                key={torrent.id}
+                className="bg-white dark:bg-surface-800 rounded-xl p-4 shadow-lg min-w-[280px]"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <Download className="w-4 h-4 text-primary-500 animate-bounce" />
+                  <span className="text-sm font-medium truncate flex-1">{torrent.name}</span>
+                </div>
+                <div className="h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-primary-500 to-primary-400"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${torrent.progress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-surface-500 mt-1">{Math.round(torrent.progress)}%</p>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="sticky top-0 z-40 glass">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -155,12 +292,8 @@ export function Library() {
             <motion.div
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              className="flex items-center gap-3"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
-                <Headphones className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gradient">AudioBook</h1>
+              <VocaLogo size="md" />
             </motion.div>
 
             {/* Search */}
@@ -203,6 +336,9 @@ export function Library() {
                   <Moon className="w-5 h-5" />
                 )}
               </Button>
+              <Button variant="ghost" onClick={() => setIsTorrentModalOpen(true)}>
+                <Magnet className="w-5 h-5" />
+              </Button>
               <Button
                 variant="primary"
                 onClick={() => setIsAddModalOpen(true)}
@@ -222,12 +358,12 @@ export function Library() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="flex items-center justify-between mb-8"
+          className="flex flex-wrap items-center justify-between gap-4 mb-8"
         >
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-surface-400" />
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Format Filter */}
             <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
-              {filterOptions.map(({ value, label, icon: Icon }) => (
+              {formatFilterOptions.map(({ value, label, icon: Icon }) => (
                 <button
                   key={value}
                   onClick={() => setFormatFilter(value as BookFormat | 'all')}
@@ -239,6 +375,24 @@ export function Library() {
                 >
                   <Icon className="w-4 h-4" />
                   {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Progress Filter */}
+            <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
+              {progressFilterOptions.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setProgressFilter(value as ProgressFilter)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    progressFilter === value
+                      ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                      : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{label}</span>
                 </button>
               ))}
             </div>
@@ -267,6 +421,14 @@ export function Library() {
             </button>
           </div>
         </motion.div>
+
+        {/* Loading indicator for metadata */}
+        {isLoadingMetadata && (
+          <div className="flex items-center gap-2 mb-4 text-primary-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Fetching book metadata...</span>
+          </div>
+        )}
 
         {/* Books grid */}
         {filteredBooks.length > 0 ? (
@@ -297,14 +459,16 @@ export function Library() {
               <BookOpen className="w-10 h-10 text-surface-400" />
             </div>
             <h3 className="text-xl font-semibold text-surface-900 dark:text-white mb-2">
-              {searchQuery ? 'No books found' : 'Your library is empty'}
+              {searchQuery || formatFilter !== 'all' || progressFilter !== 'all'
+                ? 'No books found'
+                : 'Your library is empty'}
             </h3>
             <p className="text-surface-500 dark:text-surface-400 mb-6">
-              {searchQuery
-                ? 'Try a different search term'
+              {searchQuery || formatFilter !== 'all' || progressFilter !== 'all'
+                ? 'Try adjusting your filters'
                 : 'Add your first audiobook, ebook, or PDF to get started'}
             </p>
-            {!searchQuery && (
+            {!searchQuery && formatFilter === 'all' && progressFilter === 'all' && (
               <Button variant="primary" onClick={() => setIsAddModalOpen(true)}>
                 <Plus className="w-5 h-5" />
                 Add Your First Book
@@ -363,6 +527,46 @@ export function Library() {
                 <p className="text-xs text-surface-500 mt-1">{formats}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Torrent Download Modal */}
+      <Modal
+        isOpen={isTorrentModalOpen}
+        onClose={() => setIsTorrentModalOpen(false)}
+        title="Download from Torrent"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-surface-500 dark:text-surface-400">
+            Enter a magnet link or torrent URL to download audiobooks or ebooks.
+            Only download content you have the right to access.
+          </p>
+          <input
+            type="text"
+            placeholder="magnet:?xt=urn:btih:... or https://..."
+            value={torrentUrl}
+            onChange={(e) => setTorrentUrl(e.target.value)}
+            className="input"
+          />
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setIsTorrentModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleTorrentDownload}
+              disabled={!torrentUrl.trim()}
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </Button>
           </div>
         </div>
       </Modal>
