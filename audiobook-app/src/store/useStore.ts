@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Book, PlayerState, TTSState, ReaderSettings, BookFormat } from '../types';
 
 export type ProgressFilter = 'all' | 'not_started' | 'in_progress' | 'finished';
-export type ColorTheme = 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow';
+export type ColorTheme = 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow' | 'amber-gold' | 'rose-pink' | 'sunset-orange' | 'midnight-indigo' | 'lime-fresh';
 export type LogoVariant = 'waveform' | 'headphones' | 'pulse' | 'minimal';
 export type SplashVariant = 'pulseWave' | 'glitchCyber' | 'waveformMorph' | 'neonFlicker';
 
@@ -104,6 +104,96 @@ export const colorThemes: Record<ColorTheme, {
     logoStart: '#10b981',
     logoEnd: '#059669',
   },
+  'amber-gold': {
+    name: 'Amber Gold',
+    colors: {
+      '--primary-50': '#fffbeb',
+      '--primary-100': '#fef3c7',
+      '--primary-200': '#fde68a',
+      '--primary-300': '#fcd34d',
+      '--primary-400': '#fbbf24',
+      '--primary-500': '#f59e0b',
+      '--primary-600': '#d97706',
+      '--primary-700': '#b45309',
+      '--primary-800': '#92400e',
+      '--primary-900': '#78350f',
+      '--primary-950': '#451a03',
+    },
+    logoStart: '#f59e0b',
+    logoEnd: '#d97706',
+  },
+  'rose-pink': {
+    name: 'Rose Pink',
+    colors: {
+      '--primary-50': '#fdf2f8',
+      '--primary-100': '#fce7f3',
+      '--primary-200': '#fbcfe8',
+      '--primary-300': '#f9a8d4',
+      '--primary-400': '#f472b6',
+      '--primary-500': '#ec4899',
+      '--primary-600': '#db2777',
+      '--primary-700': '#be185d',
+      '--primary-800': '#9d174d',
+      '--primary-900': '#831843',
+      '--primary-950': '#500724',
+    },
+    logoStart: '#ec4899',
+    logoEnd: '#db2777',
+  },
+  'sunset-orange': {
+    name: 'Sunset Orange',
+    colors: {
+      '--primary-50': '#fff7ed',
+      '--primary-100': '#ffedd5',
+      '--primary-200': '#fed7aa',
+      '--primary-300': '#fdba74',
+      '--primary-400': '#fb923c',
+      '--primary-500': '#f97316',
+      '--primary-600': '#ea580c',
+      '--primary-700': '#c2410c',
+      '--primary-800': '#9a3412',
+      '--primary-900': '#7c2d12',
+      '--primary-950': '#431407',
+    },
+    logoStart: '#f97316',
+    logoEnd: '#ea580c',
+  },
+  'midnight-indigo': {
+    name: 'Midnight Indigo',
+    colors: {
+      '--primary-50': '#eef2ff',
+      '--primary-100': '#e0e7ff',
+      '--primary-200': '#c7d2fe',
+      '--primary-300': '#a5b4fc',
+      '--primary-400': '#818cf8',
+      '--primary-500': '#6366f1',
+      '--primary-600': '#4f46e5',
+      '--primary-700': '#4338ca',
+      '--primary-800': '#3730a3',
+      '--primary-900': '#312e81',
+      '--primary-950': '#1e1b4b',
+    },
+    logoStart: '#6366f1',
+    logoEnd: '#4f46e5',
+  },
+  'lime-fresh': {
+    name: 'Lime Fresh',
+    colors: {
+      '--primary-50': '#f7fee7',
+      '--primary-100': '#ecfccb',
+      '--primary-200': '#d9f99d',
+      '--primary-300': '#bef264',
+      '--primary-400': '#a3e635',
+      '--primary-500': '#84cc16',
+      '--primary-600': '#65a30d',
+      '--primary-700': '#4d7c0f',
+      '--primary-800': '#3f6212',
+      '--primary-900': '#365314',
+      '--primary-950': '#1a2e05',
+    },
+    logoStart: '#84cc16',
+    logoEnd: '#65a30d',
+  },
 };
 
 interface AppState {
@@ -116,6 +206,10 @@ interface AppState {
   setLogoVariant: (variant: LogoVariant) => void;
   splashVariant: SplashVariant;
   setSplashVariant: (variant: SplashVariant) => void;
+
+  // Language
+  language: string;
+  setLanguage: (lang: string) => void;
 
   // Splash screen
   showSplash: boolean;
@@ -205,6 +299,10 @@ export const useStore = create<AppState>()(
 
       splashVariant: 'glitchCyber',
       setSplashVariant: (variant) => set({ splashVariant: variant }),
+
+      // Language
+      language: 'en',
+      setLanguage: (lang) => set({ language: lang }),
 
       // Splash screen
       showSplash: true,
@@ -303,6 +401,7 @@ export const useStore = create<AppState>()(
         colorTheme: state.colorTheme,
         logoVariant: state.logoVariant,
         splashVariant: state.splashVariant,
+        language: state.language,
         books: state.books,
         readerSettings: state.readerSettings,
         playerState: {

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button, Slider } from '../ui';
 import { Waveform } from './Waveform';
+import { Equalizer } from './Equalizer';
 import { useStore } from '../../store/useStore';
 import { formatTime } from '../../utils/formatTime';
 
@@ -294,6 +295,9 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
           >
             {playbackRate}x
           </Button>
+
+          {/* Equalizer */}
+          <Equalizer audioRef={audioRef} />
 
           {/* Volume */}
           <div className="flex items-center gap-2">

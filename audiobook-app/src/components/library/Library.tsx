@@ -24,7 +24,7 @@ import {
   FolderSearch,
   FileDown,
 } from 'lucide-react';
-import { Button, Modal, VocaLogo } from '../ui';
+import { Button, Modal, VocaLogo, SidebarMenu } from '../ui';
 import { BookCard } from './BookCard';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import type { Book, BookFormat } from '../../types';
@@ -319,11 +319,16 @@ export function Library() {
       <header className="sticky top-0 z-40 glass">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
+            {/* Menu and Logo */}
             <motion.div
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
+              className="flex items-center gap-2"
             >
+              <SidebarMenu
+                onOpenTorrent={() => setIsTorrentModalOpen(true)}
+                onOpenSettings={() => setIsSettingsModalOpen(true)}
+              />
               <VocaLogo size="md" variant={logoVariant} />
             </motion.div>
 
