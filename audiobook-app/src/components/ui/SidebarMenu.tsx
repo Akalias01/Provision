@@ -38,6 +38,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     logoVariant,
     language,
     setLanguage,
+    isDarkMode,
   } = useStore();
 
   // Handle escape key to close menu
@@ -64,6 +65,21 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
+  const languages = [
+    { code: 'en', name: 'English', nativeName: 'English' },
+    { code: 'es', name: 'Spanish', nativeName: 'Español' },
+    { code: 'fr', name: 'French', nativeName: 'Français' },
+    { code: 'de', name: 'German', nativeName: 'Deutsch' },
+    { code: 'it', name: 'Italian', nativeName: 'Italiano' },
+    { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+    { code: 'zh', name: 'Chinese', nativeName: '中文' },
+    { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+    { code: 'ko', name: 'Korean', nativeName: '한국어' },
+    { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
+    { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+    { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+  ];
 
   const menuItems = [
     {
@@ -104,7 +120,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       id: 'language',
       icon: Languages,
       label: 'Language',
-      description: 'Change app language',
+      description: `Current: ${languages.find(l => l.code === language)?.nativeName || 'English'}`,
       onClick: () => setIsLanguageModalOpen(true),
     },
     {
@@ -114,21 +130,6 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       description: 'Connect Google Drive',
       onClick: () => setIsCloudModalOpen(true),
     },
-  ];
-
-  const languages = [
-    { code: 'en', name: 'English', nativeName: 'English' },
-    { code: 'es', name: 'Spanish', nativeName: 'Español' },
-    { code: 'fr', name: 'French', nativeName: 'Français' },
-    { code: 'de', name: 'German', nativeName: 'Deutsch' },
-    { code: 'it', name: 'Italian', nativeName: 'Italiano' },
-    { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
-    { code: 'zh', name: 'Chinese', nativeName: '中文' },
-    { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-    { code: 'ko', name: 'Korean', nativeName: '한국어' },
-    { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
-    { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
-    { code: 'ru', name: 'Russian', nativeName: 'Русский' },
   ];
 
   // Calculate storage stats
@@ -179,13 +180,12 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
               top: 0,
               height: '100vh',
               width: SIDEBAR_WIDTH,
-              backgroundColor: 'var(--sidebar-bg, #fff)',
+              backgroundColor: isDarkMode ? '#0c0a09' : '#ffffff',
               zIndex: 9999,
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '4px 0 25px rgba(0, 0, 0, 0.3)',
             }}
-            className="bg-white dark:bg-surface-900"
           >
             {/* Header */}
             <div className="p-6 border-b border-surface-200 dark:border-surface-700">
@@ -383,6 +383,9 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
               <p className="text-sm text-surface-500">{lang.name}</p>
             </button>
           ))}
+        </div>
+        <div className="text-xs text-surface-400 text-center pt-4 border-t border-surface-200 dark:border-surface-700 mt-4">
+          Full translations coming soon. Your preference is saved.
         </div>
       </Modal>
 

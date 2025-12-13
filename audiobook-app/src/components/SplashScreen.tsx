@@ -54,7 +54,7 @@ function PulseWaveSplash({ onComplete }: SplashScreenProps) {
         className="relative z-10"
       >
         <motion.h1
-          className="text-7xl font-black tracking-tighter"
+          className="text-7xl font-black tracking-tighter voca-font-orbitron"
           animate={phase >= 2 ? {
             textShadow: ["0 0 20px rgba(6,182,212,0)", "0 0 60px rgba(6,182,212,0.8)", "0 0 20px rgba(6,182,212,0.3)"]
           } : {}}
@@ -90,93 +90,143 @@ function PulseWaveSplash({ onComplete }: SplashScreenProps) {
 }
 
 // ============================================
-// Cartoon Brain with reverberating lines
+// Maze Brain - White lines forming a brain-shaped maze
 // ============================================
-function BrainAnimation({ phase }: { phase: number }) {
+function MazeBrainAnimation({ phase }: { phase: number }) {
+  // Maze paths forming brain shape
+  const mazePaths = [
+    // Outer brain shape
+    "M60 5 L60 15 L45 15 L45 25 L30 25 L30 40 L20 40 L20 60 L25 60 L25 75 L35 75 L35 85 L50 85 L50 95 L70 95 L70 85 L85 85 L85 75 L95 75 L95 60 L100 60 L100 40 L90 40 L90 25 L75 25 L75 15 L60 15",
+    // Inner maze lines - left side
+    "M35 35 L35 45 L25 45 L25 55 L35 55 L35 65 L45 65 L45 55 L55 55",
+    "M40 30 L40 40 L50 40 L50 50 L40 50 L40 60",
+    "M30 50 L30 60 L40 60 L40 70 L50 70",
+    // Inner maze lines - right side
+    "M85 35 L85 45 L95 45 L95 55 L85 55 L85 65 L75 65 L75 55 L65 55",
+    "M80 30 L80 40 L70 40 L70 50 L80 50 L80 60",
+    "M90 50 L90 60 L80 60 L80 70 L70 70",
+    // Center connection
+    "M55 35 L55 45 L65 45 L65 35",
+    "M55 60 L55 75 L65 75 L65 60",
+    "M50 45 L70 45",
+    "M50 70 L70 70",
+  ];
+
   return (
     <motion.div
-      className="absolute -top-32"
+      className="absolute -top-36"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={phase >= 1 ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration: 0.5 }}
     >
       <svg width="120" height="100" viewBox="0 0 120 100">
-        {/* Brain outline - simple cartoon style */}
-        <motion.path
-          d="M60 10
-             C30 10 20 30 25 45
-             C15 50 15 65 25 70
-             C20 80 30 90 45 88
-             C50 95 70 95 75 88
-             C90 90 100 80 95 70
-             C105 65 105 50 95 45
-             C100 30 90 10 60 10Z"
-          fill="none"
-          stroke="white"
-          strokeWidth="2"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1, delay: 0.2 }}
-        />
-
-        {/* Brain center line */}
-        <motion.path
-          d="M60 15 C60 25 55 40 60 50 C65 60 55 75 60 85"
-          fill="none"
-          stroke="white"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-        />
-
-        {/* Left brain squiggles */}
-        <motion.path
-          d="M35 35 Q45 40 40 50 Q35 55 45 60"
-          fill="none"
-          stroke="white"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-        />
-
-        {/* Right brain squiggles */}
-        <motion.path
-          d="M85 35 Q75 40 80 50 Q85 55 75 60"
-          fill="none"
-          stroke="white"
-          strokeWidth="1.5"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-        />
-
-        {/* Reverberating circles/waves */}
-        {[0, 1, 2].map((i) => (
-          <motion.circle
-            key={i}
-            cx="60"
-            cy="50"
-            r="40"
+        {/* Maze brain paths */}
+        {mazePaths.map((path, index) => (
+          <motion.path
+            key={index}
+            d={path}
             fill="none"
             stroke="white"
-            strokeWidth="1"
-            initial={{ r: 40, opacity: 0 }}
-            animate={phase >= 2 ? {
-              r: [40, 70, 100],
-              opacity: [0.6, 0.3, 0],
-            } : {}}
+            strokeWidth="1.5"
+            strokeLinecap="square"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={phase >= 1 ? { pathLength: 1, opacity: 0.8 } : {}}
             transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              delay: i * 0.4,
+              duration: 0.8,
+              delay: index * 0.1,
               ease: "easeOut"
             }}
           />
         ))}
+
+        {/* Reverberating signal waves from brain */}
+        {[0, 1, 2].map((i) => (
+          <motion.rect
+            key={`wave-${i}`}
+            x="10"
+            y="25"
+            width="100"
+            height="50"
+            rx="25"
+            fill="none"
+            stroke="white"
+            strokeWidth="1"
+            initial={{ scale: 1, opacity: 0 }}
+            animate={phase >= 2 ? {
+              scale: [1, 1.3, 1.6],
+              opacity: [0.5, 0.25, 0],
+            } : {}}
+            transition={{
+              duration: 1.8,
+              repeat: Infinity,
+              delay: i * 0.5,
+              ease: "easeOut"
+            }}
+          />
+        ))}
+
+        {/* Pulsing center node */}
+        <motion.circle
+          cx="60"
+          cy="50"
+          r="3"
+          fill="white"
+          initial={{ opacity: 0 }}
+          animate={phase >= 1 ? {
+            opacity: [0.5, 1, 0.5],
+            scale: [1, 1.2, 1],
+          } : {}}
+          transition={{
+            duration: 1,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
       </svg>
     </motion.div>
+  );
+}
+
+// ============================================
+// App Logo - Square with V and integrated play button
+// ============================================
+function AppLogo({ size = 80 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ff0080" />
+          <stop offset="50%" stopColor="#00ffff" />
+          <stop offset="100%" stopColor="#ff0080" />
+        </linearGradient>
+      </defs>
+
+      {/* Rounded square background */}
+      <rect
+        x="5"
+        y="5"
+        width="90"
+        height="90"
+        rx="18"
+        fill="url(#logoGrad)"
+      />
+
+      {/* V shape with integrated play button */}
+      <path
+        d="M25 25 L50 70 L75 25"
+        fill="none"
+        stroke="white"
+        strokeWidth="8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Play triangle integrated in V */}
+      <path
+        d="M42 45 L58 55 L42 65 Z"
+        fill="white"
+      />
+    </svg>
   );
 }
 
@@ -258,14 +308,14 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
 
       {/* Content */}
       <div className="relative flex flex-col items-center">
-        {/* Brain animation */}
-        <BrainAnimation phase={phase} />
+        {/* Maze Brain animation */}
+        <MazeBrainAnimation phase={phase} />
 
         {/* Glitch layers */}
         <div className="relative mt-8">
           {/* Red offset - more aggressive */}
           <motion.h1
-            className="absolute text-8xl font-black"
+            className="absolute text-8xl font-black voca-font-orbitron"
             style={{
               color: 'rgba(255,0,128,0.5)',
               textShadow: '0 0 10px rgba(255,0,128,0.5)'
@@ -283,7 +333,7 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
 
           {/* Cyan offset - more aggressive */}
           <motion.h1
-            className="absolute text-8xl font-black"
+            className="absolute text-8xl font-black voca-font-orbitron"
             style={{
               color: 'rgba(0,255,255,0.5)',
               textShadow: '0 0 10px rgba(0,255,255,0.5)'
@@ -301,7 +351,7 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
 
           {/* Main text with clip effect during glitch */}
           <motion.h1
-            className="text-8xl font-black relative"
+            className="text-8xl font-black relative voca-font-orbitron"
             initial={{ opacity: 0, y: 20 }}
             animate={{
               opacity: 1,
@@ -347,7 +397,7 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
 
           {/* Tagline with glitch */}
           <motion.p
-            className="text-center mt-6 tracking-[0.3em] uppercase text-sm font-mono"
+            className="text-center mt-6 tracking-[0.3em] uppercase text-sm voca-font-orbitron"
             style={{
               color: '#00ffff',
               textShadow: '0 0 10px rgba(0,255,255,0.8)'
@@ -506,7 +556,7 @@ function WaveformMorphSplash({ onComplete }: SplashScreenProps) {
 
         {/* Logo */}
         <motion.h1
-          className="text-8xl font-black tracking-tight"
+          className="text-8xl font-black tracking-tight voca-font-orbitron"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", duration: 0.8 }}
@@ -574,7 +624,7 @@ function NeonFlickerSplash({ onComplete }: SplashScreenProps) {
       >
         {/* Neon glow layers */}
         <h1
-          className="text-9xl font-black absolute blur-2xl"
+          className="text-9xl font-black absolute blur-2xl voca-font-orbitron"
           style={{
             color: '#ff0080',
             textShadow: '0 0 80px #ff0080'
@@ -583,7 +633,7 @@ function NeonFlickerSplash({ onComplete }: SplashScreenProps) {
           VOCA
         </h1>
         <h1
-          className="text-9xl font-black absolute blur-md"
+          className="text-9xl font-black absolute blur-md voca-font-orbitron"
           style={{
             color: '#ff0080',
             textShadow: '0 0 40px #ff0080'
@@ -592,7 +642,7 @@ function NeonFlickerSplash({ onComplete }: SplashScreenProps) {
           VOCA
         </h1>
         <h1
-          className="text-9xl font-black relative"
+          className="text-9xl font-black relative voca-font-orbitron"
           style={{
             color: '#fff',
             textShadow: '0 0 10px #fff, 0 0 20px #ff0080, 0 0 40px #ff0080, 0 0 80px #ff0080'
@@ -603,7 +653,7 @@ function NeonFlickerSplash({ onComplete }: SplashScreenProps) {
 
         {/* Subtitle */}
         <motion.p
-          className="text-center mt-8 text-2xl tracking-widest"
+          className="text-center mt-8 text-2xl tracking-widest voca-font-orbitron"
           style={{
             color: '#00ffff',
             textShadow: '0 0 10px #00ffff, 0 0 20px #00ffff'
