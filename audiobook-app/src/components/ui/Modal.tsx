@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from './Button';
 
 interface ModalProps {
@@ -38,10 +39,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     xl: 'max-w-xl',
   };
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 10000 }}
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -58,7 +62,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className={`relative w-full ${sizes[size]} bg-white dark:bg-surface-900 rounded-2xl shadow-2xl overflow-hidden`}
+            className={`relative w-full ${sizes[size]} bg-white dark:bg-surface-900 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col`}
           >
             {/* Header */}
             {title && (
@@ -73,10 +77,14 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             )}
 
             {/* Content */}
-            <div className="p-6">{children}</div>
+            <div className="p-6 overflow-y-auto">{children}</div>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   );
+
+  // Render via portal to ensure it's above everything
+  if (typeof document === 'undefined') return null;
+  return createPortal(modalContent, document.body);
 }

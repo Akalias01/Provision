@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Book, PlayerState, TTSState, ReaderSettings, BookFormat } from '../types';
 
 export type ProgressFilter = 'all' | 'not_started' | 'in_progress' | 'finished';
-export type ColorTheme = 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow' | 'amber-gold' | 'rose-pink' | 'sunset-orange' | 'midnight-indigo' | 'lime-fresh';
+export type ColorTheme = 'cyber-glitch' | 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow' | 'amber-gold' | 'rose-pink' | 'sunset-orange' | 'midnight-indigo' | 'lime-fresh';
 export type LogoVariant = 'waveform' | 'headphones' | 'pulse' | 'minimal';
 export type SplashVariant = 'pulseWave' | 'glitchCyber' | 'waveformMorph' | 'neonFlicker';
 
@@ -13,7 +13,29 @@ export const colorThemes: Record<ColorTheme, {
   colors: Record<string, string>;
   logoStart: string;
   logoEnd: string;
+  logoMid?: string;
+  isMultiColor?: boolean;
 }> = {
+  'cyber-glitch': {
+    name: 'Cyber Glitch',
+    isMultiColor: true,
+    colors: {
+      '--primary-50': '#fdf2f8',
+      '--primary-100': '#fce7f3',
+      '--primary-200': '#fbcfe8',
+      '--primary-300': '#f9a8d4',
+      '--primary-400': '#f472b6',
+      '--primary-500': '#ec4899',
+      '--primary-600': '#db2777',
+      '--primary-700': '#be185d',
+      '--primary-800': '#9d174d',
+      '--primary-900': '#831843',
+      '--primary-950': '#500724',
+    },
+    logoStart: '#ff0080',
+    logoMid: '#00ffff',
+    logoEnd: '#ff0080',
+  },
   'cyber-teal': {
     name: 'Cyber Teal',
     colors: {

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useStore, colorThemes } from '../../store/useStore';
 
 interface VocaLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -226,6 +227,10 @@ function MinimalLogo({ iconSize, animated }: { iconSize: number; animated: boole
 }
 
 export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }: VocaLogoProps) {
+  const colorTheme = useStore((state) => state.colorTheme);
+  const themeConfig = colorThemes[colorTheme];
+  const isMultiColor = themeConfig?.isMultiColor;
+
   const sizes = {
     sm: { icon: 32, text: 'text-lg' },
     md: { icon: 40, text: 'text-xl' },
@@ -242,6 +247,11 @@ export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }:
     minimal: MinimalLogo,
   }[variant];
 
+  // Multi-color gradient for cyber-glitch theme
+  const gradientStyle = isMultiColor
+    ? `linear-gradient(135deg, ${themeConfig.logoStart}, ${themeConfig.logoMid}, ${themeConfig.logoEnd})`
+    : 'linear-gradient(135deg, var(--primary-400, #22d3ee), var(--primary-500, #06b6d4), var(--primary-600, #0891b2))';
+
   return (
     <div className="flex items-center gap-3">
       <LogoComponent iconSize={icon} animated={animated} />
@@ -254,7 +264,7 @@ export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }:
         <span
           className="bg-clip-text text-transparent"
           style={{
-            backgroundImage: 'linear-gradient(135deg, var(--primary-400, #22d3ee), var(--primary-500, #06b6d4), var(--primary-600, #0891b2))',
+            backgroundImage: gradientStyle,
           }}
         >
           VOCA
