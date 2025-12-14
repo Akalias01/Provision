@@ -55,9 +55,11 @@ export type EQPreset = keyof typeof EQ_PRESETS;
 
 interface EqualizerProps {
   audioRef: React.RefObject<HTMLAudioElement | null>;
+  asMenuItem?: boolean;
+  onClose?: () => void;
 }
 
-export function Equalizer({ audioRef }: EqualizerProps) {
+export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEnabled, setIsEnabled] = useState(true);
   const [currentPreset, setCurrentPreset] = useState<EQPreset>('flat');
@@ -172,20 +174,43 @@ export function Equalizer({ audioRef }: EqualizerProps) {
     applyGains(customGains);
   };
 
+  const handleOpen = () => {
+    setIsOpen(true);
+    onClose?.();
+  };
+
   return (
     <>
       {/* EQ Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsOpen(true)}
-        className={`relative ${isEnabled && currentPreset !== 'flat' ? 'text-primary-500' : ''}`}
-      >
-        <SlidersHorizontal className="w-5 h-5" />
-        {isEnabled && currentPreset !== 'flat' && (
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary-500 rounded-full" />
-        )}
-      </Button>
+      {asMenuItem ? (
+        <button
+          onClick={handleOpen}
+          className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+        >
+          <SlidersHorizontal className="w-5 h-5 text-primary-500" />
+          <div className="text-left flex-1">
+            <p className="font-medium text-surface-900 dark:text-white">Equalizer</p>
+            <p className="text-sm text-surface-500">
+              {isEnabled && currentPreset !== 'flat' ? EQ_PRESETS[currentPreset].name : 'Adjust audio frequencies'}
+            </p>
+          </div>
+          {isEnabled && currentPreset !== 'flat' && (
+            <span className="w-2 h-2 bg-primary-500 rounded-full" />
+          )}
+        </button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleOpen}
+          className={`relative ${isEnabled && currentPreset !== 'flat' ? 'text-primary-500' : ''}`}
+        >
+          <SlidersHorizontal className="w-5 h-5" />
+          {isEnabled && currentPreset !== 'flat' && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary-500 rounded-full" />
+          )}
+        </Button>
+      )}
 
       {/* EQ Modal */}
       <Modal
