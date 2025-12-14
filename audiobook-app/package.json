@@ -2,7 +2,7 @@
   "name": "rezon",
   "productName": "Rezon",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Audiobooks Reimagined. Resonate With Every Word.",
   "author": "Rezon",
   "type": "module",
@@ -26,17 +26,37 @@
       "dist/**/*",
       "electron.cjs",
       "preload.cjs",
-      "public/**/*"
+      "public/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/node-gyp/**/*",
+      "!node_modules/**/*.{o,obj,a,lib,pdb,exp,map}",
+      "!node_modules/**/{test,tests,__tests__,__mocks__}/**/*",
+      "!node_modules/**/*.md"
     ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/webtorrent/**/*",
+      "node_modules/bittorrent-*/**/*",
+      "node_modules/ut_*/**/*"
+    ],
+    "npmRebuild": false,
     "win": {
       "target": [
-        "nsis"
-      ]
+        "nsis",
+        "portable"
+      ],
+      "icon": "public/logo.svg"
+    },
+    "portable": {
+      "artifactName": "Rezon-${version}-portable.exe"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": true,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Rezon-${version}-setup.exe"
     }
   },
   "dependencies": {
@@ -61,6 +81,7 @@
     "concurrently": "^9.1.0",
     "electron": "^33.3.0",
     "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
