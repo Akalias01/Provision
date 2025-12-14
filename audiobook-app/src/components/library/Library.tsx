@@ -306,8 +306,10 @@ export function Library() {
   }, [addBook, updateBook, removeTorrent, updateTorrent]);
 
   // Shared function to start a torrent download and add book when complete
-  const startTorrentDownload = useCallback(async (torrentSource: string) => {
-    const cleanName = torrentSource
+  const startTorrentDownload = useCallback(async (torrentSource: string | Uint8Array, fileName?: string) => {
+    // Use filename if provided, otherwise extract from source
+    const displayName = fileName || (typeof torrentSource === 'string' ? torrentSource : 'Unknown Torrent');
+    const cleanName = displayName
       .replace(/\.torrent$/i, '')
       .replace(/[_-]/g, ' ')
       .replace(/\.[^/.]+$/, '')
@@ -316,7 +318,12 @@ export function Library() {
     // Use real Electron torrent API if available
     if (isElectron()) {
       try {
-        const result = await window.electronAPI!.startTorrentDownload(torrentSource);
+        // Convert Uint8Array to regular array for IPC serialization
+        const sourceForIPC = torrentSource instanceof Uint8Array
+          ? Array.from(torrentSource)
+          : torrentSource;
+
+        const result = await window.electronAPI!.startTorrentDownload(sourceForIPC, fileName);
 
         if (result.success && result.id) {
           addTorrent({ id: result.id, name: result.name || cleanName, progress: 0 });
@@ -982,13 +989,24 @@ export function Library() {
                     </div>
                     <Button
                       variant="primary"
-                      onClick={() => {
+                      onClick={async () => {
                         // Close modal immediately when download starts
                         setIsTorrentModalOpen(false);
                         setFoundTorrentFiles([]);
 
-                        // Start download using shared function
-                        startTorrentDownload(file.name);
+                        // Read the torrent file as ArrayBuffer for WebTorrent
+                        try {
+                          const arrayBuffer = await file.arrayBuffer();
+                          const buffer = new Uint8Array(arrayBuffer);
+                          // For Electron, we need to pass the buffer data
+                          // WebTorrent can accept Buffer, so we convert it
+                          startTorrentDownload(buffer as unknown as string, file.name);
+                        } catch (error) {
+                          console.error('Error reading torrent file:', error);
+                          // Fallback to blob URL
+                          const blobUrl = URL.createObjectURL(file);
+                          startTorrentDownload(blobUrl, file.name);
+                        }
                       }}
                     >
                       <Download className="w-4 h-4" />

@@ -78,7 +78,7 @@ ipcMain.handle('show-item-in-folder', async (_event, filePath) => {
   shell.showItemInFolder(filePath);
 });
 
-ipcMain.handle('torrent:start', async (_event, torrentSource) => {
+ipcMain.handle('torrent:start', async (_event, torrentSource, fileName) => {
   const client = await initTorrentClient();
 
   if (!client) {
@@ -89,8 +89,14 @@ ipcMain.handle('torrent:start', async (_event, torrentSource) => {
   const downloadsPath = getDownloadsPath();
 
   try {
+    // Convert array back to Buffer if needed (for torrent file data)
+    let source = torrentSource;
+    if (Array.isArray(torrentSource) || torrentSource instanceof Uint8Array) {
+      source = Buffer.from(torrentSource);
+    }
+
     // Add torrent
-    const torrent = client.add(torrentSource, {
+    const torrent = client.add(source, {
       path: downloadsPath,
     });
 

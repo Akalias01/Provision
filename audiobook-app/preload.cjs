@@ -2,8 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods to renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Torrent operations
-  startTorrentDownload: (torrentSource) => ipcRenderer.invoke('torrent:start', torrentSource),
+  // Torrent operations - accepts string (magnet/url) or array (torrent file bytes)
+  startTorrentDownload: (torrentSource, fileName) => ipcRenderer.invoke('torrent:start', torrentSource, fileName),
   cancelTorrentDownload: (torrentId) => ipcRenderer.invoke('torrent:cancel', torrentId),
 
   // Listen for torrent progress updates

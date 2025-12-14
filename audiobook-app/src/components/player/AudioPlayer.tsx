@@ -27,6 +27,7 @@ import {
 import { Button, Slider, Modal } from '../ui';
 import { Waveform } from './Waveform';
 import { Equalizer } from './Equalizer';
+import { Tutorial } from '../Tutorial';
 import { useStore, type SleepTimerMode } from '../../store/useStore';
 import { formatTime } from '../../utils/formatTime';
 
@@ -49,6 +50,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
   const [showChapters, setShowChapters] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showTips, setShowTips] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   const [showSpeedPicker, setShowSpeedPicker] = useState(false);
   const [showAmplifier, setShowAmplifier] = useState(false);
   const [bookmarkNote, setBookmarkNote] = useState('');
@@ -874,8 +876,24 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
               </li>
             </ul>
           </div>
+
+          {/* Interactive Tutorial Button */}
+          <Button
+            variant="primary"
+            className="w-full mt-4"
+            onClick={() => {
+              setShowTips(false);
+              setShowTutorial(true);
+            }}
+          >
+            <HelpCircle className="w-4 h-4" />
+            Start Interactive Tutorial
+          </Button>
         </div>
       </Modal>
+
+      {/* Interactive Tutorial */}
+      <Tutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
 
       {/* Sleep Timer Modal */}
       <Modal

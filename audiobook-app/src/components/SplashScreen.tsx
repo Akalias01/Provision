@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useMemo } from 'react';
 import { useStore, type SplashVariant } from '../store/useStore';
 
 interface SplashScreenProps {
@@ -8,7 +8,7 @@ interface SplashScreenProps {
 
 const TAGLINE = "Audiobooks Reimagined. Resonate With Every Word.";
 
-// Animated tagline component - letters appear from left to right
+// Animated tagline component - letters appear with glitch effect
 function AnimatedTagline({ show, className, style }: { show: boolean; className?: string; style?: React.CSSProperties }) {
   const letters = TAGLINE.split('');
 
@@ -22,32 +22,143 @@ function AnimatedTagline({ show, className, style }: { show: boolean; className?
       {letters.map((letter, index) => (
         <motion.span
           key={index}
-          initial={{ opacity: 0, y: 10 }}
-          animate={show ? { opacity: 1, y: 0 } : {}}
+          className="inline-block"
+          initial={{ opacity: 0, y: 20, rotateX: -90 }}
+          animate={show ? {
+            opacity: 1,
+            y: 0,
+            rotateX: 0,
+          } : {}}
           transition={{
-            duration: 0.03,
-            delay: index * 0.02,
+            duration: 0.05,
+            delay: index * 0.025,
             ease: "easeOut"
           }}
         >
-          {letter}
+          {letter === ' ' ? '\u00A0' : letter}
         </motion.span>
       ))}
     </motion.p>
   );
 }
 
+// Glitch text effect component
+function GlitchText({ children, className, intensity = 1 }: { children: string; className?: string; intensity?: number }) {
+  return (
+    <div className={`relative ${className}`}>
+      {/* Main text */}
+      <span className="relative z-10">{children}</span>
+
+      {/* Red channel */}
+      <motion.span
+        className="absolute inset-0 text-red-500 opacity-70"
+        style={{ mixBlendMode: 'screen' }}
+        animate={{
+          x: [0, -3 * intensity, 2 * intensity, 0, -2 * intensity, 0],
+          opacity: [0.7, 0.5, 0.8, 0.6, 0.7, 0.7],
+        }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+      >
+        {children}
+      </motion.span>
+
+      {/* Cyan channel */}
+      <motion.span
+        className="absolute inset-0 text-cyan-500 opacity-70"
+        style={{ mixBlendMode: 'screen' }}
+        animate={{
+          x: [0, 3 * intensity, -2 * intensity, 0, 2 * intensity, 0],
+          opacity: [0.7, 0.8, 0.5, 0.7, 0.6, 0.7],
+        }}
+        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2, delay: 0.1 }}
+      >
+        {children}
+      </motion.span>
+    </div>
+  );
+}
+
+// Particle system
+function Particles({ count = 50 }: { count?: number }) {
+  const particles = useMemo(() =>
+    Array.from({ length: count }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 3 + 1,
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 2,
+    })), [count]
+  );
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full bg-white"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+          }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{
+            opacity: [0, 0.8, 0],
+            scale: [0, 1, 0],
+            y: [0, -100],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            delay: p.delay,
+            ease: "easeOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// Scanlines overlay
+function Scanlines() {
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none opacity-[0.03]"
+      style={{
+        backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px)',
+      }}
+    />
+  );
+}
+
+// Noise overlay
+function Noise() {
+  return (
+    <motion.div
+      className="absolute inset-0 pointer-events-none opacity-[0.05]"
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+      }}
+      animate={{ opacity: [0.03, 0.06, 0.03] }}
+      transition={{ duration: 0.1, repeat: Infinity }}
+    />
+  );
+}
+
 // ============================================
-// OPTION 1: Minimal Elegance - Clean, sophisticated
+// OPTION 1: Pulse Wave - Clean with subtle effects
 // ============================================
-function MinimalEleganceSplash({ onComplete }: SplashScreenProps) {
+function PulseWaveSplash({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
+    const timings = [300, 800, 800, 1500];
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 300 : phase === 3 ? 1200 : 800);
+    }, timings[phase]);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
 
@@ -56,197 +167,292 @@ function MinimalEleganceSplash({ onComplete }: SplashScreenProps) {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="fixed inset-0 z-[100] bg-[#0c0c0c] flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[100] bg-[#030303] flex items-center justify-center overflow-hidden"
     >
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e]/50 via-transparent to-[#16213e]/30" />
-      </div>
+      <Particles count={30} />
+      <Scanlines />
 
-      {/* Animated lines */}
-      <motion.div
-        className="absolute left-0 right-0 h-px top-1/3"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}
-        initial={{ scaleX: 0 }}
-        animate={phase >= 1 ? { scaleX: 1 } : {}}
-        transition={{ duration: 1, ease: "easeOut" }}
-      />
-      <motion.div
-        className="absolute left-0 right-0 h-px bottom-1/3"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}
-        initial={{ scaleX: 0 }}
-        animate={phase >= 1 ? { scaleX: 1 } : {}}
-        transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-      />
-
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center">
-        {/* Logo */}
+      {/* Radial pulse rings */}
+      {phase >= 1 && [...Array(3)].map((_, i) => (
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          key={i}
+          className="absolute w-96 h-96 rounded-full border border-primary-500/20"
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: [0.5, 2.5], opacity: [0.6, 0] }}
+          transition={{ duration: 2, repeat: Infinity, delay: i * 0.6 }}
+        />
+      ))}
+
+      <div className="relative z-10 flex flex-col items-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, type: "spring" }}
         >
-          <h1 className="text-8xl font-extralight tracking-[0.3em] text-white/90 rezon-font-orbitron">
+          <h1 className="text-8xl font-bold tracking-wider rezon-font-orbitron text-white">
             REZON
           </h1>
         </motion.div>
 
-        {/* Subtle underline */}
         <motion.div
-          className="h-px w-32 mt-6 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={phase >= 1 ? { scaleX: 1, opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        />
+          className="h-1 w-48 mt-6 rounded-full overflow-hidden bg-white/10"
+          initial={{ scaleX: 0 }}
+          animate={phase >= 1 ? { scaleX: 1 } : {}}
+          transition={{ duration: 0.8 }}
+        >
+          <motion.div
+            className="h-full w-full bg-gradient-to-r from-primary-400 to-primary-600"
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+        </motion.div>
 
-        {/* Animated Tagline */}
         <div className="mt-8">
           <AnimatedTagline
             show={phase >= 2}
-            className="text-sm tracking-[0.2em] uppercase text-white/40 font-light"
+            className="text-sm tracking-[0.2em] uppercase text-white/50"
           />
         </div>
       </div>
-
-      {/* Corner accents */}
-      <motion.div
-        className="absolute top-8 left-8 w-16 h-16 border-l border-t border-white/10"
-        initial={{ opacity: 0 }}
-        animate={phase >= 1 ? { opacity: 1 } : {}}
-        transition={{ delay: 0.5 }}
-      />
-      <motion.div
-        className="absolute bottom-8 right-8 w-16 h-16 border-r border-b border-white/10"
-        initial={{ opacity: 0 }}
-        animate={phase >= 1 ? { opacity: 1 } : {}}
-        transition={{ delay: 0.5 }}
-      />
     </motion.div>
   );
 }
 
 // ============================================
-// OPTION 2: Gradient Flow - Smooth color transitions
+// OPTION 2: Glitch Cyber - HEAVY glitch effects
 // ============================================
-function GradientFlowSplash({ onComplete }: SplashScreenProps) {
+function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState(0);
+  const [glitchActive, setGlitchActive] = useState(false);
 
   useEffect(() => {
+    const timings = [200, 600, 800, 1800];
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 400 : phase === 3 ? 1200 : 900);
+    }, timings[phase]);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
+
+  // Random glitch bursts
+  useEffect(() => {
+    const glitchInterval = setInterval(() => {
+      setGlitchActive(true);
+      setTimeout(() => setGlitchActive(false), 150);
+    }, 800 + Math.random() * 1500);
+    return () => clearInterval(glitchInterval);
+  }, []);
 
   return (
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
-      className="fixed inset-0 z-[100] bg-[#050505] flex items-center justify-center overflow-hidden"
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden"
     >
-      {/* Animated gradient blobs */}
-      <motion.div
-        className="absolute w-[800px] h-[800px] rounded-full opacity-30"
-        style={{
-          background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)',
-          filter: 'blur(80px)',
-        }}
-        animate={{
-          x: [-200, 200, -200],
-          y: [-100, 100, -100],
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      />
-      <motion.div
-        className="absolute w-[600px] h-[600px] rounded-full opacity-30"
-        style={{
-          background: 'radial-gradient(circle, #ec4899 0%, transparent 70%)',
-          filter: 'blur(80px)',
-        }}
-        animate={{
-          x: [200, -200, 200],
-          y: [100, -100, 100],
-        }}
-        transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-      />
-      <motion.div
-        className="absolute w-[500px] h-[500px] rounded-full opacity-20"
-        style={{
-          background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)',
-          filter: 'blur(60px)',
-        }}
-        animate={{
-          x: [0, 150, -150, 0],
-          y: [150, -100, 100, 150],
-        }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-      />
+      <Noise />
+      <Scanlines />
+      <Particles count={60} />
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", duration: 1 }}
-        >
-          <h1 className="text-9xl font-black rezon-font-orbitron">
-            <span
-              className="bg-clip-text text-transparent"
+      {/* Glitch screen shake */}
+      <motion.div
+        className="absolute inset-0"
+        animate={glitchActive ? {
+          x: [0, -5, 5, -3, 3, 0],
+          y: [0, 3, -3, 2, -2, 0],
+        } : {}}
+        transition={{ duration: 0.15 }}
+      >
+        {/* Neon grid floor */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 perspective-[500px]">
+          <motion.div
+            className="absolute inset-0 origin-bottom"
+            style={{
+              transform: 'rotateX(60deg)',
+              backgroundImage: `
+                linear-gradient(to bottom, transparent 0%, rgba(6,182,212,0.1) 100%),
+                linear-gradient(90deg, rgba(6,182,212,0.3) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(6,182,212,0.3) 1px, transparent 1px)
+              `,
+              backgroundSize: '100% 100%, 40px 40px, 40px 40px',
+            }}
+            animate={{ backgroundPosition: ['0 0', '0 40px'] }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+        </div>
+
+        {/* Horizontal glitch bars */}
+        <AnimatePresence>
+          {glitchActive && [...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute left-0 right-0 bg-cyan-500/30"
               style={{
-                backgroundImage: 'linear-gradient(135deg, #6366f1 0%, #ec4899 50%, #06b6d4 100%)',
+                top: `${Math.random() * 100}%`,
+                height: `${Math.random() * 20 + 5}px`,
+              }}
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: [0, 1, 0] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1 }}
+            />
+          ))}
+        </AnimatePresence>
+
+        {/* RGB split flash */}
+        {glitchActive && (
+          <>
+            <motion.div
+              className="absolute inset-0 bg-red-500/10"
+              style={{ transform: 'translateX(-5px)' }}
+            />
+            <motion.div
+              className="absolute inset-0 bg-cyan-500/10"
+              style={{ transform: 'translateX(5px)' }}
+            />
+          </>
+        )}
+      </motion.div>
+
+      {/* Main content */}
+      <div className="relative z-10 flex flex-col items-center">
+        {/* Logo with intense glitch */}
+        <motion.div
+          initial={{ opacity: 0, scale: 1.5, filter: 'blur(20px)' }}
+          animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 0.5, type: "spring" }}
+          className="relative"
+        >
+          <GlitchText
+            className="text-9xl font-black rezon-font-orbitron text-white"
+            intensity={glitchActive ? 3 : 1}
+          >
+            REZON
+          </GlitchText>
+
+          {/* Neon glow */}
+          <motion.div
+            className="absolute inset-0 text-9xl font-black rezon-font-orbitron blur-xl opacity-50"
+            style={{ color: '#06b6d4' }}
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            REZON
+          </motion.div>
+
+          {/* Glitch slice effect */}
+          {glitchActive && (
+            <motion.div
+              className="absolute overflow-hidden"
+              style={{
+                top: '30%',
+                left: 0,
+                right: 0,
+                height: '20%',
+                transform: 'translateX(10px)',
               }}
             >
-              REZON
-            </span>
-          </h1>
+              <div
+                className="text-9xl font-black rezon-font-orbitron text-cyan-400"
+                style={{ marginTop: '-30%' }}
+              >
+                REZON
+              </div>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Animated bar */}
+        {/* Cyber loading bar */}
         <motion.div
-          className="h-1 w-48 mt-6 rounded-full overflow-hidden bg-white/5"
+          className="mt-8 w-64 h-2 bg-white/5 rounded overflow-hidden border border-cyan-500/30"
+          initial={{ opacity: 0, y: 20 }}
+          animate={phase >= 1 ? { opacity: 1, y: 0 } : {}}
+        >
+          <motion.div
+            className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
+            initial={{ x: '-100%' }}
+            animate={phase >= 1 ? { x: '0%' } : {}}
+            transition={{ duration: 1, ease: "easeOut" }}
+          />
+          {/* Shimmer */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 1.5, repeat: Infinity, delay: 1 }}
+          />
+        </motion.div>
+
+        {/* Status text */}
+        <motion.div
+          className="mt-4 font-mono text-xs text-cyan-500/70 tracking-wider"
           initial={{ opacity: 0 }}
           animate={phase >= 1 ? { opacity: 1 } : {}}
         >
-          <motion.div
-            className="h-full rounded-full"
-            style={{
-              background: 'linear-gradient(90deg, #6366f1, #ec4899, #06b6d4)',
-            }}
-            initial={{ x: '-100%' }}
-            animate={phase >= 1 ? { x: '0%' } : {}}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          />
+          <motion.span
+            animate={{ opacity: [1, 0, 1] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          >
+            ▶
+          </motion.span>
+          {' INITIALIZING AUDIO CORE...'}
         </motion.div>
 
-        {/* Animated Tagline */}
-        <div className="mt-8">
+        {/* Animated tagline */}
+        <div className="mt-6">
           <AnimatedTagline
             show={phase >= 2}
-            className="text-lg tracking-[0.1em] rezon-font-orbitron bg-clip-text text-transparent"
+            className="text-lg tracking-[0.15em] rezon-font-orbitron bg-clip-text text-transparent"
             style={{
-              backgroundImage: 'linear-gradient(90deg, #6366f1, #ec4899)',
+              backgroundImage: 'linear-gradient(90deg, #06b6d4, #ec4899, #06b6d4)',
+              backgroundSize: '200% 100%',
             }}
           />
         </div>
+
+        {/* Corner brackets */}
+        <motion.div
+          className="absolute -top-20 -left-20 w-16 h-16 border-l-2 border-t-2 border-cyan-500/50"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={phase >= 1 ? { opacity: 1, scale: 1 } : {}}
+        />
+        <motion.div
+          className="absolute -bottom-20 -right-20 w-16 h-16 border-r-2 border-b-2 border-pink-500/50"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={phase >= 1 ? { opacity: 1, scale: 1 } : {}}
+        />
+      </div>
+
+      {/* Side data streams */}
+      <div className="absolute left-4 top-1/4 bottom-1/4 w-px overflow-hidden">
+        <motion.div
+          className="w-full h-20 bg-gradient-to-b from-transparent via-cyan-500 to-transparent"
+          animate={{ y: ['-100%', '500%'] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+      <div className="absolute right-4 top-1/4 bottom-1/4 w-px overflow-hidden">
+        <motion.div
+          className="w-full h-20 bg-gradient-to-b from-transparent via-pink-500 to-transparent"
+          animate={{ y: ['500%', '-100%'] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        />
       </div>
     </motion.div>
   );
 }
 
 // ============================================
-// OPTION 3: Sound Wave - Audio-inspired design
+// OPTION 3: Waveform Morph - Audio visualization
 // ============================================
-function SoundWaveSplash({ onComplete }: SplashScreenProps) {
+function WaveformMorphSplash({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
+    const timings = [200, 700, 900, 1600];
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 200 : phase === 3 ? 1200 : 800);
+    }, timings[phase]);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
 
@@ -255,20 +461,31 @@ function SoundWaveSplash({ onComplete }: SplashScreenProps) {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="fixed inset-0 z-[100] bg-gradient-to-b from-[#0f172a] to-[#020617] flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[100] bg-gradient-to-b from-[#0f0f23] to-[#000011] flex items-center justify-center overflow-hidden"
     >
-      {/* Sound wave bars */}
-      <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-20">
-        {[...Array(50)].map((_, i) => (
+      <Particles count={40} />
+
+      {/* Animated waveform bars background */}
+      <div className="absolute inset-0 flex items-center justify-center gap-[2px] opacity-30">
+        {[...Array(80)].map((_, i) => (
           <motion.div
             key={i}
-            className="w-1 bg-gradient-to-t from-cyan-500 to-violet-500 rounded-full"
+            className="w-1 rounded-full"
+            style={{
+              background: `linear-gradient(to top, #06b6d4, #8b5cf6)`,
+            }}
             initial={{ height: 20 }}
             animate={phase >= 1 ? {
-              height: [20, 40 + Math.sin(i * 0.3) * 60, 20],
+              height: [
+                20,
+                40 + Math.sin(i * 0.2) * 80 + Math.random() * 40,
+                20 + Math.cos(i * 0.3) * 30,
+                40 + Math.sin(i * 0.25) * 60,
+                20,
+              ],
             } : {}}
             transition={{
-              duration: 1.5,
+              duration: 2,
               repeat: Infinity,
               delay: i * 0.02,
               ease: "easeInOut",
@@ -277,67 +494,92 @@ function SoundWaveSplash({ onComplete }: SplashScreenProps) {
         ))}
       </div>
 
-      {/* Circular pulse */}
-      {phase >= 1 && (
+      {/* Circular pulse rings */}
+      {phase >= 1 && [...Array(4)].map((_, i) => (
         <motion.div
-          className="absolute w-64 h-64 rounded-full border border-cyan-500/30"
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: 200 + i * 100,
+            height: 200 + i * 100,
+            border: '1px solid',
+            borderColor: i % 2 === 0 ? 'rgba(6,182,212,0.3)' : 'rgba(139,92,246,0.3)',
+          }}
           initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: [0.5, 1.5, 0.5], opacity: [0.5, 0, 0.5] }}
-          transition={{ duration: 3, repeat: Infinity }}
+          animate={{
+            scale: [0.8, 1.2, 0.8],
+            opacity: [0.3, 0.6, 0.3],
+            rotate: [0, 180, 360],
+          }}
+          transition={{
+            duration: 4 + i,
+            repeat: Infinity,
+            delay: i * 0.3,
+          }}
         />
-      )}
+      ))}
 
-      {/* Content */}
       <div className="relative z-10 flex flex-col items-center">
         <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          initial={{ scale: 0, opacity: 0, rotate: -10 }}
+          animate={{ scale: 1, opacity: 1, rotate: 0 }}
           transition={{ type: "spring", duration: 0.8 }}
         >
           <h1
             className="text-8xl font-bold rezon-font-orbitron"
             style={{
-              background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
+              background: 'linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #ec4899 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 0 40px rgba(6,182,212,0.3))',
+              filter: 'drop-shadow(0 0 60px rgba(139,92,246,0.5))',
             }}
           >
             REZON
           </h1>
         </motion.div>
 
-        {/* Waveform line */}
+        {/* Animated waveform SVG */}
         <motion.svg
-          width="200"
-          height="40"
-          viewBox="0 0 200 40"
-          className="mt-4"
+          width="300"
+          height="60"
+          viewBox="0 0 300 60"
+          className="mt-6"
           initial={{ opacity: 0 }}
           animate={phase >= 1 ? { opacity: 1 } : {}}
         >
-          <motion.path
-            d="M0,20 Q25,5 50,20 T100,20 T150,20 T200,20"
-            fill="none"
-            stroke="url(#waveGradient)"
-            strokeWidth="2"
-            initial={{ pathLength: 0 }}
-            animate={phase >= 1 ? { pathLength: 1 } : {}}
-            transition={{ duration: 1 }}
-          />
           <defs>
-            <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#06b6d4" />
-              <stop offset="100%" stopColor="#8b5cf6" />
+              <stop offset="50%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#ec4899" />
             </linearGradient>
           </defs>
+          <motion.path
+            d="M0,30 Q37.5,10 75,30 T150,30 T225,30 T300,30"
+            fill="none"
+            stroke="url(#waveGrad)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            initial={{ pathLength: 0 }}
+            animate={phase >= 1 ? {
+              pathLength: 1,
+              d: [
+                "M0,30 Q37.5,10 75,30 T150,30 T225,30 T300,30",
+                "M0,30 Q37.5,50 75,30 T150,30 T225,30 T300,30",
+                "M0,30 Q37.5,10 75,30 T150,30 T225,30 T300,30",
+              ]
+            } : {}}
+            transition={{
+              pathLength: { duration: 1 },
+              d: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+            }}
+          />
         </motion.svg>
 
-        {/* Animated Tagline */}
         <div className="mt-6">
           <AnimatedTagline
             show={phase >= 2}
-            className="text-lg tracking-[0.1em] text-cyan-400/80 rezon-font-orbitron"
+            className="text-lg tracking-[0.1em] text-violet-300/80 rezon-font-orbitron"
           />
         </div>
       </div>
@@ -346,100 +588,136 @@ function SoundWaveSplash({ onComplete }: SplashScreenProps) {
 }
 
 // ============================================
-// OPTION 4: Luxe Dark - Premium dark aesthetic
+// OPTION 4: Neon Flicker - Retro neon aesthetic
 // ============================================
-function LuxeDarkSplash({ onComplete }: SplashScreenProps) {
+function NeonFlickerSplash({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState(0);
+  const [flicker, setFlicker] = useState(false);
 
   useEffect(() => {
+    const timings = [300, 700, 900, 1600];
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 300 : phase === 3 ? 1200 : 900);
+    }, timings[phase]);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
+
+  // Neon flicker effect
+  useEffect(() => {
+    const flickerInterval = setInterval(() => {
+      setFlicker(true);
+      setTimeout(() => setFlicker(false), 50 + Math.random() * 100);
+    }, 2000 + Math.random() * 3000);
+    return () => clearInterval(flickerInterval);
+  }, []);
 
   return (
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[100] bg-[#0a0a0a] flex items-center justify-center overflow-hidden"
     >
-      {/* Gold accent lighting */}
+      <Scanlines />
+      <Noise />
+
+      {/* Ambient glow */}
       <motion.div
-        className="absolute w-full h-1/2 top-0"
+        className="absolute w-[600px] h-[600px] rounded-full"
         style={{
-          background: 'radial-gradient(ellipse 50% 100% at 50% 0%, rgba(251,191,36,0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%)',
+          filter: 'blur(60px)',
         }}
-        animate={{ opacity: [0.5, 0.8, 0.5] }}
-        transition={{ duration: 4, repeat: Infinity }}
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: flicker ? 0.3 : [0.4, 0.6, 0.4],
+        }}
+        transition={{ duration: 3, repeat: Infinity }}
       />
 
-      {/* Subtle grid */}
-      <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(251,191,36,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(251,191,36,0.5) 1px, transparent 1px)',
-          backgroundSize: '100px 100px',
-        }}
-      />
-
-      {/* Content */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Logo with gold accent */}
+        {/* Neon sign effect */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
           className="relative"
         >
-          <h1 className="text-8xl font-bold rezon-font-orbitron text-white">
-            REZON
-          </h1>
-          {/* Gold shimmer effect */}
-          <motion.div
-            className="absolute inset-0 text-8xl font-bold rezon-font-orbitron bg-clip-text text-transparent"
+          <h1
+            className="text-9xl font-black rezon-font-orbitron"
             style={{
-              backgroundImage: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4), transparent)',
-              backgroundSize: '200% 100%',
+              color: flicker ? 'rgba(236,72,153,0.3)' : '#ec4899',
+              textShadow: flicker ? 'none' : `
+                0 0 10px #ec4899,
+                0 0 20px #ec4899,
+                0 0 40px #ec4899,
+                0 0 80px #ec4899,
+                0 0 120px rgba(236,72,153,0.5)
+              `,
+              transition: 'all 0.05s',
             }}
-            animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
           >
             REZON
-          </motion.div>
+          </h1>
+
+          {/* Double stroke effect */}
+          <div
+            className="absolute inset-0 text-9xl font-black rezon-font-orbitron"
+            style={{
+              WebkitTextStroke: '2px rgba(6,182,212,0.5)',
+              color: 'transparent',
+              transform: 'translate(2px, 2px)',
+            }}
+          >
+            REZON
+          </div>
         </motion.div>
 
-        {/* Gold line */}
+        {/* Neon underline */}
         <motion.div
-          className="h-px w-40 mt-6"
-          style={{ background: 'linear-gradient(90deg, transparent, #fbbf24, transparent)' }}
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={phase >= 1 ? { scaleX: 1, opacity: 1 } : {}}
+          className="h-1 w-64 mt-8 rounded-full"
+          style={{
+            background: flicker ? 'rgba(6,182,212,0.2)' : '#06b6d4',
+            boxShadow: flicker ? 'none' : '0 0 20px #06b6d4, 0 0 40px #06b6d4',
+          }}
+          initial={{ scaleX: 0 }}
+          animate={phase >= 1 ? { scaleX: 1 } : {}}
           transition={{ duration: 0.8 }}
         />
 
-        {/* Animated Tagline */}
         <div className="mt-8">
           <AnimatedTagline
             show={phase >= 2}
-            className="text-sm tracking-[0.2em] uppercase text-amber-500/60 font-light"
+            className="text-lg tracking-[0.15em] text-pink-400/80 rezon-font-orbitron"
+            style={{
+              textShadow: '0 0 10px rgba(236,72,153,0.5)',
+            }}
           />
         </div>
 
-        {/* Decorative dots */}
+        {/* Decorative elements */}
         <motion.div
-          className="flex gap-2 mt-6"
+          className="flex gap-4 mt-8"
           initial={{ opacity: 0 }}
           animate={phase >= 2 ? { opacity: 1 } : {}}
         >
-          {[0, 1, 2].map((i) => (
+          {[...Array(5)].map((_, i) => (
             <motion.div
               key={i}
-              className="w-1 h-1 rounded-full bg-amber-500/40"
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+              className="w-2 h-2 rounded-full bg-cyan-400"
+              style={{
+                boxShadow: '0 0 10px #06b6d4',
+              }}
+              animate={{
+                opacity: [0.5, 1, 0.5],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{
+                duration: 1,
+                repeat: Infinity,
+                delay: i * 0.2,
+              }}
             />
           ))}
         </motion.div>
@@ -450,10 +728,10 @@ function LuxeDarkSplash({ onComplete }: SplashScreenProps) {
 
 // Map variant names to components
 const splashComponents: Record<SplashVariant, React.ComponentType<SplashScreenProps>> = {
-  pulseWave: MinimalEleganceSplash,
-  glitchCyber: GradientFlowSplash,
-  waveformMorph: SoundWaveSplash,
-  neonFlicker: LuxeDarkSplash,
+  pulseWave: PulseWaveSplash,
+  glitchCyber: GlitchCyberSplash,
+  waveformMorph: WaveformMorphSplash,
+  neonFlicker: NeonFlickerSplash,
 };
 
 // ============================================
@@ -461,7 +739,7 @@ const splashComponents: Record<SplashVariant, React.ComponentType<SplashScreenPr
 // ============================================
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const splashVariant = useStore((state) => state.splashVariant);
-  const SplashComponent = splashComponents[splashVariant] || GradientFlowSplash;
+  const SplashComponent = splashComponents[splashVariant] || GlitchCyberSplash;
 
   return <SplashComponent onComplete={onComplete} />;
 }

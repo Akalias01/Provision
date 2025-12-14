@@ -30,8 +30,8 @@ interface TorrentStartResult {
 }
 
 interface ElectronAPI {
-  // Torrent operations
-  startTorrentDownload: (torrentSource: string) => Promise<TorrentStartResult>;
+  // Torrent operations - accepts string (magnet/url) or number[] (torrent file bytes)
+  startTorrentDownload: (torrentSource: string | number[], fileName?: string) => Promise<TorrentStartResult>;
   cancelTorrentDownload: (torrentId: string) => Promise<{ success: boolean; error?: string }>;
 
   // Torrent event listeners

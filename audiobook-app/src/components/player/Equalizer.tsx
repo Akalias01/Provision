@@ -174,9 +174,15 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
     applyGains(customGains);
   };
 
-  const handleOpen = () => {
-    setIsOpen(true);
+  const handleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // Close parent menu first, then open EQ modal after a brief delay
+    // This prevents the parent modal's closing animation from interfering
     onClose?.();
+    setTimeout(() => {
+      setIsOpen(true);
+    }, 50);
   };
 
   return (
