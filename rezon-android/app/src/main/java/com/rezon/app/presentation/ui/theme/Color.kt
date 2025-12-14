@@ -4,54 +4,62 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * REZON Color Palette
- * 3D/Futuristic Cyberpunk Theme - Neon Purples & Deep Blues
+ * Cyberpunk/Futuristic Theme - Neon Purples & Electric Blues
  */
 
-// Primary - Neon Purple/Violet
-val PrimaryLight = Color(0xFF8B5CF6)      // Vibrant purple
-val PrimaryDark = Color(0xFFA78BFA)       // Lighter for dark theme
-val PrimaryContainer = Color(0xFF2E1065)  // Deep purple container
+// ==================== PRIMARY COLORS ====================
+// Primary - Neon Purple
+val RezonPurple = Color(0xFF7F00FF)           // Main brand color
+val RezonPurpleLight = Color(0xFFA855F7)      // Lighter purple
+val RezonPurpleDark = Color(0xFF5B21B6)       // Darker purple
+val RezonPurpleContainer = Color(0xFF2E1065)  // Container background
 
-// Secondary - Electric Blue
-val SecondaryLight = Color(0xFF3B82F6)    // Electric blue
-val SecondaryDark = Color(0xFF60A5FA)     // Lighter blue
-val SecondaryContainer = Color(0xFF1E3A5F)
+// Secondary - Electric Cyan/Blue
+val RezonCyan = Color(0xFF00E5FF)             // Electric blue/cyan
+val RezonCyanLight = Color(0xFF67FFFF)        // Lighter cyan
+val RezonCyanDark = Color(0xFF00B4D8)         // Darker cyan
+val RezonCyanContainer = Color(0xFF083344)    // Container background
 
-// Tertiary - Neon Cyan
-val TertiaryLight = Color(0xFF06B6D4)     // Cyan accent
-val TertiaryDark = Color(0xFF22D3EE)
-val TertiaryContainer = Color(0xFF083344)
+// ==================== BACKGROUND & SURFACE ====================
+// Background - Deep Black/Blue
+val RezonBackground = Color(0xFF0D0D15)       // Main app background
+val RezonBackgroundVariant = Color(0xFF0A0A0F) // Darker variant
 
-// Accent - Hot Pink (for important actions)
-val AccentPink = Color(0xFFEC4899)
-val AccentPinkLight = Color(0xFFF472B6)
+// Surface - Dark Gray for cards
+val RezonSurface = Color(0xFF1E1E26)          // Card backgrounds
+val RezonSurfaceVariant = Color(0xFF2A2A35)   // Elevated surfaces
+val RezonSurfaceLight = Color(0xFF35354A)     // Lighter surface
 
-// Background Colors (Deep space theme)
-val BackgroundDark = Color(0xFF0A0A0F)     // Almost black with blue tint
-val BackgroundLight = Color(0xFFF8FAFC)
-val SurfaceDark = Color(0xFF12121A)        // Slightly lighter for cards
-val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceVariantDark = Color(0xFF1A1A24) // For elevated surfaces
-val SurfaceVariantLight = Color(0xFFF1F5F9)
+// ==================== TEXT COLORS ====================
+val RezonOnBackground = Color(0xFFF1F5F9)     // Primary text on background
+val RezonOnSurface = Color(0xFFE2E8F0)        // Primary text on surface
+val RezonOnSurfaceVariant = Color(0xFF94A3B8) // Secondary/muted text
+val RezonOnPrimary = Color(0xFFFFFFFF)        // Text on primary color
 
-// Text Colors
-val OnBackgroundDark = Color(0xFFF1F5F9)
-val OnBackgroundLight = Color(0xFF0F172A)
-val OnSurfaceDark = Color(0xFFE2E8F0)
-val OnSurfaceLight = Color(0xFF1E293B)
-val OnSurfaceVariant = Color(0xFF94A3B8)   // Muted text
+// ==================== ACCENT COLORS ====================
+val RezonAccentPink = Color(0xFFEC4899)       // Hot pink for CTAs
+val RezonAccentGreen = Color(0xFF22C55E)      // Success/online
+val RezonAccentOrange = Color(0xFFF59E0B)     // Warning
+val RezonAccentRed = Color(0xFFEF4444)        // Error/danger
 
-// Status Colors
-val Success = Color(0xFF22C55E)
-val Warning = Color(0xFFF59E0B)
-val Error = Color(0xFFEF4444)
-
-// Player specific colors
+// ==================== PLAYER SPECIFIC ====================
 val PlayerGradientStart = Color(0xFF1A1A2E)
-val PlayerGradientEnd = Color(0xFF0F0F1A)
+val PlayerGradientEnd = Color(0xFF0D0D15)
 val ProgressTrack = Color(0xFF334155)
-val ProgressFill = Color(0xFF8B5CF6)
+val ProgressFill = Color(0xFF7F00FF)
+val ProgressBuffer = Color(0xFF4C1D95)
 
-// Glow effects for cyberpunk aesthetic
-val NeonGlow = Color(0x408B5CF6)           // Purple glow with alpha
-val CyanGlow = Color(0x4006B6D4)           // Cyan glow
+// ==================== GLOW EFFECTS ====================
+val NeonPurpleGlow = Color(0x407F00FF)        // Purple glow with alpha
+val NeonCyanGlow = Color(0x4000E5FF)          // Cyan glow with alpha
+
+// ==================== DRAWER & NAVIGATION ====================
+val DrawerBackground = Color(0xFF0D0D15)
+val DrawerItemSelected = Color(0xFF2E1065)
+val DrawerItemHover = Color(0xFF1E1E26)
+
+// ==================== UTILITY ====================
+val Transparent = Color.Transparent
+val Black = Color.Black
+val White = Color.White
+val DividerColor = Color(0xFF2A2A35)

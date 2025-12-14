@@ -1,149 +1,156 @@
 package com.rezon.app.presentation.ui.theme
 
 import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 /**
- * REZON Theme
- * Cyberpunk/Futuristic aesthetic with neon purples and deep blues
+ * REZON Dark Color Scheme
+ * Cyberpunk aesthetic with neon purples and electric blues
+ *
+ * Background: #0D0D15 (Deep Black/Blue)
+ * Primary: #7F00FF (Neon Purple)
+ * Secondary: #00E5FF (Cyan/Electric Blue)
+ * Surface: #1E1E26 (Dark Gray for cards)
  */
-
-private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryDark,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryContainer,
+private val RezonDarkColorScheme = darkColorScheme(
+    // Primary - Neon Purple
+    primary = RezonPurple,
+    onPrimary = RezonOnPrimary,
+    primaryContainer = RezonPurpleContainer,
     onPrimaryContainer = Color.White,
 
-    secondary = SecondaryDark,
-    onSecondary = Color.White,
-    secondaryContainer = SecondaryContainer,
-    onSecondaryContainer = Color.White,
+    // Secondary - Electric Cyan
+    secondary = RezonCyan,
+    onSecondary = Color.Black,
+    secondaryContainer = RezonCyanContainer,
+    onSecondaryContainer = RezonCyan,
 
-    tertiary = TertiaryDark,
+    // Tertiary - Accent Pink
+    tertiary = RezonAccentPink,
     onTertiary = Color.White,
-    tertiaryContainer = TertiaryContainer,
-    onTertiaryContainer = Color.White,
+    tertiaryContainer = Color(0xFF4A1942),
+    onTertiaryContainer = RezonAccentPink,
 
-    background = BackgroundDark,
-    onBackground = OnBackgroundDark,
+    // Background - Deep Black/Blue
+    background = RezonBackground,
+    onBackground = RezonOnBackground,
 
-    surface = SurfaceDark,
-    onSurface = OnSurfaceDark,
-    surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = OnSurfaceVariant,
+    // Surface - Dark Gray for cards
+    surface = RezonSurface,
+    onSurface = RezonOnSurface,
+    surfaceVariant = RezonSurfaceVariant,
+    onSurfaceVariant = RezonOnSurfaceVariant,
 
-    error = Error,
+    // Error
+    error = RezonAccentRed,
     onError = Color.White,
+    errorContainer = Color(0xFF4A1414),
+    onErrorContainer = RezonAccentRed,
 
-    outline = Color(0xFF334155),
-    outlineVariant = Color(0xFF1E293B),
+    // Outline
+    outline = DividerColor,
+    outlineVariant = Color(0xFF1E1E26),
 
-    scrim = Color.Black.copy(alpha = 0.6f)
+    // Inverse
+    inverseSurface = Color(0xFFE2E8F0),
+    inverseOnSurface = RezonBackground,
+    inversePrimary = RezonPurpleDark,
+
+    // Scrim
+    scrim = Color.Black.copy(alpha = 0.7f),
+
+    // Surface tint
+    surfaceTint = RezonPurple
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = PrimaryLight,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEDE9FE),
-    onPrimaryContainer = PrimaryContainer,
-
-    secondary = SecondaryLight,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDBEAFE),
-    onSecondaryContainer = SecondaryContainer,
-
-    tertiary = TertiaryLight,
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFCFFAFE),
-    onTertiaryContainer = TertiaryContainer,
-
-    background = BackgroundLight,
-    onBackground = OnBackgroundLight,
-
-    surface = SurfaceLight,
-    onSurface = OnSurfaceLight,
-    surfaceVariant = SurfaceVariantLight,
-    onSurfaceVariant = Color(0xFF64748B),
-
-    error = Error,
-    onError = Color.White,
-
-    outline = Color(0xFFCBD5E1),
-    outlineVariant = Color(0xFFE2E8F0),
-
-    scrim = Color.Black.copy(alpha = 0.4f)
+/**
+ * Extended colors for REZON that aren't in Material 3
+ * Access via RezonTheme.colors or LocalRezonColors.current
+ */
+data class RezonExtendedColors(
+    val neonPurple: Color = RezonPurple,
+    val neonCyan: Color = RezonCyan,
+    val accentPink: Color = RezonAccentPink,
+    val success: Color = RezonAccentGreen,
+    val warning: Color = RezonAccentOrange,
+    val error: Color = RezonAccentRed,
+    val neonPurpleGlow: Color = NeonPurpleGlow,
+    val neonCyanGlow: Color = NeonCyanGlow,
+    val progressTrack: Color = ProgressTrack,
+    val progressFill: Color = ProgressFill,
+    val progressBuffer: Color = ProgressBuffer,
+    val playerGradientStart: Color = PlayerGradientStart,
+    val playerGradientEnd: Color = PlayerGradientEnd,
+    val drawerBackground: Color = DrawerBackground,
+    val drawerItemSelected: Color = DrawerItemSelected,
+    val drawerItemHover: Color = DrawerItemHover,
+    val divider: Color = DividerColor
 )
 
+val LocalRezonColors = staticCompositionLocalOf { RezonExtendedColors() }
+
+/**
+ * REZON Theme
+ *
+ * Always uses dark theme for the cyberpunk aesthetic.
+ * Edge-to-edge display with transparent system bars.
+ *
+ * @param content The composable content to be themed
+ */
 @Composable
 fun RezonTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // REZON always uses custom theme, not dynamic colors
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = RezonDarkColorScheme
+    val extendedColors = RezonExtendedColors()
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
 
-            // Edge-to-edge: draw behind system bars
+            // Edge-to-edge display - draw behind system bars
             WindowCompat.setDecorFitsSystemWindows(window, false)
 
-            // Make status bar transparent
+            // Transparent system bars for immersive experience
             window.statusBarColor = Color.Transparent.toArgb()
             window.navigationBarColor = Color.Transparent.toArgb()
 
-            // Set status bar icons color based on theme
+            // Light icons on dark background (dark theme = false for light icons)
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
             }
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = RezonTypography,
-        content = content
-    )
+    CompositionLocalProvider(
+        LocalRezonColors provides extendedColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = RezonTypography,
+            content = content
+        )
+    }
 }
 
 /**
- * Extended colors not in Material 3 scheme
- * Access via LocalRezonColors.current
+ * Access extended REZON colors from composables
+ *
+ * Usage: RezonTheme.colors.neonPurple
  */
-data class RezonColors(
-    val accentPink: Color = AccentPink,
-    val success: Color = Success,
-    val warning: Color = Warning,
-    val neonGlow: Color = NeonGlow,
-    val cyanGlow: Color = CyanGlow,
-    val playerGradientStart: Color = PlayerGradientStart,
-    val playerGradientEnd: Color = PlayerGradientEnd,
-    val progressTrack: Color = ProgressTrack,
-    val progressFill: Color = ProgressFill
-)
-
-val LocalRezonColors = androidx.compose.runtime.staticCompositionLocalOf { RezonColors() }
+object RezonTheme {
+    val colors: RezonExtendedColors
+        @Composable
+        get() = LocalRezonColors.current
+}
