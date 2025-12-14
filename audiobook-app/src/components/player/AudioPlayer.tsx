@@ -30,6 +30,7 @@ import { Equalizer, setAmplifierGain, resumeAudioContext } from './Equalizer';
 import { Tutorial } from '../Tutorial';
 import { useStore, type SleepTimerMode } from '../../store/useStore';
 import { formatTime } from '../../utils/formatTime';
+import { updateMediaMetadata, updatePlaybackState, isAndroid } from '../../utils/mediaControl';
 
 interface AudioPlayerProps {
   onBack?: () => void;
@@ -202,6 +203,25 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       audioRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate]);
+
+  // Android Auto: Update media metadata when book changes
+  useEffect(() => {
+    if (isAndroid() && currentBook) {
+      updateMediaMetadata(
+        currentBook.title,
+        currentBook.author || 'Unknown Author',
+        currentBook.cover,
+        duration
+      );
+    }
+  }, [currentBook?.id, currentBook?.title, currentBook?.author, currentBook?.cover, duration]);
+
+  // Android Auto: Update playback state when playing/pausing
+  useEffect(() => {
+    if (isAndroid()) {
+      updatePlaybackState(isPlaying, currentTime, playbackRate);
+    }
+  }, [isPlaying, playbackRate]);
 
   // Sleep timer countdown
   useEffect(() => {
