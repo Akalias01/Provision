@@ -89,6 +89,14 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
 
   const menuItems = [
     {
+      id: 'downloads',
+      icon: Download,
+      label: 'Downloads',
+      description: activeTorrents.length > 0 ? `${activeTorrents.length} active` : 'View download progress',
+      onClick: () => {}, // Just shows the section below
+      hasContent: true, // Flag to show downloads section
+    },
+    {
       id: 'folders',
       icon: FolderOpen,
       label: t('scanFolders'),
@@ -232,19 +240,24 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
                 ))}
               </div>
 
-              {/* Downloads Section */}
-              {activeTorrents.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-6 pt-4 border-t border-surface-200 dark:border-surface-700"
-                >
-                  <h3 className="flex items-center gap-2 px-4 mb-3 text-sm font-semibold text-surface-500 uppercase tracking-wider">
-                    <Download className="w-4 h-4" />
-                    Active Downloads
-                  </h3>
-                  <div className="space-y-2">
-                    {activeTorrents.map((torrent) => {
+              {/* Downloads Section - Always visible */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 pt-4 border-t border-surface-200 dark:border-surface-700"
+              >
+                <h3 className="flex items-center gap-2 px-4 mb-3 text-sm font-semibold text-surface-500 uppercase tracking-wider">
+                  <Download className="w-4 h-4" />
+                  Downloads
+                </h3>
+                <div className="space-y-2 px-2">
+                  {activeTorrents.length === 0 ? (
+                    <div className="p-4 text-center text-surface-400 text-sm">
+                      <p>No active downloads</p>
+                      <p className="text-xs mt-1">Select a torrent file to start</p>
+                    </div>
+                  ) : (
+                    activeTorrents.map((torrent) => {
                       const circumference = 2 * Math.PI * 18; // radius 18
                       const strokeDashoffset = circumference - (torrent.progress / 100) * circumference;
                       const isComplete = torrent.progress >= 100;
@@ -307,10 +320,10 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
                           </div>
                         </motion.div>
                       );
-                    })}
-                  </div>
-                </motion.div>
-              )}
+                    })
+                  )}
+                </div>
+              </motion.div>
             </nav>
 
             {/* Footer */}

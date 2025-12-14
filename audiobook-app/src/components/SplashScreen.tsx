@@ -42,80 +42,134 @@ function AnimatedTagline({ show, className, style }: { show: boolean; className?
   );
 }
 
-// HEAVY Glitch text effect component - TV station style
+// EXTREME Glitch text effect - THE TEXT ITSELF GLITCHES HEAVILY
 function GlitchText({ children, className, intensity = 1, isGlitching = false }: { children: string; className?: string; intensity?: number; isGlitching?: boolean }) {
-  const baseIntensity = isGlitching ? intensity * 4 : intensity;
+  const glitchAmount = isGlitching ? intensity * 8 : 2;
 
   return (
     <div className={`relative ${className}`}>
-      {/* Main text with subtle constant shift */}
+      {/* Main text - shakes and distorts during glitch */}
       <motion.span
-        className="relative z-10"
+        className="relative z-10 inline-block"
         animate={isGlitching ? {
-          x: [0, -2, 3, -1, 0],
-          y: [0, 1, -1, 2, 0],
+          x: [0, -8, 12, -6, 4, -10, 0],
+          y: [0, 4, -6, 3, -2, 5, 0],
+          skewX: [0, 3, -5, 2, -3, 4, 0],
+          scaleX: [1, 1.02, 0.97, 1.03, 0.98, 1],
+        } : {
+          x: [0, -1, 1, 0],
+        }}
+        transition={{
+          duration: isGlitching ? 0.12 : 2,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+      >
+        {children}
+      </motion.span>
+
+      {/* RED channel - VERY visible offset */}
+      <motion.span
+        className="absolute inset-0 inline-block"
+        style={{
+          color: '#ff0040',
+          mixBlendMode: 'screen',
+        }}
+        animate={{
+          x: isGlitching
+            ? [0, -glitchAmount * 2, glitchAmount * 1.5, -glitchAmount, glitchAmount * 2, 0]
+            : [0, -3, 2, -1, 0],
+          y: isGlitching ? [0, 3, -4, 2, -3, 0] : [0],
+          opacity: isGlitching ? [0.8, 1, 0.6, 1, 0.7, 0.8] : [0.5, 0.3, 0.6, 0.5],
+          skewX: isGlitching ? [0, 8, -6, 10, -4, 0] : [0],
+        }}
+        transition={{
+          duration: isGlitching ? 0.1 : 0.4,
+          repeat: Infinity,
+          repeatDelay: isGlitching ? 0 : 1
+        }}
+      >
+        {children}
+      </motion.span>
+
+      {/* CYAN/BLUE channel - opposite direction */}
+      <motion.span
+        className="absolute inset-0 inline-block"
+        style={{
+          color: '#00ffff',
+          mixBlendMode: 'screen',
+        }}
+        animate={{
+          x: isGlitching
+            ? [0, glitchAmount * 2, -glitchAmount * 1.5, glitchAmount, -glitchAmount * 2, 0]
+            : [0, 3, -2, 1, 0],
+          y: isGlitching ? [0, -3, 4, -2, 3, 0] : [0],
+          opacity: isGlitching ? [0.8, 0.6, 1, 0.7, 1, 0.8] : [0.5, 0.6, 0.3, 0.5],
+          skewX: isGlitching ? [0, -8, 6, -10, 4, 0] : [0],
+        }}
+        transition={{
+          duration: isGlitching ? 0.1 : 0.4,
+          repeat: Infinity,
+          repeatDelay: isGlitching ? 0 : 1,
+          delay: 0.02
+        }}
+      >
+        {children}
+      </motion.span>
+
+      {/* GREEN channel for extra chromatic split */}
+      <motion.span
+        className="absolute inset-0 inline-block"
+        style={{
+          color: '#00ff00',
+          mixBlendMode: 'screen',
+          opacity: isGlitching ? 0.6 : 0,
+        }}
+        animate={isGlitching ? {
+          x: [0, glitchAmount, -glitchAmount * 1.5, glitchAmount * 0.5, 0],
+          y: [0, -5, 3, -2, 0],
+          opacity: [0.4, 0.7, 0.3, 0.6, 0.4],
         } : {}}
-        transition={{ duration: 0.1 }}
+        transition={{ duration: 0.08, repeat: Infinity }}
       >
         {children}
       </motion.span>
 
-      {/* Red channel - more aggressive */}
-      <motion.span
-        className="absolute inset-0 text-red-500"
-        style={{ mixBlendMode: 'screen', opacity: isGlitching ? 0.9 : 0.6 }}
-        animate={{
-          x: isGlitching
-            ? [0, -8 * baseIntensity, 6 * baseIntensity, -10 * baseIntensity, 4 * baseIntensity, 0]
-            : [0, -2 * intensity, 1 * intensity, 0],
-          y: isGlitching ? [0, 2, -3, 1, 0] : [0],
-          opacity: isGlitching ? [0.9, 1, 0.7, 1, 0.9] : [0.6, 0.4, 0.7, 0.6],
-          skewX: isGlitching ? [0, 5, -3, 8, 0] : [0],
-        }}
-        transition={{ duration: isGlitching ? 0.15 : 0.3, repeat: Infinity, repeatDelay: isGlitching ? 0 : 1.5 }}
-      >
-        {children}
-      </motion.span>
-
-      {/* Cyan channel - more aggressive */}
-      <motion.span
-        className="absolute inset-0 text-cyan-500"
-        style={{ mixBlendMode: 'screen', opacity: isGlitching ? 0.9 : 0.6 }}
-        animate={{
-          x: isGlitching
-            ? [0, 8 * baseIntensity, -6 * baseIntensity, 10 * baseIntensity, -4 * baseIntensity, 0]
-            : [0, 2 * intensity, -1 * intensity, 0],
-          y: isGlitching ? [0, -2, 3, -1, 0] : [0],
-          opacity: isGlitching ? [0.9, 0.7, 1, 0.8, 0.9] : [0.6, 0.7, 0.4, 0.6],
-          skewX: isGlitching ? [0, -5, 3, -8, 0] : [0],
-        }}
-        transition={{ duration: isGlitching ? 0.15 : 0.3, repeat: Infinity, repeatDelay: isGlitching ? 0 : 1.5, delay: 0.05 }}
-      >
-        {children}
-      </motion.span>
-
-      {/* Green channel - extra layer for intense glitch */}
+      {/* Glitch "clone" that appears offset during heavy glitch */}
       {isGlitching && (
-        <motion.span
-          className="absolute inset-0 text-green-500"
-          style={{ mixBlendMode: 'screen', opacity: 0.5 }}
-          animate={{
-            x: [0, 5 * baseIntensity, -7 * baseIntensity, 3 * baseIntensity, 0],
-            y: [0, -1, 2, -2, 0],
-            scaleX: [1, 1.02, 0.98, 1.01, 1],
-          }}
-          transition={{ duration: 0.12, repeat: Infinity }}
-        >
-          {children}
-        </motion.span>
+        <>
+          <motion.span
+            className="absolute inset-0 inline-block text-white/60"
+            animate={{
+              x: [20, -30, 15, -25, 20],
+              y: [0, 5, -3, 2, 0],
+              opacity: [0, 0.7, 0, 0.5, 0],
+              scaleY: [1, 1.1, 0.9, 1.05, 1],
+            }}
+            transition={{ duration: 0.15, repeat: Infinity }}
+          >
+            {children}
+          </motion.span>
+          <motion.span
+            className="absolute inset-0 inline-block text-pink-500/50"
+            animate={{
+              x: [-25, 35, -20, 30, -25],
+              y: [0, -4, 2, -3, 0],
+              opacity: [0, 0.6, 0, 0.4, 0],
+            }}
+            transition={{ duration: 0.12, repeat: Infinity, delay: 0.05 }}
+          >
+            {children}
+          </motion.span>
+        </>
       )}
 
-      {/* White flash overlay during glitch */}
+      {/* Flickering white flash on text */}
       {isGlitching && (
         <motion.span
-          className="absolute inset-0 text-white"
+          className="absolute inset-0 inline-block text-white"
           animate={{
-            opacity: [0, 0.3, 0, 0.5, 0, 0.2, 0],
+            opacity: [0, 0.8, 0, 0.5, 0, 0.9, 0, 0.3, 0],
           }}
           transition={{ duration: 0.2, repeat: Infinity }}
         >

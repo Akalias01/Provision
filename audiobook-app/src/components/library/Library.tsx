@@ -305,40 +305,11 @@ export function Library() {
     };
   }, [addBook, updateBook, removeTorrent, updateTorrent]);
 
-  // Shared function to start a torrent download and add book when complete
-  const startTorrentDownload = useCallback(async (torrentSource: string | Uint8Array, fileName?: string) => {
-    // Use filename if provided, otherwise extract from source
-    const displayName = fileName || (typeof torrentSource === 'string' ? torrentSource : 'Unknown Torrent');
-    const cleanName = displayName
-      .replace(/\.torrent$/i, '')
-      .replace(/[_-]/g, ' ')
-      .replace(/\.[^/.]+$/, '')
-      .slice(0, 100);
-
-    // Use real Electron torrent API if available
-    if (isElectron()) {
-      try {
-        // Convert Uint8Array to regular array for IPC serialization
-        const sourceForIPC = torrentSource instanceof Uint8Array
-          ? Array.from(torrentSource)
-          : torrentSource;
-
-        const result = await window.electronAPI!.startTorrentDownload(sourceForIPC, fileName);
-
-        if (result.success && result.id) {
-          addTorrent({ id: result.id, name: result.name || cleanName, progress: 0 });
-        } else {
-          console.error('Failed to start torrent:', result.error);
-        }
-      } catch (error) {
-        console.error('Error starting torrent:', error);
-      }
-      return;
-    }
-
-    // Fallback: Simulate progress for browser testing
+  // Simulated download for browser testing or fallback
+  const runSimulatedDownload = useCallback((cleanName: string) => {
     const torrentId = crypto.randomUUID();
     addTorrent({ id: torrentId, name: cleanName, progress: 0 });
+    console.log('[Torrent] Starting simulated download:', torrentId);
 
     let progress = 0;
     const interval = setInterval(() => {
@@ -378,6 +349,54 @@ export function Library() {
       updateTorrent(torrentId, progress);
     }, 400);
   }, [addTorrent, updateTorrent, removeTorrent, addBook, updateBook]);
+
+  // Shared function to start a torrent download and add book when complete
+  const startTorrentDownload = useCallback(async (torrentSource: string | Uint8Array, fileName?: string) => {
+    // Use filename if provided, otherwise extract from source
+    const displayName = fileName || (typeof torrentSource === 'string' ? torrentSource : 'Unknown Torrent');
+    const cleanName = displayName
+      .replace(/\.torrent$/i, '')
+      .replace(/[_-]/g, ' ')
+      .replace(/\.[^/.]+$/, '')
+      .slice(0, 100);
+
+    console.log('[Torrent] Starting download:', cleanName, 'isElectron:', isElectron());
+
+    // Use real Electron torrent API if available
+    if (isElectron()) {
+      try {
+        // Convert Uint8Array to regular array for IPC serialization
+        const sourceForIPC = torrentSource instanceof Uint8Array
+          ? Array.from(torrentSource)
+          : torrentSource;
+
+        console.log('[Torrent] Sending to Electron IPC, data type:', typeof sourceForIPC, 'isArray:', Array.isArray(sourceForIPC));
+
+        const result = await window.electronAPI!.startTorrentDownload(sourceForIPC, fileName);
+
+        console.log('[Torrent] IPC result:', result);
+
+        if (result.success && result.id) {
+          addTorrent({ id: result.id, name: result.name || cleanName, progress: 0 });
+          console.log('[Torrent] Added to active torrents:', result.id);
+        } else {
+          console.error('[Torrent] Failed to start:', result.error);
+          // Fall back to simulation if Electron torrent fails
+          console.log('[Torrent] Falling back to simulation...');
+          runSimulatedDownload(cleanName);
+        }
+      } catch (error) {
+        console.error('[Torrent] Error starting torrent:', error);
+        // Fall back to simulation on error
+        console.log('[Torrent] Falling back to simulation due to error...');
+        runSimulatedDownload(cleanName);
+      }
+      return;
+    }
+
+    // Browser mode: Simulate download
+    runSimulatedDownload(cleanName);
+  }, [addTorrent, runSimulatedDownload]);
 
   const handleTorrentDownload = useCallback(() => {
     if (!torrentUrl.trim()) return;
