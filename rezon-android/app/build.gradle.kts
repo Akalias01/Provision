@@ -136,9 +136,7 @@ dependencies {
 
     // ==================== DOCUMENT PARSING ====================
     implementation(libs.pdfbox.android)
-    implementation(libs.epublib.core) {
-        exclude(group = "xmlpull")
-    }
+    // TODO: Add EPUB parser (epublib not on Maven, will use alternative)
 
     // ==================== AUDIO METADATA ====================
     implementation(libs.jaudiotagger)

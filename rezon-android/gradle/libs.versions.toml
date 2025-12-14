@@ -134,7 +134,7 @@ libtorrent4j-android-x86-64 = { group = "org.libtorrent4j", name = "libtorrent4j
 
 # Document Parsing
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version = "2.0.27.0" }
-epublib-core = { group = "nl.siegmann.epublib", name = "epublib-core", version = "3.1" }
+# epublib not available on Maven - will use alternative EPUB parser later
 
 # Audio Metadata - JAudiotagger
 jaudiotagger = { group = "net.jthink", name = "jaudiotagger", version.ref = "jaudiotagger" }
