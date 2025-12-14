@@ -13,6 +13,8 @@ import {
   Trash2,
   ChevronRight,
   Magnet,
+  Download,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button, Modal } from './index';
 import { useStore } from '../../store/useStore';
@@ -40,6 +42,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     language,
     setLanguage,
     isDarkMode,
+    activeTorrents,
   } = useStore();
 
   const { t } = useTranslation();
@@ -228,6 +231,86 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
                   </motion.button>
                 ))}
               </div>
+
+              {/* Downloads Section */}
+              {activeTorrents.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 pt-4 border-t border-surface-200 dark:border-surface-700"
+                >
+                  <h3 className="flex items-center gap-2 px-4 mb-3 text-sm font-semibold text-surface-500 uppercase tracking-wider">
+                    <Download className="w-4 h-4" />
+                    Active Downloads
+                  </h3>
+                  <div className="space-y-2">
+                    {activeTorrents.map((torrent) => {
+                      const circumference = 2 * Math.PI * 18; // radius 18
+                      const strokeDashoffset = circumference - (torrent.progress / 100) * circumference;
+                      const isComplete = torrent.progress >= 100;
+
+                      return (
+                        <motion.div
+                          key={torrent.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex items-center gap-3 p-3 bg-surface-100 dark:bg-surface-800 rounded-xl"
+                        >
+                          {/* Circular Progress */}
+                          <div className="relative w-10 h-10 flex-shrink-0">
+                            {isComplete ? (
+                              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                              </div>
+                            ) : (
+                              <>
+                                <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                                  <circle
+                                    cx="20"
+                                    cy="20"
+                                    r="18"
+                                    fill="none"
+                                    strokeWidth="3"
+                                    className="stroke-surface-300 dark:stroke-surface-600"
+                                  />
+                                  <motion.circle
+                                    cx="20"
+                                    cy="20"
+                                    r="18"
+                                    fill="none"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    className="stroke-primary-500"
+                                    style={{ strokeDasharray: circumference }}
+                                    initial={{ strokeDashoffset: circumference }}
+                                    animate={{ strokeDashoffset }}
+                                    transition={{ duration: 0.3 }}
+                                  />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="text-[10px] font-bold text-surface-900 dark:text-white">
+                                    {Math.round(torrent.progress)}%
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-surface-900 dark:text-white truncate">
+                              {torrent.name}
+                            </p>
+                            <p className={`text-xs ${isComplete ? 'text-emerald-500' : 'text-primary-500'}`}>
+                              {isComplete ? 'Complete' : 'Downloading...'}
+                            </p>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
             </nav>
 
             {/* Footer */}

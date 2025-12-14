@@ -42,38 +42,86 @@ function AnimatedTagline({ show, className, style }: { show: boolean; className?
   );
 }
 
-// Glitch text effect component
-function GlitchText({ children, className, intensity = 1 }: { children: string; className?: string; intensity?: number }) {
+// HEAVY Glitch text effect component - TV station style
+function GlitchText({ children, className, intensity = 1, isGlitching = false }: { children: string; className?: string; intensity?: number; isGlitching?: boolean }) {
+  const baseIntensity = isGlitching ? intensity * 4 : intensity;
+
   return (
     <div className={`relative ${className}`}>
-      {/* Main text */}
-      <span className="relative z-10">{children}</span>
-
-      {/* Red channel */}
+      {/* Main text with subtle constant shift */}
       <motion.span
-        className="absolute inset-0 text-red-500 opacity-70"
-        style={{ mixBlendMode: 'screen' }}
-        animate={{
-          x: [0, -3 * intensity, 2 * intensity, 0, -2 * intensity, 0],
-          opacity: [0.7, 0.5, 0.8, 0.6, 0.7, 0.7],
-        }}
-        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+        className="relative z-10"
+        animate={isGlitching ? {
+          x: [0, -2, 3, -1, 0],
+          y: [0, 1, -1, 2, 0],
+        } : {}}
+        transition={{ duration: 0.1 }}
       >
         {children}
       </motion.span>
 
-      {/* Cyan channel */}
+      {/* Red channel - more aggressive */}
       <motion.span
-        className="absolute inset-0 text-cyan-500 opacity-70"
-        style={{ mixBlendMode: 'screen' }}
+        className="absolute inset-0 text-red-500"
+        style={{ mixBlendMode: 'screen', opacity: isGlitching ? 0.9 : 0.6 }}
         animate={{
-          x: [0, 3 * intensity, -2 * intensity, 0, 2 * intensity, 0],
-          opacity: [0.7, 0.8, 0.5, 0.7, 0.6, 0.7],
+          x: isGlitching
+            ? [0, -8 * baseIntensity, 6 * baseIntensity, -10 * baseIntensity, 4 * baseIntensity, 0]
+            : [0, -2 * intensity, 1 * intensity, 0],
+          y: isGlitching ? [0, 2, -3, 1, 0] : [0],
+          opacity: isGlitching ? [0.9, 1, 0.7, 1, 0.9] : [0.6, 0.4, 0.7, 0.6],
+          skewX: isGlitching ? [0, 5, -3, 8, 0] : [0],
         }}
-        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2, delay: 0.1 }}
+        transition={{ duration: isGlitching ? 0.15 : 0.3, repeat: Infinity, repeatDelay: isGlitching ? 0 : 1.5 }}
       >
         {children}
       </motion.span>
+
+      {/* Cyan channel - more aggressive */}
+      <motion.span
+        className="absolute inset-0 text-cyan-500"
+        style={{ mixBlendMode: 'screen', opacity: isGlitching ? 0.9 : 0.6 }}
+        animate={{
+          x: isGlitching
+            ? [0, 8 * baseIntensity, -6 * baseIntensity, 10 * baseIntensity, -4 * baseIntensity, 0]
+            : [0, 2 * intensity, -1 * intensity, 0],
+          y: isGlitching ? [0, -2, 3, -1, 0] : [0],
+          opacity: isGlitching ? [0.9, 0.7, 1, 0.8, 0.9] : [0.6, 0.7, 0.4, 0.6],
+          skewX: isGlitching ? [0, -5, 3, -8, 0] : [0],
+        }}
+        transition={{ duration: isGlitching ? 0.15 : 0.3, repeat: Infinity, repeatDelay: isGlitching ? 0 : 1.5, delay: 0.05 }}
+      >
+        {children}
+      </motion.span>
+
+      {/* Green channel - extra layer for intense glitch */}
+      {isGlitching && (
+        <motion.span
+          className="absolute inset-0 text-green-500"
+          style={{ mixBlendMode: 'screen', opacity: 0.5 }}
+          animate={{
+            x: [0, 5 * baseIntensity, -7 * baseIntensity, 3 * baseIntensity, 0],
+            y: [0, -1, 2, -2, 0],
+            scaleX: [1, 1.02, 0.98, 1.01, 1],
+          }}
+          transition={{ duration: 0.12, repeat: Infinity }}
+        >
+          {children}
+        </motion.span>
+      )}
+
+      {/* White flash overlay during glitch */}
+      {isGlitching && (
+        <motion.span
+          className="absolute inset-0 text-white"
+          animate={{
+            opacity: [0, 0.3, 0, 0.5, 0, 0.2, 0],
+          }}
+          transition={{ duration: 0.2, repeat: Infinity }}
+        >
+          {children}
+        </motion.span>
+      )}
     </div>
   );
 }
@@ -219,11 +267,13 @@ function PulseWaveSplash({ onComplete }: SplashScreenProps) {
 }
 
 // ============================================
-// OPTION 2: Glitch Cyber - HEAVY glitch effects
+// OPTION 2: Glitch Cyber - EXTREME TV STATION glitch effects
 // ============================================
 function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
   const [phase, setPhase] = useState(0);
   const [glitchActive, setGlitchActive] = useState(false);
+  const [glitchIntensity, setGlitchIntensity] = useState(1);
+  const [staticNoise, setStaticNoise] = useState(false);
 
   useEffect(() => {
     const timings = [200, 600, 800, 1800];
@@ -234,13 +284,30 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
 
-  // Random glitch bursts
+  // Frequent heavy glitch bursts - TV station style
   useEffect(() => {
     const glitchInterval = setInterval(() => {
+      // More frequent glitches with varying intensity
+      const intensity = 1 + Math.random() * 2;
+      setGlitchIntensity(intensity);
       setGlitchActive(true);
-      setTimeout(() => setGlitchActive(false), 150);
-    }, 800 + Math.random() * 1500);
+
+      // Random duration for each glitch
+      const duration = 100 + Math.random() * 200;
+      setTimeout(() => setGlitchActive(false), duration);
+    }, 300 + Math.random() * 700); // More frequent: 300-1000ms between glitches
+
     return () => clearInterval(glitchInterval);
+  }, []);
+
+  // Static noise bursts
+  useEffect(() => {
+    const noiseInterval = setInterval(() => {
+      setStaticNoise(true);
+      setTimeout(() => setStaticNoise(false), 50 + Math.random() * 100);
+    }, 1500 + Math.random() * 2000);
+
+    return () => clearInterval(noiseInterval);
   }, []);
 
   return (
@@ -250,16 +317,36 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
       transition={{ duration: 0.3 }}
       className="fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden"
     >
-      <Noise />
-      <Scanlines />
+      {/* Heavy TV static noise overlay */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none z-50"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        }}
+        animate={{
+          opacity: staticNoise ? [0.15, 0.25, 0.1, 0.2, 0.15] : (glitchActive ? [0.05, 0.1, 0.05] : 0.03),
+        }}
+        transition={{ duration: 0.1, repeat: Infinity }}
+      />
+
+      {/* Heavy scanlines */}
+      <div
+        className="absolute inset-0 pointer-events-none z-40"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
+          opacity: glitchActive ? 0.4 : 0.15,
+        }}
+      />
+
       <Particles count={60} />
 
-      {/* Glitch screen shake */}
+      {/* Glitch screen shake - more intense */}
       <motion.div
         className="absolute inset-0"
         animate={glitchActive ? {
-          x: [0, -5, 5, -3, 3, 0],
-          y: [0, 3, -3, 2, -2, 0],
+          x: [0, -10 * glitchIntensity, 8 * glitchIntensity, -6 * glitchIntensity, 4 * glitchIntensity, 0],
+          y: [0, 5 * glitchIntensity, -4 * glitchIntensity, 3 * glitchIntensity, -2 * glitchIntensity, 0],
+          skewX: [0, 1, -1, 0.5, 0],
         } : {}}
         transition={{ duration: 0.15 }}
       >
@@ -276,47 +363,85 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
               `,
               backgroundSize: '100% 100%, 40px 40px, 40px 40px',
             }}
-            animate={{ backgroundPosition: ['0 0', '0 40px'] }}
+            animate={{
+              backgroundPosition: ['0 0', '0 40px'],
+              opacity: glitchActive ? [1, 0.5, 1] : 1,
+            }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           />
         </div>
 
-        {/* Horizontal glitch bars */}
+        {/* Horizontal glitch bars - more and heavier */}
         <AnimatePresence>
-          {glitchActive && [...Array(8)].map((_, i) => (
+          {glitchActive && [...Array(15)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute left-0 right-0 bg-cyan-500/30"
+              className="absolute left-0 right-0"
               style={{
                 top: `${Math.random() * 100}%`,
-                height: `${Math.random() * 20 + 5}px`,
+                height: `${Math.random() * 30 + 5}px`,
+                background: i % 3 === 0
+                  ? 'rgba(255,0,100,0.4)'
+                  : i % 3 === 1
+                  ? 'rgba(0,255,255,0.4)'
+                  : 'rgba(255,255,255,0.3)',
+                transform: `translateX(${(Math.random() - 0.5) * 20}px)`,
               }}
               initial={{ scaleX: 0, opacity: 0 }}
-              animate={{ scaleX: 1, opacity: [0, 1, 0] }}
+              animate={{ scaleX: [0, 1, 0.5, 1], opacity: [0, 1, 0.5, 0] }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
+              transition={{ duration: 0.15 }}
             />
           ))}
         </AnimatePresence>
 
-        {/* RGB split flash */}
+        {/* RGB split flash - more intense */}
         {glitchActive && (
           <>
             <motion.div
-              className="absolute inset-0 bg-red-500/10"
-              style={{ transform: 'translateX(-5px)' }}
+              className="absolute inset-0 bg-red-500"
+              style={{ mixBlendMode: 'screen' }}
+              animate={{
+                opacity: [0.1, 0.2, 0.05, 0.15, 0.1],
+                x: [-10 * glitchIntensity, 5 * glitchIntensity, -8 * glitchIntensity, 0],
+              }}
+              transition={{ duration: 0.1 }}
             />
             <motion.div
-              className="absolute inset-0 bg-cyan-500/10"
-              style={{ transform: 'translateX(5px)' }}
+              className="absolute inset-0 bg-cyan-500"
+              style={{ mixBlendMode: 'screen' }}
+              animate={{
+                opacity: [0.1, 0.15, 0.2, 0.1, 0.15],
+                x: [10 * glitchIntensity, -5 * glitchIntensity, 8 * glitchIntensity, 0],
+              }}
+              transition={{ duration: 0.1 }}
+            />
+            <motion.div
+              className="absolute inset-0 bg-green-500"
+              style={{ mixBlendMode: 'screen' }}
+              animate={{
+                opacity: [0.05, 0.1, 0.05],
+                y: [5 * glitchIntensity, -5 * glitchIntensity, 0],
+              }}
+              transition={{ duration: 0.1 }}
             />
           </>
+        )}
+
+        {/* White flash burst during heavy glitch */}
+        {glitchActive && glitchIntensity > 2 && (
+          <motion.div
+            className="absolute inset-0 bg-white"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.3, 0] }}
+            transition={{ duration: 0.1 }}
+          />
         )}
       </motion.div>
 
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Logo with intense glitch */}
+        {/* Logo with EXTREME TV station glitch */}
         <motion.div
           initial={{ opacity: 0, scale: 1.5, filter: 'blur(20px)' }}
           animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
@@ -325,40 +450,106 @@ function GlitchCyberSplash({ onComplete }: SplashScreenProps) {
         >
           <GlitchText
             className="text-9xl font-black rezon-font-orbitron text-white"
-            intensity={glitchActive ? 3 : 1}
+            intensity={glitchIntensity}
+            isGlitching={glitchActive}
           >
             REZON
           </GlitchText>
 
-          {/* Neon glow */}
+          {/* Neon glow - pulses more during glitch */}
           <motion.div
-            className="absolute inset-0 text-9xl font-black rezon-font-orbitron blur-xl opacity-50"
+            className="absolute inset-0 text-9xl font-black rezon-font-orbitron blur-xl"
             style={{ color: '#06b6d4' }}
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
+            animate={{
+              opacity: glitchActive ? [0.3, 0.8, 0.2, 0.7, 0.3] : [0.3, 0.6, 0.3],
+              scale: glitchActive ? [1, 1.02, 0.98, 1] : 1,
+            }}
+            transition={{ duration: glitchActive ? 0.15 : 2, repeat: Infinity }}
           >
             REZON
           </motion.div>
 
-          {/* Glitch slice effect */}
+          {/* Multiple glitch slice effects - TV tearing */}
           {glitchActive && (
-            <motion.div
-              className="absolute overflow-hidden"
-              style={{
-                top: '30%',
-                left: 0,
-                right: 0,
-                height: '20%',
-                transform: 'translateX(10px)',
-              }}
-            >
-              <div
-                className="text-9xl font-black rezon-font-orbitron text-cyan-400"
-                style={{ marginTop: '-30%' }}
+            <>
+              {/* Top slice */}
+              <motion.div
+                className="absolute overflow-hidden"
+                style={{
+                  top: '10%',
+                  left: 0,
+                  right: 0,
+                  height: '15%',
+                }}
+                animate={{
+                  x: [0, 15 * glitchIntensity, -10 * glitchIntensity, 0],
+                }}
+                transition={{ duration: 0.1 }}
               >
-                REZON
-              </div>
-            </motion.div>
+                <div
+                  className="text-9xl font-black rezon-font-orbitron text-pink-400"
+                  style={{ marginTop: '-10%' }}
+                >
+                  REZON
+                </div>
+              </motion.div>
+
+              {/* Middle slice */}
+              <motion.div
+                className="absolute overflow-hidden"
+                style={{
+                  top: '35%',
+                  left: 0,
+                  right: 0,
+                  height: '20%',
+                }}
+                animate={{
+                  x: [0, -20 * glitchIntensity, 12 * glitchIntensity, 0],
+                }}
+                transition={{ duration: 0.12 }}
+              >
+                <div
+                  className="text-9xl font-black rezon-font-orbitron text-cyan-400"
+                  style={{ marginTop: '-35%' }}
+                >
+                  REZON
+                </div>
+              </motion.div>
+
+              {/* Bottom slice */}
+              <motion.div
+                className="absolute overflow-hidden"
+                style={{
+                  top: '65%',
+                  left: 0,
+                  right: 0,
+                  height: '20%',
+                }}
+                animate={{
+                  x: [0, 18 * glitchIntensity, -8 * glitchIntensity, 0],
+                }}
+                transition={{ duration: 0.08 }}
+              >
+                <div
+                  className="text-9xl font-black rezon-font-orbitron text-yellow-400"
+                  style={{ marginTop: '-65%' }}
+                >
+                  REZON
+                </div>
+              </motion.div>
+            </>
+          )}
+
+          {/* Static noise overlay on text during glitch */}
+          {(glitchActive || staticNoise) && (
+            <motion.div
+              className="absolute inset-0 mix-blend-overlay"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E")`,
+              }}
+              animate={{ opacity: [0.2, 0.4, 0.2, 0.5, 0.2] }}
+              transition={{ duration: 0.1, repeat: Infinity }}
+            />
           )}
         </motion.div>
 

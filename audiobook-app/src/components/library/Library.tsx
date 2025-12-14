@@ -544,34 +544,90 @@ export function Library() {
         )}
       </AnimatePresence>
 
-      {/* Active Torrents */}
+      {/* Active Torrents - Circular Progress */}
       <AnimatePresence>
         {activeTorrents.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-4 z-40 space-y-2"
+            className="fixed top-20 right-4 z-40 space-y-3"
           >
-            {activeTorrents.map((torrent) => (
-              <div
-                key={torrent.id}
-                className="bg-white dark:bg-surface-800 rounded-xl p-4 shadow-lg min-w-[280px]"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <Download className="w-4 h-4 text-primary-500 animate-bounce" />
-                  <span className="text-sm font-medium truncate flex-1">{torrent.name}</span>
-                </div>
-                <div className="h-2 bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-primary-500 to-primary-400"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${torrent.progress}%` }}
-                  />
-                </div>
-                <p className="text-xs text-surface-500 mt-1">{Math.round(torrent.progress)}%</p>
-              </div>
-            ))}
+            {activeTorrents.map((torrent) => {
+              const circumference = 2 * Math.PI * 36; // radius 36
+              const strokeDashoffset = circumference - (torrent.progress / 100) * circumference;
+
+              return (
+                <motion.div
+                  key={torrent.id}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  className="bg-white dark:bg-surface-800 rounded-2xl p-4 shadow-xl border border-surface-200 dark:border-surface-700 min-w-[240px]"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Circular Progress */}
+                    <div className="relative w-16 h-16 flex-shrink-0">
+                      <svg className="w-16 h-16 -rotate-90" viewBox="0 0 80 80">
+                        {/* Background circle */}
+                        <circle
+                          cx="40"
+                          cy="40"
+                          r="36"
+                          fill="none"
+                          strokeWidth="6"
+                          className="stroke-surface-200 dark:stroke-surface-700"
+                        />
+                        {/* Progress circle */}
+                        <motion.circle
+                          cx="40"
+                          cy="40"
+                          r="36"
+                          fill="none"
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          className="stroke-primary-500"
+                          initial={{ strokeDashoffset: circumference }}
+                          animate={{ strokeDashoffset }}
+                          style={{ strokeDasharray: circumference }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        />
+                      </svg>
+                      {/* Percentage in center */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-sm font-bold text-surface-900 dark:text-white">
+                          {Math.round(torrent.progress)}%
+                        </span>
+                      </div>
+                      {/* Animated glow effect */}
+                      {torrent.progress < 100 && (
+                        <motion.div
+                          className="absolute inset-0 rounded-full"
+                          style={{
+                            background: 'radial-gradient(circle, rgba(6,182,212,0.3) 0%, transparent 70%)',
+                          }}
+                          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Download className="w-4 h-4 text-primary-500 animate-bounce" />
+                        <span className="text-xs font-medium text-primary-500 uppercase tracking-wider">
+                          {torrent.progress >= 100 ? 'Complete' : 'Downloading'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-surface-900 dark:text-white truncate">
+                        {torrent.name}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>
@@ -967,9 +1023,27 @@ export function Library() {
               type="file"
               accept=".torrent"
               multiple
-              onChange={(e) => {
+              onChange={async (e) => {
                 const files = Array.from(e.target.files || []);
-                setFoundTorrentFiles(files);
+                if (files.length === 0) return;
+
+                // Auto-close modal and start downloads immediately
+                setIsTorrentModalOpen(false);
+                setFoundTorrentFiles([]);
+
+                // Start all selected torrents
+                for (const file of files) {
+                  try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const buffer = new Uint8Array(arrayBuffer);
+                    startTorrentDownload(buffer, file.name);
+                  } catch (error) {
+                    console.error('Error reading torrent file:', error);
+                  }
+                }
+
+                // Reset the input so the same file can be selected again
+                e.target.value = '';
               }}
               className="hidden"
             />
