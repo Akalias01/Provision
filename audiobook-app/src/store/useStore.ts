@@ -444,8 +444,8 @@ interface AppState {
   setSearchQuery: (query: string) => void;
 
   // Filters
-  formatFilter: BookFormat | 'all';
-  setFormatFilter: (filter: BookFormat | 'all') => void;
+  formatFilter: BookFormat | 'all' | 'documents';
+  setFormatFilter: (filter: BookFormat | 'all' | 'documents') => void;
   progressFilter: ProgressFilter;
   setProgressFilter: (filter: ProgressFilter) => void;
 

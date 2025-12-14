@@ -169,7 +169,9 @@ export function Library() {
       const matchesSearch =
         book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         book.author.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFormat = formatFilter === 'all' || book.format === formatFilter;
+      // Handle 'documents' filter which combines pdf and doc formats
+      const matchesFormat = formatFilter === 'all' ||
+        (formatFilter === 'documents' ? (book.format === 'pdf' || book.format === 'doc') : book.format === formatFilter);
       const matchesProgress = progressFilter === 'all' || getProgressStatus(book) === progressFilter;
       return matchesSearch && matchesFormat && matchesProgress;
     });
@@ -562,11 +564,10 @@ export function Library() {
   }, [scannedFiles, addBook, updateBook]);
 
   const formatFilterOptions = [
-    { value: 'all', label: 'All', icon: Grid3X3 },
-    { value: 'audio', label: 'Audio', icon: Headphones },
+    { value: 'audio', label: 'Audiobooks', icon: Headphones },
     { value: 'epub', label: 'EPUB', icon: BookOpen },
-    { value: 'pdf', label: 'PDF', icon: FileText },
-    { value: 'doc', label: 'DOC', icon: FileText },
+    { value: 'documents', label: 'Documents', icon: FileText },
+    { value: 'all', label: 'All', icon: Grid3X3 },
   ];
 
   const progressFilterOptions = [
@@ -809,7 +810,7 @@ export function Library() {
                 {formatFilterOptions.map(({ value, label, icon: Icon }) => (
                   <button
                     key={value}
-                    onClick={() => setFormatFilter(value as BookFormat | 'all')}
+                    onClick={() => setFormatFilter(value as BookFormat | 'all' | 'documents')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                       formatFilter === value
                         ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'

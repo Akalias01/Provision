@@ -27,6 +27,7 @@ export function EpubReader() {
   const containerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<EpubBook | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const {
     currentBook,
@@ -234,8 +235,16 @@ export function EpubReader() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
         goNext();
       } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
         goPrev();
       }
     };
@@ -243,6 +252,48 @@ export function EpubReader() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goNext, goPrev]);
+
+  // Touch swipe handlers for page navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const timeDelta = Date.now() - touchStartRef.current.time;
+
+    // Swipe detection: horizontal > 50px, within 300ms, more horizontal than vertical
+    if (Math.abs(deltaX) > 50 && timeDelta < 300 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (deltaX > 0) {
+        // Swipe right = previous page
+        goPrev();
+      } else {
+        // Swipe left = next page
+        goNext();
+      }
+    }
+
+    touchStartRef.current = null;
+  }, [goNext, goPrev]);
+
+  // Mouse wheel handler
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (viewMode === 'scrolled') {
+      return; // Allow natural scrolling
+    }
+
+    e.preventDefault();
+    if (e.deltaY > 0 || e.deltaX < 0) {
+      goNext();
+    } else if (e.deltaY < 0 || e.deltaX > 0) {
+      goPrev();
+    }
+  }, [viewMode, goNext, goPrev]);
 
   // TTS functionality
   const toggleTTS = useCallback(() => {
@@ -368,7 +419,10 @@ export function EpubReader() {
 
         <div
           ref={containerRef}
-          className={`h-full ${error ? 'hidden' : ''}`}
+          className={`h-full cursor-pointer select-none ${error ? 'hidden' : ''}`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;

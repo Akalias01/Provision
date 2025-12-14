@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import mammoth from 'mammoth';
 import {
-  ChevronUp,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Settings,
   FileText,
   Volume2,
@@ -27,6 +27,8 @@ import { useStore } from '../../store/useStore';
 export function DocReader() {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isSwipingRef = useRef(false);
 
   const {
     currentBook,
@@ -50,7 +52,7 @@ export function DocReader() {
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
-  const [viewMode, setViewMode] = useState<'paginated' | 'scrolled'>('scrolled');
+  const [viewMode, setViewMode] = useState<'paginated' | 'scrolled'>('paginated');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -151,31 +153,7 @@ export function DocReader() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [currentBook, totalPages, updateBook]);
 
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!containerRef.current) return;
-
-      if (e.key === 'ArrowDown' || e.key === ' ') {
-        e.preventDefault();
-        containerRef.current.scrollBy({ top: 100, behavior: 'smooth' });
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        containerRef.current.scrollBy({ top: -100, behavior: 'smooth' });
-      } else if (e.key === 'PageDown') {
-        e.preventDefault();
-        containerRef.current.scrollBy({ top: containerRef.current.clientHeight * 0.9, behavior: 'smooth' });
-      } else if (e.key === 'PageUp') {
-        e.preventDefault();
-        containerRef.current.scrollBy({ top: -containerRef.current.clientHeight * 0.9, behavior: 'smooth' });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Page navigation for paginated mode
+  // Page navigation for paginated mode (must be defined before keyboard handler)
   const goNextPage = useCallback(() => {
     if (!containerRef.current) return;
     containerRef.current.scrollBy({ top: containerRef.current.clientHeight * 0.95, behavior: 'smooth' });
@@ -185,6 +163,105 @@ export function DocReader() {
     if (!containerRef.current) return;
     containerRef.current.scrollBy({ top: -containerRef.current.clientHeight * 0.95, behavior: 'smooth' });
   }, []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!containerRef.current) return;
+
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        goNextPage();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrevPage();
+      } else if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        goNextPage();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        goPrevPage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goNextPage, goPrevPage]);
+
+  // Touch swipe handlers for page navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    isSwipingRef.current = false;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+
+    // If horizontal movement is greater, it's a swipe
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+      isSwipingRef.current = true;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const timeDelta = Date.now() - touchStartRef.current.time;
+
+    // Swipe detection: horizontal > 50px, within 300ms, more horizontal than vertical
+    if (Math.abs(deltaX) > 50 && timeDelta < 300 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (deltaX > 0) {
+        // Swipe right = previous page
+        goPrevPage();
+      } else {
+        // Swipe left = next page
+        goNextPage();
+      }
+    }
+
+    touchStartRef.current = null;
+    isSwipingRef.current = false;
+  }, [goNextPage, goPrevPage]);
+
+  // Mouse wheel handler for paginated mode
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (viewMode === 'scrolled') {
+      // Allow natural scrolling
+      return;
+    }
+
+    e.preventDefault();
+    if (e.deltaY > 0 || e.deltaX < 0) {
+      goNextPage();
+    } else if (e.deltaY < 0 || e.deltaX > 0) {
+      goPrevPage();
+    }
+  }, [viewMode, goNextPage, goPrevPage]);
+
+  // Click to navigate (tap left/right sides)
+  const handleContainerClick = useCallback((e: React.MouseEvent) => {
+    if (isSwipingRef.current) return;
+    if (viewMode === 'scrolled') return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+
+    if (x < width * 0.3) {
+      // Left 30% = previous
+      goPrevPage();
+    } else if (x > width * 0.7) {
+      // Right 30% = next
+      goNextPage();
+    }
+  }, [viewMode, goNextPage, goPrevPage]);
 
   // TTS functionality
   const toggleTTS = useCallback(() => {
@@ -308,15 +385,20 @@ export function DocReader() {
 
         <div
           ref={containerRef}
-          className={`h-full overflow-auto ${error ? 'hidden' : ''}`}
+          className={`h-full overflow-auto cursor-pointer select-none ${error ? 'hidden' : ''}`}
           style={{
             ...themeStyles[theme],
             scrollSnapType: viewMode === 'paginated' ? 'y mandatory' : 'none',
           }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
+          onClick={handleContainerClick}
         >
           <div
             ref={contentRef}
-            className="max-w-4xl mx-auto px-4 py-8 doc-content"
+            className="max-w-4xl mx-auto px-4 py-8 doc-content pointer-events-none"
             style={{
               fontSize: `${fontSize}px`,
               fontFamily: fontFamily,
@@ -327,23 +409,19 @@ export function DocReader() {
           />
         </div>
 
-        {/* Navigation buttons for paginated mode */}
-        {viewMode === 'paginated' && (
-          <>
-            <button
-              onClick={goPrevPage}
-              className="absolute top-4 left-1/2 -translate-x-1/2 p-2 rounded-full bg-surface-900/10 dark:bg-white/10 hover:bg-surface-900/20 dark:hover:bg-white/20 transition-colors"
-            >
-              <ChevronUp className="w-6 h-6" />
-            </button>
-            <button
-              onClick={goNextPage}
-              className="absolute bottom-20 left-1/2 -translate-x-1/2 p-2 rounded-full bg-surface-900/10 dark:bg-white/10 hover:bg-surface-900/20 dark:hover:bg-white/20 transition-colors"
-            >
-              <ChevronDown className="w-6 h-6" />
-            </button>
-          </>
-        )}
+        {/* Navigation arrows - left/right for page flip */}
+        <button
+          onClick={goPrevPage}
+          className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-surface-800/90 shadow-lg hover:bg-white dark:hover:bg-surface-700 transition-all z-10"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button
+          onClick={goNextPage}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-surface-800/90 shadow-lg hover:bg-white dark:hover:bg-surface-700 transition-all z-10"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
       </div>
 
       {/* Footer controls */}

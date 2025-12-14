@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as pdfjsLib from 'pdfjs-dist';
 import {
   ChevronLeft,
@@ -28,6 +28,8 @@ export function PdfReader() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isSwipingRef = useRef(false);
 
   const {
     currentBook,
@@ -55,6 +57,7 @@ export function PdfReader() {
   const [viewMode, setViewMode] = useState<'single' | 'continuous'>('single');
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>('');
+  const [pageFlipDirection, setPageFlipDirection] = useState<'left' | 'right' | null>(null);
 
   const { isReading } = ttsState;
   const { theme } = readerSettings;
@@ -173,8 +176,16 @@ export function PdfReader() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
         goNext();
       } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
         goPrev();
       } else if (e.key === '+' || e.key === '=') {
         handleZoomIn();
@@ -185,6 +196,88 @@ export function PdfReader() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goNext, goPrev]);
+
+  // Touch swipe handlers for page navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    isSwipingRef.current = false;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+
+    // If horizontal movement is greater, it's a swipe
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+      isSwipingRef.current = true;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    const timeDelta = Date.now() - touchStartRef.current.time;
+
+    // Swipe detection: horizontal movement > 50px, within 300ms, and more horizontal than vertical
+    if (Math.abs(deltaX) > 50 && timeDelta < 300 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (deltaX > 0) {
+        // Swipe right = previous page
+        setPageFlipDirection('right');
+        goPrev();
+      } else {
+        // Swipe left = next page
+        setPageFlipDirection('left');
+        goNext();
+      }
+      setTimeout(() => setPageFlipDirection(null), 300);
+    }
+
+    touchStartRef.current = null;
+    isSwipingRef.current = false;
+  }, [goNext, goPrev]);
+
+  // Mouse wheel handler
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (viewMode === 'continuous') {
+      // In continuous mode, allow natural scrolling
+      return;
+    }
+
+    // In single page mode, navigate pages
+    e.preventDefault();
+    if (e.deltaY > 0) {
+      goNext();
+    } else if (e.deltaY < 0) {
+      goPrev();
+    }
+  }, [viewMode, goNext, goPrev]);
+
+  // Click to navigate (tap left/right sides)
+  const handleContainerClick = useCallback((e: React.MouseEvent) => {
+    if (isSwipingRef.current) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+
+    if (x < width * 0.3) {
+      // Left 30% = previous
+      setPageFlipDirection('right');
+      goPrev();
+      setTimeout(() => setPageFlipDirection(null), 300);
+    } else if (x > width * 0.7) {
+      // Right 30% = next
+      setPageFlipDirection('left');
+      goNext();
+      setTimeout(() => setPageFlipDirection(null), 300);
+    }
   }, [goNext, goPrev]);
 
   // TTS
@@ -293,7 +386,12 @@ export function PdfReader() {
       {/* PDF Viewer */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto flex items-start justify-center p-4"
+        className="flex-1 overflow-auto flex items-start justify-center p-4 cursor-pointer select-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onWheel={handleWheel}
+        onClick={handleContainerClick}
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -304,16 +402,27 @@ export function PdfReader() {
             />
           </div>
         ) : (
-          <motion.canvas
-            ref={canvasRef}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="shadow-2xl rounded-lg"
-            style={{
-              maxWidth: '100%',
-              height: 'auto',
-            }}
-          />
+          <AnimatePresence mode="wait">
+            <motion.canvas
+              key={currentPage}
+              ref={canvasRef}
+              initial={{
+                opacity: 0,
+                x: pageFlipDirection === 'left' ? 100 : pageFlipDirection === 'right' ? -100 : 0
+              }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{
+                opacity: 0,
+                x: pageFlipDirection === 'left' ? -100 : pageFlipDirection === 'right' ? 100 : 0
+              }}
+              transition={{ duration: 0.2 }}
+              className="shadow-2xl rounded-lg pointer-events-none"
+              style={{
+                maxWidth: '100%',
+                height: 'auto',
+              }}
+            />
+          </AnimatePresence>
         )}
       </div>
 
