@@ -28,9 +28,9 @@ import { Button, Modal, RezonLogo, SidebarMenu } from '../ui';
 import { BookCard } from './BookCard';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import { useTranslation } from '../../i18n';
-import type { Book, BookFormat, Chapter } from '../../types';
+import type { Book, BookFormat } from '../../types';
 import '../../types/electron.d.ts';
-import * as musicMetadata from 'music-metadata-browser';
+import { extractAudioMetadata } from '../../utils/audioMetadata';
 
 // Check if running in Electron
 const isElectron = () => typeof window !== 'undefined' && !!window.electronAPI;
@@ -192,102 +192,33 @@ export function Library() {
         dateAdded: new Date(),
       };
 
-      // Try to extract metadata from audio files (especially M4B)
+      // Try to extract metadata from audio files
       if (format === 'audio') {
         try {
-          // Parse audio metadata using music-metadata-browser
-          const metadata = await musicMetadata.parseBlob(file);
-          console.log('[Library] Parsed audio metadata:', metadata);
+          const audioMeta = await extractAudioMetadata(file);
+          console.log('[Library] Extracted audio metadata:', audioMeta);
 
-          // Extract title and author from metadata
-          if (metadata.common.title) {
-            book.title = metadata.common.title;
+          // Apply extracted metadata
+          if (audioMeta.title) {
+            book.title = audioMeta.title;
           }
-          if (metadata.common.artist || metadata.common.albumartist) {
-            book.author = metadata.common.artist || metadata.common.albumartist || 'Unknown Author';
+          if (audioMeta.author) {
+            book.author = audioMeta.author;
           }
-
-          // Extract cover art
-          if (metadata.common.picture && metadata.common.picture.length > 0) {
-            const picture = metadata.common.picture[0];
-            // Convert Buffer to Uint8Array for Blob compatibility
-            const uint8Array = new Uint8Array(picture.data);
-            const blob = new Blob([uint8Array], { type: picture.format });
-            book.cover = URL.createObjectURL(blob);
-            console.log('[Library] Extracted cover art from file');
+          if (audioMeta.coverUrl) {
+            book.cover = audioMeta.coverUrl;
           }
-
-          // Extract duration
-          if (metadata.format.duration) {
-            book.duration = metadata.format.duration;
+          if (audioMeta.description) {
+            book.description = audioMeta.description;
           }
-
-          // Extract chapters from M4B or generate them
-          const chapters: Chapter[] = [];
-
-          // Check for native chapters in the metadata (type assertion needed)
-          const metadataAny = metadata as unknown as { chapters?: Array<{ title?: string; startTime?: number; duration?: number }> };
-
-          // If metadata has chapter information
-          if (metadataAny.chapters && metadataAny.chapters.length > 0) {
-            console.log('[Library] Found chapters in metadata:', metadataAny.chapters);
-            metadataAny.chapters.forEach((chapter: { title?: string; startTime?: number; duration?: number }, index: number) => {
-              chapters.push({
-                id: crypto.randomUUID(),
-                title: chapter.title || `Chapter ${index + 1}`,
-                startTime: (chapter.startTime || 0) / 1000, // Convert ms to seconds
-                duration: chapter.duration ? chapter.duration / 1000 : 0,
-              });
-            });
-          } else if (book.duration) {
-            // Generate automatic chapters if none found
-            const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
-            const numChapters = book.duration > CHAPTER_DURATION * 3
-              ? Math.ceil(book.duration / CHAPTER_DURATION)
-              : Math.min(10, Math.max(1, Math.floor(book.duration / (5 * 60))));
-
-            const chapterLength = book.duration / numChapters;
-
-            for (let i = 0; i < numChapters; i++) {
-              chapters.push({
-                id: crypto.randomUUID(),
-                title: `Chapter ${i + 1}`,
-                startTime: i * chapterLength,
-                duration: chapterLength,
-              });
-            }
+          if (audioMeta.duration) {
+            book.duration = audioMeta.duration;
           }
-
-          if (chapters.length > 0) {
-            book.chapters = chapters;
+          if (audioMeta.chapters.length > 0) {
+            book.chapters = audioMeta.chapters;
           }
-
         } catch (error) {
-          console.error('[Library] Error parsing audio metadata:', error);
-
-          // Fallback: get duration from audio element and generate chapters
-          const audio = new Audio(book.fileUrl);
-          audio.addEventListener('loadedmetadata', () => {
-            const duration = audio.duration;
-            const chapters: Chapter[] = [];
-            const CHAPTER_DURATION = 30 * 60;
-            const numChapters = duration > CHAPTER_DURATION * 3
-              ? Math.ceil(duration / CHAPTER_DURATION)
-              : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60))));
-
-            const chapterLength = duration / numChapters;
-
-            for (let i = 0; i < numChapters; i++) {
-              chapters.push({
-                id: crypto.randomUUID(),
-                title: `Chapter ${i + 1}`,
-                startTime: i * chapterLength,
-                duration: chapterLength,
-              });
-            }
-
-            updateBook(book.id, { duration, chapters });
-          });
+          console.error('[Library] Error extracting audio metadata:', error);
         }
       }
 
@@ -560,102 +491,33 @@ export function Library() {
         dateAdded: new Date(),
       };
 
-      // Try to extract metadata from audio files (especially M4B)
+      // Try to extract metadata from audio files
       if (format === 'audio') {
         try {
-          // Parse audio metadata using music-metadata-browser
-          const metadata = await musicMetadata.parseBlob(file);
-          console.log('[Library] Parsed audio metadata:', metadata);
+          const audioMeta = await extractAudioMetadata(file);
+          console.log('[Library] Extracted audio metadata:', audioMeta);
 
-          // Extract title and author from metadata
-          if (metadata.common.title) {
-            book.title = metadata.common.title;
+          // Apply extracted metadata
+          if (audioMeta.title) {
+            book.title = audioMeta.title;
           }
-          if (metadata.common.artist || metadata.common.albumartist) {
-            book.author = metadata.common.artist || metadata.common.albumartist || 'Unknown Author';
+          if (audioMeta.author) {
+            book.author = audioMeta.author;
           }
-
-          // Extract cover art
-          if (metadata.common.picture && metadata.common.picture.length > 0) {
-            const picture = metadata.common.picture[0];
-            // Convert Buffer to Uint8Array for Blob compatibility
-            const uint8Array = new Uint8Array(picture.data);
-            const blob = new Blob([uint8Array], { type: picture.format });
-            book.cover = URL.createObjectURL(blob);
-            console.log('[Library] Extracted cover art from file');
+          if (audioMeta.coverUrl) {
+            book.cover = audioMeta.coverUrl;
           }
-
-          // Extract duration
-          if (metadata.format.duration) {
-            book.duration = metadata.format.duration;
+          if (audioMeta.description) {
+            book.description = audioMeta.description;
           }
-
-          // Extract chapters from M4B or generate them
-          const chapters: Chapter[] = [];
-
-          // Check for native chapters in the metadata (type assertion needed)
-          const metadataAny = metadata as unknown as { chapters?: Array<{ title?: string; startTime?: number; duration?: number }> };
-
-          // If metadata has chapter information
-          if (metadataAny.chapters && metadataAny.chapters.length > 0) {
-            console.log('[Library] Found chapters in metadata:', metadataAny.chapters);
-            metadataAny.chapters.forEach((chapter: { title?: string; startTime?: number; duration?: number }, index: number) => {
-              chapters.push({
-                id: crypto.randomUUID(),
-                title: chapter.title || `Chapter ${index + 1}`,
-                startTime: (chapter.startTime || 0) / 1000, // Convert ms to seconds
-                duration: chapter.duration ? chapter.duration / 1000 : 0,
-              });
-            });
-          } else if (book.duration) {
-            // Generate automatic chapters if none found
-            const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
-            const numChapters = book.duration > CHAPTER_DURATION * 3
-              ? Math.ceil(book.duration / CHAPTER_DURATION)
-              : Math.min(10, Math.max(1, Math.floor(book.duration / (5 * 60))));
-
-            const chapterLength = book.duration / numChapters;
-
-            for (let i = 0; i < numChapters; i++) {
-              chapters.push({
-                id: crypto.randomUUID(),
-                title: `Chapter ${i + 1}`,
-                startTime: i * chapterLength,
-                duration: chapterLength,
-              });
-            }
+          if (audioMeta.duration) {
+            book.duration = audioMeta.duration;
           }
-
-          if (chapters.length > 0) {
-            book.chapters = chapters;
+          if (audioMeta.chapters.length > 0) {
+            book.chapters = audioMeta.chapters;
           }
-
         } catch (error) {
-          console.error('[Library] Error parsing audio metadata:', error);
-
-          // Fallback: get duration from audio element and generate chapters
-          const audio = new Audio(book.fileUrl);
-          audio.addEventListener('loadedmetadata', () => {
-            const duration = audio.duration;
-            const chapters: Chapter[] = [];
-            const CHAPTER_DURATION = 30 * 60;
-            const numChapters = duration > CHAPTER_DURATION * 3
-              ? Math.ceil(duration / CHAPTER_DURATION)
-              : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60))));
-
-            const chapterLength = duration / numChapters;
-
-            for (let i = 0; i < numChapters; i++) {
-              chapters.push({
-                id: crypto.randomUUID(),
-                title: `Chapter ${i + 1}`,
-                startTime: i * chapterLength,
-                duration: chapterLength,
-              });
-            }
-
-            updateBook(book.id, { duration, chapters });
-          });
+          console.error('[Library] Error extracting audio metadata:', error);
         }
       }
 
