@@ -430,12 +430,12 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex flex-col bg-gradient-to-b from-surface-100 to-surface-50 dark:from-surface-900 dark:to-surface-950"
+      className="h-full flex flex-col bg-gradient-to-b from-surface-100 to-surface-50 dark:from-surface-900 dark:to-surface-950 overflow-hidden safe-area-top safe-area-bottom"
     >
       <audio ref={audioRef} preload="metadata" crossOrigin="anonymous" />
 
       {/* Header */}
-      <div className="flex items-center justify-between p-4">
+      <div className="flex-shrink-0 flex items-center justify-between p-3 sm:p-4">
         <Button variant="icon" onClick={onBack || (() => setCurrentView('library'))}>
           <ChevronDown className="w-6 h-6" />
         </Button>
@@ -460,7 +460,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       {/* Cover Art with gesture support */}
       <div
         ref={coverRef}
-        className="flex-1 flex items-center justify-center px-8 py-4 select-none"
+        className="flex-1 min-h-0 flex items-center justify-center px-4 sm:px-8 py-2 sm:py-4 select-none"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -516,9 +516,9 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       </div>
 
       {/* Info */}
-      <div className="px-8 py-4 text-center">
+      <div className="flex-shrink-0 px-4 sm:px-8 py-2 sm:py-4 text-center">
         <motion.h2
-          className="text-2xl font-bold text-surface-900 dark:text-white truncate"
+          className="text-lg sm:text-2xl font-bold text-surface-900 dark:text-white truncate"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -526,7 +526,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
           {currentBook.title}
         </motion.h2>
         <motion.p
-          className="text-surface-500 dark:text-surface-400 mt-1"
+          className="text-sm sm:text-base text-surface-500 dark:text-surface-400 mt-1 truncate"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15 }}
@@ -537,12 +537,12 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       </div>
 
       {/* Waveform */}
-      <div className="px-8 py-2">
+      <div className="flex-shrink-0 px-4 sm:px-8 py-1 sm:py-2">
         <Waveform isPlaying={isPlaying} progress={progress} />
       </div>
 
       {/* Progress */}
-      <div className="px-8 py-4">
+      <div className="flex-shrink-0 px-4 sm:px-8 py-2 sm:py-4">
         <Slider
           value={currentTime}
           max={duration || 100}
@@ -557,8 +557,8 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       </div>
 
       {/* Controls */}
-      <div className="px-8 py-6">
-        <div className="flex items-center justify-center gap-4">
+      <div className="flex-shrink-0 px-4 sm:px-8 py-3 sm:py-6">
+        <div className="flex items-center justify-center gap-2 sm:gap-4">
           {/* Skip backward */}
           <Button
             variant="ghost"
@@ -623,13 +623,13 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
         </div>
 
         {/* Secondary controls */}
-        <div className="flex items-center justify-between mt-6">
+        <div className="flex items-center justify-between mt-3 sm:mt-6">
           {/* Speed */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowSpeedPicker(true)}
-            className="text-xs font-semibold min-w-[60px]"
+            className="text-xs font-semibold min-w-[48px] sm:min-w-[60px]"
           >
             {playbackRate.toFixed(1)}x
           </Button>
@@ -641,7 +641,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
             onClick={() => setShowSleepTimer(true)}
             className="relative"
           >
-            <Moon className="w-5 h-5" />
+            <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
             {sleepTimerRemaining !== null && (
               <span className="absolute -top-1 -right-1 text-[10px] bg-primary-500 text-white rounded-full px-1">
                 {Math.ceil(sleepTimerRemaining / 60)}
@@ -655,7 +655,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
             size="sm"
             onClick={handleAddBookmark}
           >
-            <BookmarkPlus className="w-5 h-5" />
+            <BookmarkPlus className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
 
           {/* Bookmarks */}
@@ -664,23 +664,23 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
             size="sm"
             onClick={() => setShowBookmarks(true)}
           >
-            <Bookmark className="w-5 h-5" />
+            <Bookmark className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
 
-          {/* Volume */}
-          <div className="flex items-center gap-2">
+          {/* Volume - simplified on mobile */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setPlayerState({ isMuted: !isMuted })}
             >
               {isMuted || volume === 0 ? (
-                <VolumeX className="w-5 h-5" />
+                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
               ) : (
-                <Volume2 className="w-5 h-5" />
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </Button>
-            <div className="w-24">
+            <div className="hidden sm:block w-20 lg:w-24">
               <Slider
                 value={isMuted ? 0 : volume}
                 max={1}

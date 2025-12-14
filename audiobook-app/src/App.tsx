@@ -4,9 +4,19 @@ import { AudioPlayer } from './components/player';
 import { EpubReader, PdfReader, DocReader } from './components/reader';
 import { SplashScreen } from './components/SplashScreen';
 import { useStore } from './store/useStore';
+import { useEffect } from 'react';
+import { isAndroid } from './utils/mediaControl';
 
 function App() {
   const { currentView, currentBook, showSplash, setShowSplash } = useStore();
+
+  // Handle Android status bar and navigation bar
+  useEffect(() => {
+    if (isAndroid()) {
+      // Set status bar color
+      document.body.style.backgroundColor = '#0a0a0f';
+    }
+  }, []);
 
   const renderView = () => {
     switch (currentView) {
@@ -16,8 +26,9 @@ function App() {
             key="library"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="h-full"
           >
             <Library />
           </motion.div>
@@ -30,8 +41,8 @@ function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3 }}
-            className="h-screen"
+            transition={{ duration: 0.2 }}
+            className="h-full"
           >
             <AudioPlayer />
           </motion.div>
@@ -57,8 +68,8 @@ function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="h-screen"
+            transition={{ duration: 0.2 }}
+            className="h-full"
           >
             {renderReader()}
           </motion.div>
@@ -70,7 +81,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-50 dark:bg-surface-950">
+    <div className="app-container">
       {/* Splash Screen */}
       {showSplash && (
         <SplashScreen onComplete={() => setShowSplash(false)} />

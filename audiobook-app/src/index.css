@@ -10,13 +10,42 @@
 @layer base {
   * {
     @apply border-surface-200 dark:border-surface-700;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
 
   body {
     @apply bg-surface-50 text-surface-900 dark:bg-surface-950 dark:text-surface-100;
     @apply font-sans antialiased;
-    @apply transition-colors duration-300;
-    margin: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+  }
+
+  /* App container - fills entire screen */
+  .app-container {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--bg-color, #0a0a0f);
+  }
+
+  .dark .app-container {
+    --bg-color: #0a0a0f;
   }
 
   ::-webkit-scrollbar {
@@ -34,6 +63,19 @@
 
   ::selection {
     background-color: rgba(var(--primary-rgb, 6, 182, 212), 0.3);
+  }
+
+  /* Mobile-specific fixes */
+  @media (max-width: 768px) {
+    .hide-mobile {
+      display: none !important;
+    }
+  }
+
+  /* Touch feedback for buttons */
+  button, .btn, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }
 

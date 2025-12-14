@@ -9,16 +9,13 @@ import {
   Headphones,
   FileText,
   Grid3X3,
-  List,
   Upload,
   X,
   Download,
   Play,
-  Clock,
   CheckCircle,
   Magnet,
   Loader2,
-  Settings,
   Palette,
   Sparkles,
   FolderSearch,
@@ -123,7 +120,7 @@ export function Library() {
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isCloudStorageModalOpen, setIsCloudStorageModalOpen] = useState(false);
   const [torrentUrl, setTorrentUrl] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, _setViewMode] = useState<'grid' | 'list'>('grid');
   const [dragOver, setDragOver] = useState(false);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -570,13 +567,6 @@ export function Library() {
     { value: 'all', label: 'All', icon: Grid3X3 },
   ];
 
-  const progressFilterOptions = [
-    { value: 'all', label: 'All', icon: Grid3X3 },
-    { value: 'not_started', label: 'Not Started', icon: Clock },
-    { value: 'in_progress', label: 'In Progress', icon: Play },
-    { value: 'finished', label: 'Finished', icon: CheckCircle },
-  ];
-
   const logoVariants: { value: LogoVariant; label: string }[] = [
     { value: 'waveform', label: 'Waveform' },
     { value: 'headphones', label: 'Headphones' },
@@ -597,7 +587,7 @@ export function Library() {
   return (
     <div
       id="main-app-content"
-      className="min-h-screen bg-surface-50 dark:bg-surface-950 transition-colors duration-300"
+      className="h-full flex flex-col bg-surface-50 dark:bg-surface-950"
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -720,151 +710,86 @@ export function Library() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 glass">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+      <header className="flex-shrink-0 z-40 glass safe-area-top">
+        <div className="px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Menu and Logo */}
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className="flex items-center gap-2"
-            >
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <SidebarMenu
                 onOpenTorrent={() => setIsTorrentModalOpen(true)}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
               />
-              <RezonLogo size="md" variant={logoVariant} />
-            </motion.div>
+              <RezonLogo size="sm" variant={logoVariant} />
+            </div>
 
-            {/* Search */}
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="flex-1 max-w-md mx-8"
-            >
+            {/* Search - hidden on very small screens, shown in compact form on mobile */}
+            <div className="flex-1 mx-2 sm:mx-4 max-w-xs sm:max-w-md">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-surface-400" />
                 <input
                   type="text"
-                  placeholder={`${t('search')}...`}
+                  placeholder={t('search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input pl-12"
+                  className="w-full pl-9 sm:pl-11 pr-8 py-2 sm:py-2.5 text-sm rounded-lg sm:rounded-xl bg-surface-100 dark:bg-surface-800 text-surface-900 dark:text-surface-100 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-surface-400 hover:text-surface-600"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Actions */}
-            <motion.div
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className="flex items-center gap-2"
-            >
-              <Button variant="icon" onClick={toggleDarkMode}>
+            {/* Actions - compact on mobile */}
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 text-surface-500"
+              >
                 {isDarkMode ? (
                   <Sun className="w-5 h-5" />
                 ) : (
                   <Moon className="w-5 h-5" />
                 )}
-              </Button>
-              <Button variant="icon" onClick={() => setIsSettingsModalOpen(true)}>
-                <Settings className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" onClick={() => setIsTorrentModalOpen(true)}>
-                <Magnet className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="primary"
+              </button>
+              <button
                 onClick={() => setIsAddModalOpen(true)}
+                className="p-2 rounded-lg bg-primary-500 text-white hover:bg-primary-600"
               >
                 <Plus className="w-5 h-5" />
-                {t('addBooks')}
-              </Button>
-            </motion.div>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 overflow-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Show filters only if library is not empty */}
         {!isLibraryEmpty && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-wrap items-center justify-between gap-4 mb-8"
-          >
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Format Filter */}
-              <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
-                {formatFilterOptions.map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    onClick={() => setFormatFilter(value as BookFormat | 'all' | 'documents')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      formatFilter === value
-                        ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
-                        : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Progress Filter */}
-              <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
-                {progressFilterOptions.map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    onClick={() => setProgressFilter(value as ProgressFilter)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      progressFilter === value
-                        ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
-                        : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{label}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="mb-4 sm:mb-6">
+            {/* Format Filter - scrollable on mobile */}
+            <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-lg overflow-x-auto no-scrollbar">
+              {formatFilterOptions.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setFormatFilter(value as BookFormat | 'all' | 'documents')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                    formatFilter === value
+                      ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                      : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">{label}</span>
+                </button>
+              ))}
             </div>
-
-            <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-xl">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-all ${
-                  viewMode === 'grid'
-                    ? 'bg-white dark:bg-surface-700 shadow-sm'
-                    : 'text-surface-500 hover:text-surface-700'
-                }`}
-              >
-                <Grid3X3 className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-all ${
-                  viewMode === 'list'
-                    ? 'bg-white dark:bg-surface-700 shadow-sm'
-                    : 'text-surface-500 hover:text-surface-700'
-                }`}
-              >
-                <List className="w-5 h-5" />
-              </button>
-            </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Loading indicator for metadata */}
@@ -880,8 +805,8 @@ export function Library() {
           <div
             className={
               viewMode === 'grid'
-                ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6'
-                : 'space-y-4'
+                ? 'grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6'
+                : 'space-y-3 sm:space-y-4'
             }
           >
             {filteredBooks.map((book, index) => (
