@@ -9,6 +9,7 @@ import {
   Headphones,
   FileText,
   Grid3X3,
+  List,
   Upload,
   X,
   Download,
@@ -24,7 +25,9 @@ import {
 } from 'lucide-react';
 import { Button, Modal, RezonLogo, SidebarMenu } from '../ui';
 import { BookCard } from './BookCard';
+import { BookListItem } from './BookListItem';
 import { CloudStorageModal } from './CloudStorageModal';
+import { MiniPlayer } from '../player/MiniPlayer';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import { useTranslation } from '../../i18n';
 import type { Book, BookFormat } from '../../types';
@@ -120,7 +123,8 @@ export function Library() {
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isCloudStorageModalOpen, setIsCloudStorageModalOpen] = useState(false);
   const [torrentUrl, setTorrentUrl] = useState('');
-  const [viewMode, _setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [selectedBookForMenu, setSelectedBookForMenu] = useState<Book | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -132,6 +136,7 @@ export function Library() {
     addBook,
     removeBook,
     updateBook,
+    currentBook,
     setCurrentBook,
     setCurrentView,
     searchQuery,
@@ -173,6 +178,24 @@ export function Library() {
       return matchesSearch && matchesFormat && matchesProgress;
     });
   }, [books, searchQuery, formatFilter, progressFilter]);
+
+  // Calculate progress counts for filter tabs
+  const progressCounts = useMemo(() => {
+    const counts = { not_started: 0, in_progress: 0, finished: 0 };
+    books.forEach(book => {
+      const status = getProgressStatus(book);
+      if (status !== 'all') {
+        counts[status]++;
+      }
+    });
+    return counts;
+  }, [books]);
+
+  // Handle book menu click
+  const handleBookMenuClick = useCallback((book: Book, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedBookForMenu(book);
+  }, []);
 
   // Process files (works with both FileList and File[])
   const processFiles = useCallback(async (fileArray: File[]) => {
@@ -768,26 +791,86 @@ export function Library() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+      <main className="flex-1 overflow-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-20">
         {/* Show filters only if library is not empty */}
         {!isLibraryEmpty && (
-          <div className="mb-4 sm:mb-6">
-            {/* Format Filter - scrollable on mobile */}
+          <div className="mb-4 sm:mb-6 space-y-3">
+            {/* Progress Filter Tabs with counts */}
             <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-lg overflow-x-auto no-scrollbar">
-              {formatFilterOptions.map(({ value, label, icon: Icon }) => (
+              <button
+                onClick={() => setProgressFilter('not_started')}
+                className={`flex-1 min-w-fit px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                  progressFilter === 'not_started'
+                    ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                    : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                }`}
+              >
+                Not started ({progressCounts.not_started})
+              </button>
+              <button
+                onClick={() => setProgressFilter('in_progress')}
+                className={`flex-1 min-w-fit px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                  progressFilter === 'in_progress'
+                    ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                    : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                }`}
+              >
+                In progress ({progressCounts.in_progress})
+              </button>
+              <button
+                onClick={() => setProgressFilter('finished')}
+                className={`flex-1 min-w-fit px-3 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                  progressFilter === 'finished'
+                    ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                    : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                }`}
+              >
+                Finished ({progressCounts.finished})
+              </button>
+            </div>
+
+            {/* Secondary row: Format filter + View toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-lg overflow-x-auto no-scrollbar">
+                {formatFilterOptions.map(({ value, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setFormatFilter(value as BookFormat | 'all' | 'documents')}
+                    className={`p-2 rounded-md transition-all ${
+                      formatFilter === value
+                        ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                        : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                    }`}
+                    title={value}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </button>
+                ))}
+              </div>
+
+              {/* View toggle */}
+              <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-800 rounded-lg">
                 <button
-                  key={value}
-                  onClick={() => setFormatFilter(value as BookFormat | 'all' | 'documents')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                    formatFilter === value
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-md transition-all ${
+                    viewMode === 'grid'
                       ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
                       : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">{label}</span>
+                  <Grid3X3 className="w-4 h-4" />
                 </button>
-              ))}
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md transition-all ${
+                    viewMode === 'list'
+                      ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-white shadow-sm'
+                      : 'text-surface-500 hover:text-surface-700 dark:hover:text-surface-300'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -800,24 +883,33 @@ export function Library() {
           </div>
         )}
 
-        {/* Books grid or Empty State */}
+        {/* Books grid/list or Empty State */}
         {filteredBooks.length > 0 ? (
           <div
             className={
               viewMode === 'grid'
                 ? 'grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-6'
-                : 'space-y-3 sm:space-y-4'
+                : 'space-y-1'
             }
           >
             {filteredBooks.map((book, index) => (
-              <BookCard
-                key={book.id}
-                book={book}
-                onClick={() => handleBookClick(book)}
-                onDelete={() => removeBook(book.id)}
-                index={index}
-                viewMode={viewMode}
-              />
+              viewMode === 'grid' ? (
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  onClick={() => handleBookClick(book)}
+                  onDelete={() => removeBook(book.id)}
+                  index={index}
+                  viewMode={viewMode}
+                />
+              ) : (
+                <BookListItem
+                  key={book.id}
+                  book={book}
+                  onSelect={handleBookClick}
+                  onMenuClick={handleBookMenuClick}
+                />
+              )
             ))}
           </div>
         ) : isLibraryEmpty ? (
@@ -1431,6 +1523,46 @@ export function Library() {
         onClose={() => setIsCloudStorageModalOpen(false)}
         onFilesSelected={handleCloudFilesSelected}
       />
+
+      {/* Book Menu Modal */}
+      <Modal
+        isOpen={!!selectedBookForMenu}
+        onClose={() => setSelectedBookForMenu(null)}
+        title="Options"
+        size="sm"
+      >
+        {selectedBookForMenu && (
+          <div className="space-y-2">
+            <button
+              onClick={() => {
+                handleBookClick(selectedBookForMenu);
+                setSelectedBookForMenu(null);
+              }}
+              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors text-left"
+            >
+              <Play className="w-5 h-5 text-primary-500" />
+              <span className="font-medium text-surface-900 dark:text-white">Play</span>
+            </button>
+            <button
+              onClick={() => {
+                removeBook(selectedBookForMenu.id);
+                setSelectedBookForMenu(null);
+              }}
+              className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-red-500/10 transition-colors text-left"
+            >
+              <X className="w-5 h-5 text-red-500" />
+              <span className="font-medium text-red-500">Delete</span>
+            </button>
+          </div>
+        )}
+      </Modal>
+
+      {/* Mini Player */}
+      <AnimatePresence>
+        {currentBook && (
+          <MiniPlayer onExpand={() => setCurrentView('player')} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
