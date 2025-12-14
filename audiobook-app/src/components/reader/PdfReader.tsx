@@ -52,9 +52,36 @@ export function PdfReader() {
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
+  const [viewMode, setViewMode] = useState<'single' | 'continuous'>('single');
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
 
   const { isReading } = ttsState;
   const { theme } = readerSettings;
+
+  // Load available voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      const sortedVoices = englishVoices.sort((a, b) => {
+        const aScore = (a.name.includes('Natural') || a.name.includes('Premium') || a.name.includes('Enhanced')) ? 1 : 0;
+        const bScore = (b.name.includes('Natural') || b.name.includes('Premium') || b.name.includes('Enhanced')) ? 1 : 0;
+        return bScore - aScore;
+      });
+      setAvailableVoices(sortedVoices.length > 0 ? sortedVoices : voices);
+      if (sortedVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(sortedVoices[0].name);
+      }
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, [selectedVoice]);
 
   useEffect(() => {
     if (!currentBook) return;
@@ -170,6 +197,15 @@ export function PdfReader() {
         const utterance = new SpeechSynthesisUtterance(pageText);
         utterance.rate = ttsState.rate;
         utterance.pitch = ttsState.pitch;
+
+        // Use selected voice if available
+        if (selectedVoice) {
+          const voice = availableVoices.find(v => v.name === selectedVoice);
+          if (voice) {
+            utterance.voice = voice;
+          }
+        }
+
         utterance.onend = () => {
           setTTSState({ isReading: false });
           // Auto advance to next page
@@ -181,7 +217,7 @@ export function PdfReader() {
         setTTSState({ isReading: true });
       }
     }
-  }, [isReading, pageText, currentPage, totalPages, goNext, ttsState.rate, ttsState.pitch]);
+  }, [isReading, pageText, currentPage, totalPages, goNext, ttsState.rate, ttsState.pitch, selectedVoice, availableVoices]);
 
   // Bookmark functionality
   const handleAddBookmark = useCallback(() => {
@@ -351,6 +387,33 @@ export function PdfReader() {
       {/* Settings Modal */}
       <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title="PDF Settings">
         <div className="space-y-6">
+          {/* View Mode */}
+          <div>
+            <h3 className="font-medium mb-3">View Mode</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('single')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  viewMode === 'single'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+                }`}
+              >
+                Single Page
+              </button>
+              <button
+                onClick={() => setViewMode('continuous')}
+                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  viewMode === 'continuous'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+                }`}
+              >
+                Continuous Scroll
+              </button>
+            </div>
+          </div>
+
           {/* TTS Settings */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -359,6 +422,29 @@ export function PdfReader() {
             </div>
 
             <div className="space-y-4">
+              {/* Voice Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Voice</label>
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  {availableVoices.length === 0 ? (
+                    <option value="">Loading voices...</option>
+                  ) : (
+                    availableVoices.map((voice) => (
+                      <option key={voice.name} value={voice.name}>
+                        {voice.name} ({voice.lang})
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className="text-xs text-surface-500 mt-1">
+                  Premium/Natural voices provide better quality when available
+                </p>
+              </div>
+
               <div>
                 <label className="text-sm font-medium mb-2 flex justify-between">
                   <span>Speed</span>

@@ -87,13 +87,25 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     const audio = audioRef.current;
     if (!audio || !currentBook) return;
 
+    console.log('[AudioPlayer] Setting up audio for:', currentBook.title);
+    console.log('[AudioPlayer] File URL:', currentBook.fileUrl);
+
+    // Reset audio state
+    audio.pause();
+    audio.currentTime = 0;
+
+    // Set the source
     audio.src = currentBook.fileUrl;
     audio.volume = volume;
     audio.playbackRate = playbackRate;
-    audio.currentTime = currentBook.currentPosition * (audio.duration || 0);
 
     const handleLoadedMetadata = () => {
+      console.log('[AudioPlayer] Loaded metadata, duration:', audio.duration);
       setPlayerState({ duration: audio.duration });
+      // Restore position after metadata is loaded
+      if (currentBook.currentPosition > 0 && audio.duration > 0) {
+        audio.currentTime = currentBook.currentPosition * audio.duration;
+      }
     };
 
     const handleTimeUpdate = () => {
@@ -105,16 +117,33 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       updateBook(currentBook.id, { isFinished: true, currentPosition: 1 });
     };
 
+    const handleError = () => {
+      const mediaError = audio.error;
+      console.error('[AudioPlayer] Audio error:', mediaError?.code, mediaError?.message);
+      setPlayerState({ isPlaying: false });
+    };
+
+    const handleCanPlay = () => {
+      console.log('[AudioPlayer] Audio can play');
+    };
+
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('canplay', handleCanPlay);
+
+    // Try to load the audio
+    audio.load();
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('canplay', handleCanPlay);
     };
-  }, [currentBook]);
+  }, [currentBook?.id, currentBook?.fileUrl]);
 
   // Play/pause control
   useEffect(() => {
@@ -124,7 +153,37 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     if (isPlaying) {
       // Resume shared audio context if suspended
       resumeAudioContext();
-      audio.play().catch(() => setPlayerState({ isPlaying: false }));
+
+      // Wait for audio to be ready before playing
+      const attemptPlay = () => {
+        if (audio.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+          audio.play()
+            .then(() => {
+              console.log('[AudioPlayer] Playback started successfully');
+            })
+            .catch((error) => {
+              console.error('[AudioPlayer] Play error:', error.name, error.message);
+              setPlayerState({ isPlaying: false });
+            });
+        } else {
+          console.log('[AudioPlayer] Audio not ready, waiting... readyState:', audio.readyState);
+          // Wait for canplay event
+          const handleCanPlay = () => {
+            audio.removeEventListener('canplay', handleCanPlay);
+            audio.play()
+              .then(() => {
+                console.log('[AudioPlayer] Playback started after waiting');
+              })
+              .catch((error) => {
+                console.error('[AudioPlayer] Play error after waiting:', error.name, error.message);
+                setPlayerState({ isPlaying: false });
+              });
+          };
+          audio.addEventListener('canplay', handleCanPlay);
+        }
+      };
+
+      attemptPlay();
     } else {
       audio.pause();
     }

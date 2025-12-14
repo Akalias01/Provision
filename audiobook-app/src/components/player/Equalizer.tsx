@@ -237,15 +237,26 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
       console.error('[Equalizer] Error initializing:', error);
       // Don't crash - just log and continue without EQ
     }
-  }, [audioRef, customGains, isInitialized]);
+    // Note: customGains is NOT in deps - gains are applied separately by applyGains
+  }, [audioRef, isInitialized]);
 
-  // Apply gains to filters
+  // Apply gains to filters (with error handling to prevent crashes)
   const applyGains = useCallback((gains: number[]) => {
-    filtersRef.current.forEach((filter, index) => {
-      if (filter && gains[index] !== undefined) {
-        filter.gain.value = isEnabled ? gains[index] : 0;
-      }
-    });
+    try {
+      filtersRef.current.forEach((filter, index) => {
+        if (filter && gains[index] !== undefined) {
+          // Use setValueAtTime for smoother transitions and to avoid potential errors
+          const targetValue = isEnabled ? gains[index] : 0;
+          if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+            filter.gain.setValueAtTime(targetValue, audioContextRef.current.currentTime);
+          } else {
+            filter.gain.value = targetValue;
+          }
+        }
+      });
+    } catch (error) {
+      console.error('[Equalizer] Error applying gains:', error);
+    }
   }, [isEnabled]);
 
   // Initialize on first open

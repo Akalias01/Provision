@@ -52,8 +52,38 @@ export function EpubReader() {
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
+  const [viewMode, setViewMode] = useState<'paginated' | 'scrolled'>('paginated');
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<string>('');
 
   const { fontSize, fontFamily, lineHeight, theme, marginSize } = readerSettings;
+
+  // Load available voices
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // Filter for English voices and sort by quality (prefer premium/enhanced voices)
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      const sortedVoices = englishVoices.sort((a, b) => {
+        // Prefer voices with "Natural", "Premium", "Enhanced" in name
+        const aScore = (a.name.includes('Natural') || a.name.includes('Premium') || a.name.includes('Enhanced')) ? 1 : 0;
+        const bScore = (b.name.includes('Natural') || b.name.includes('Premium') || b.name.includes('Enhanced')) ? 1 : 0;
+        return bScore - aScore;
+      });
+      setAvailableVoices(sortedVoices.length > 0 ? sortedVoices : voices);
+      // Select best voice by default
+      if (sortedVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(sortedVoices[0].name);
+      }
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, [selectedVoice]);
   const { isReading } = ttsState;
 
   useEffect(() => {
@@ -86,7 +116,7 @@ export function EpubReader() {
           width: '100%',
           height: '100%',
           spread: 'none',
-          flow: 'paginated',
+          flow: viewMode,
           allowScriptedContent: true,
         });
 
@@ -142,7 +172,7 @@ export function EpubReader() {
         bookRef.current.destroy();
       }
     };
-  }, [currentBook?.fileUrl]);
+  }, [currentBook?.fileUrl, viewMode]);
 
   useEffect(() => {
     if (renditionRef.current) {
@@ -229,12 +259,21 @@ export function EpubReader() {
         const utterance = new SpeechSynthesisUtterance(selection.slice(0, 5000));
         utterance.rate = ttsState.rate;
         utterance.pitch = ttsState.pitch;
+
+        // Use selected voice if available
+        if (selectedVoice) {
+          const voice = availableVoices.find(v => v.name === selectedVoice);
+          if (voice) {
+            utterance.voice = voice;
+          }
+        }
+
         utterance.onend = () => setTTSState({ isReading: false });
         window.speechSynthesis.speak(utterance);
         setTTSState({ isReading: true });
       }
     }
-  }, [isReading, ttsState.rate, ttsState.pitch]);
+  }, [isReading, ttsState.rate, ttsState.pitch, selectedVoice, availableVoices]);
 
   // Bookmark functionality
   const handleAddBookmark = useCallback(() => {
@@ -407,6 +446,35 @@ export function EpubReader() {
       {/* Settings Modal */}
       <Modal isOpen={showSettings} onClose={() => setShowSettings(false)} title="Reading Settings">
         <div className="space-y-6">
+          {/* View Mode */}
+          <div>
+            <label className="text-sm font-medium mb-3 block">View Mode</label>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setViewMode('paginated')}
+                className={`flex-1 p-3 rounded-xl border-2 transition-all ${
+                  viewMode === 'paginated'
+                    ? 'border-primary-500 bg-primary-500/10'
+                    : 'border-surface-200 dark:border-surface-700'
+                }`}
+              >
+                <BookOpen className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-xs">Page Flip</span>
+              </button>
+              <button
+                onClick={() => setViewMode('scrolled')}
+                className={`flex-1 p-3 rounded-xl border-2 transition-all ${
+                  viewMode === 'scrolled'
+                    ? 'border-primary-500 bg-primary-500/10'
+                    : 'border-surface-200 dark:border-surface-700'
+                }`}
+              >
+                <List className="w-5 h-5 mx-auto mb-1" />
+                <span className="text-xs">Scroll</span>
+              </button>
+            </div>
+          </div>
+
           {/* Theme */}
           <div>
             <label className="text-sm font-medium mb-3 block">Theme</label>
@@ -468,6 +536,29 @@ export function EpubReader() {
             </div>
 
             <div className="space-y-4">
+              {/* Voice Selection */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">Voice</label>
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-surface-100 dark:bg-surface-800 border-none text-sm focus:ring-2 focus:ring-primary-500"
+                >
+                  {availableVoices.length === 0 ? (
+                    <option value="">Loading voices...</option>
+                  ) : (
+                    availableVoices.map((voice) => (
+                      <option key={voice.name} value={voice.name}>
+                        {voice.name} ({voice.lang})
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className="text-xs text-surface-500 mt-1">
+                  {availableVoices.length} voices available. Premium voices provide more natural speech.
+                </p>
+              </div>
+
               <div>
                 <label className="text-sm font-medium mb-2 flex justify-between">
                   <span>Speed</span>

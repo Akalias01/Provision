@@ -614,7 +614,7 @@ export const useStore = create<AppState>()(
       setSleepTimerRemaining: (seconds) => set({ sleepTimerRemaining: seconds }),
 
       // Skip Interval
-      skipInterval: 30,
+      skipInterval: 10,
       setSkipInterval: (interval) => set({ skipInterval: interval }),
 
       // Bookmarks
