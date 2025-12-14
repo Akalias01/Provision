@@ -30,6 +30,40 @@ import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type 
 import { useTranslation } from '../../i18n';
 import type { Book, BookFormat } from '../../types';
 
+// Play download complete sound notification
+function playDownloadCompleteSound() {
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+
+    // First tone (ascending)
+    const osc1 = audioContext.createOscillator();
+    const gain1 = audioContext.createGain();
+    osc1.connect(gain1);
+    gain1.connect(audioContext.destination);
+    osc1.frequency.value = 880; // A5
+    osc1.type = 'sine';
+    gain1.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    osc1.start(audioContext.currentTime);
+    osc1.stop(audioContext.currentTime + 0.3);
+
+    // Second tone (higher, delayed)
+    const osc2 = audioContext.createOscillator();
+    const gain2 = audioContext.createGain();
+    osc2.connect(gain2);
+    gain2.connect(audioContext.destination);
+    osc2.frequency.value = 1318.5; // E6
+    osc2.type = 'sine';
+    gain2.gain.setValueAtTime(0, audioContext.currentTime);
+    gain2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    osc2.start(audioContext.currentTime + 0.15);
+    osc2.stop(audioContext.currentTime + 0.5);
+  } catch (e) {
+    console.log('Could not play notification sound:', e);
+  }
+}
+
 // Fetch book metadata from Open Library API
 async function fetchBookMetadata(title: string, author: string): Promise<{ cover?: string; description?: string }> {
   try {
@@ -205,29 +239,66 @@ export function Library() {
     handleFileSelect(e.dataTransfer.files);
   };
 
-  const handleTorrentDownload = useCallback(() => {
-    if (!torrentUrl.trim()) return;
+  // Shared function to start a torrent download and add book when complete
+  const startTorrentDownload = useCallback((name: string) => {
+    const cleanName = name
+      .replace(/\.torrent$/i, '')
+      .replace(/[_-]/g, ' ')
+      .replace(/\.[^/.]+$/, '')
+      .slice(0, 100);
 
-    // Note: WebTorrent would be used here in the actual Electron app
-    // For now, we'll show a placeholder
     const torrentId = crypto.randomUUID();
-    addTorrent({ id: torrentId, name: torrentUrl.slice(0, 50), progress: 0 });
+    addTorrent({ id: torrentId, name: cleanName, progress: 0 });
 
-    // Simulate progress (in real app, this would come from WebTorrent)
+    // Simulate progress (in real app, this would use WebTorrent)
     let progress = 0;
     const interval = setInterval(() => {
-      progress += Math.random() * 10;
+      progress += Math.random() * 15 + 5;
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
+
+        // Play completion sound
+        playDownloadCompleteSound();
+
+        // Add the downloaded content to library
+        const book: Book = {
+          id: crypto.randomUUID(),
+          title: cleanName,
+          author: 'Unknown Author',
+          format: 'audio', // Default to audio for torrents (usually audiobooks)
+          fileUrl: `torrent://${torrentId}`,
+          currentPosition: 0,
+          dateAdded: new Date(),
+        };
+        addBook(book);
+
+        // Fetch metadata for the new book
+        fetchBookMetadata(cleanName, '').then((metadata) => {
+          if (metadata.cover || metadata.description) {
+            updateBook(book.id, {
+              cover: metadata.cover,
+              description: metadata.description,
+            });
+          }
+        });
+
+        // Remove torrent progress indicator after a delay
         setTimeout(() => removeTorrent(torrentId), 2000);
       }
       updateTorrent(torrentId, progress);
-    }, 500);
+    }, 400);
+  }, [addTorrent, updateTorrent, removeTorrent, addBook, updateBook]);
 
-    setTorrentUrl('');
+  const handleTorrentDownload = useCallback(() => {
+    if (!torrentUrl.trim()) return;
+
+    // Close modal immediately when download starts
     setIsTorrentModalOpen(false);
-  }, [torrentUrl, addTorrent, updateTorrent, removeTorrent]);
+
+    startTorrentDownload(torrentUrl);
+    setTorrentUrl('');
+  }, [torrentUrl, startTorrentDownload]);
 
   // Handle folder scan
   const handleFolderScan = useCallback((files: FileList | null) => {
@@ -830,24 +901,12 @@ export function Library() {
                     <Button
                       variant="primary"
                       onClick={() => {
-                        // Start download for this torrent
-                        const torrentId = crypto.randomUUID();
-                        addTorrent({ id: torrentId, name: file.name, progress: 0 });
+                        // Close modal immediately when download starts
+                        setIsTorrentModalOpen(false);
+                        setFoundTorrentFiles([]);
 
-                        // Simulate progress
-                        let progress = 0;
-                        const interval = setInterval(() => {
-                          progress += Math.random() * 10;
-                          if (progress >= 100) {
-                            progress = 100;
-                            clearInterval(interval);
-                            setTimeout(() => removeTorrent(torrentId), 2000);
-                          }
-                          updateTorrent(torrentId, progress);
-                        }, 500);
-
-                        // Remove from list
-                        setFoundTorrentFiles(prev => prev.filter((_, i) => i !== index));
+                        // Start download using shared function
+                        startTorrentDownload(file.name);
                       }}
                     >
                       <Download className="w-4 h-4" />
