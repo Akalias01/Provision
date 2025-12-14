@@ -7,7 +7,31 @@ export type ColorTheme = 'cyber-glitch' | 'cyber-teal' | 'neon-red' | 'ocean-blu
 export type LogoVariant = 'waveform' | 'headphones' | 'pulse' | 'minimal';
 export type SplashVariant = 'pulseWave' | 'glitchCyber' | 'waveformMorph' | 'neonFlicker';
 export type SleepTimerMode = 'off' | '5' | '10' | '15' | '30' | '45' | '60' | 'endOfChapter';
-export type SkipInterval = 10 | 15 | 30 | 45 | 60;
+export type SkipInterval = 5 | 10 | 15 | 30 | 45 | 60;
+export type NotificationAction = 'pause' | 'duck' | 'nothing';
+
+// App Settings interface
+export interface AppSettings {
+  // Downloads
+  downloadOverWifiOnly: boolean;
+
+  // Library
+  scanFoldersOnStartup: boolean;
+  deleteIfMissing: boolean;
+  foldersToScan: string[];
+
+  // Player
+  skipBackwardAmount: SkipInterval;
+  skipForwardAmount: SkipInterval;
+  skipAfterPauseAmount: number; // seconds
+  actionOnNotification: NotificationAction;
+  keepPlaybackServiceActive: boolean;
+  stopPlaybackOnClose: boolean;
+  showCoverOnLockScreen: boolean;
+
+  // Debugging
+  fileLoggingEnabled: boolean;
+}
 
 // Color theme definitions
 export const colorThemes: Record<ColorTheme, {
@@ -469,6 +493,12 @@ interface AppState {
   showWaveform: boolean;
   setShowWaveform: (show: boolean) => void;
 
+  // App Settings
+  appSettings: AppSettings;
+  setAppSettings: (settings: Partial<AppSettings>) => void;
+  addFolderToScan: (folder: string) => void;
+  removeFolderToScan: (folder: string) => void;
+
   // Bookmarks
   addBookmark: (bookId: string, bookmark: Bookmark) => void;
   removeBookmark: (bookId: string, bookmarkId: string) => void;
@@ -625,6 +655,40 @@ export const useStore = create<AppState>()(
       showWaveform: false,
       setShowWaveform: (show) => set({ showWaveform: show }),
 
+      // App Settings
+      appSettings: {
+        downloadOverWifiOnly: false,
+        scanFoldersOnStartup: true,
+        deleteIfMissing: true,
+        foldersToScan: [],
+        skipBackwardAmount: 10,
+        skipForwardAmount: 10,
+        skipAfterPauseAmount: 1,
+        actionOnNotification: 'pause',
+        keepPlaybackServiceActive: false,
+        stopPlaybackOnClose: false,
+        showCoverOnLockScreen: true,
+        fileLoggingEnabled: false,
+      },
+      setAppSettings: (settings) =>
+        set((state) => ({
+          appSettings: { ...state.appSettings, ...settings },
+        })),
+      addFolderToScan: (folder) =>
+        set((state) => ({
+          appSettings: {
+            ...state.appSettings,
+            foldersToScan: [...state.appSettings.foldersToScan, folder],
+          },
+        })),
+      removeFolderToScan: (folder) =>
+        set((state) => ({
+          appSettings: {
+            ...state.appSettings,
+            foldersToScan: state.appSettings.foldersToScan.filter((f) => f !== folder),
+          },
+        })),
+
       // Bookmarks
       addBookmark: (bookId, bookmark) =>
         set((state) => ({
@@ -676,6 +740,7 @@ export const useStore = create<AppState>()(
         },
         skipInterval: state.skipInterval,
         showWaveform: state.showWaveform,
+        appSettings: state.appSettings,
       }),
     }
   )

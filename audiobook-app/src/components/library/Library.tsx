@@ -740,7 +740,6 @@ export function Library() {
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <SidebarMenu
                 onOpenTorrent={() => setIsTorrentModalOpen(true)}
-                onOpenSettings={() => setIsSettingsModalOpen(true)}
               />
               <RezonLogo size="sm" variant={logoVariant} />
             </div>

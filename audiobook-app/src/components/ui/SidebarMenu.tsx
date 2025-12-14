@@ -4,20 +4,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu,
   X,
-  FolderOpen,
-  Palette,
-  Cloud,
+  FolderSearch,
+  Folder,
   ChevronRight,
   Download,
   CheckCircle2,
-  HardDrive,
   Trash2,
   RefreshCw,
   Magnet,
+  Settings,
+  Star,
+  Globe,
+  Cloud,
+  Plus,
 } from 'lucide-react';
 import { Button, Modal } from './index';
 import { useStore } from '../../store/useStore';
 import { RezonLogo } from './RezonLogo';
+import { SettingsScreen } from '../settings';
 import {
   connectGoogleDrive,
   isGoogleDriveConnected,
@@ -29,15 +33,16 @@ import {
 
 interface SidebarMenuProps {
   onOpenTorrent: () => void;
-  onOpenSettings: () => void;
 }
 
 const SIDEBAR_WIDTH = 300;
 
-export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps) {
+export function SidebarMenu({ onOpenTorrent }: SidebarMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showFoldersModal, setShowFoldersModal] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [dropboxConnected, setDropboxConnected] = useState(false);
   const [connectingGoogle, setConnectingGoogle] = useState(false);
@@ -49,6 +54,9 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     logoVariant,
     isDarkMode,
     activeTorrents,
+    appSettings,
+    addFolderToScan,
+    removeFolderToScan,
   } = useStore();
 
   // Check cloud connection status on mount
@@ -108,23 +116,25 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     setDropboxConnected(false);
   };
 
-  // Menu items
+  // Sirin-style menu items
   const menuItems = [
     {
-      id: 'files',
-      icon: FolderOpen,
-      label: 'Add Files',
-      description: 'Import audiobooks from device',
+      id: 'scan',
+      icon: FolderSearch,
+      label: 'Scan folder',
+      description: 'Scan a folder for audiobooks',
       onClick: () => {
         const input = document.createElement('input');
         input.type = 'file';
-        input.multiple = true;
-        input.accept = '.mp3,.m4b,.m4a,.epub,.pdf';
+        input.webkitdirectory = true;
+        (input as HTMLInputElement & { directory: boolean }).directory = true;
         input.onchange = (e) => {
           const files = (e.target as HTMLInputElement).files;
-          if (files) {
-            console.log('Selected', files.length, 'files');
-            // File handling is done by the Library component
+          if (files && files.length > 0) {
+            // Get the folder path from the first file
+            const folderPath = files[0].webkitRelativePath.split('/')[0];
+            addFolderToScan(folderPath);
+            console.log('Scanning folder:', folderPath, 'with', files.length, 'files');
           }
         };
         input.click();
@@ -132,9 +142,16 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
       },
     },
     {
+      id: 'folders',
+      icon: Folder,
+      label: 'Folders to scan',
+      description: `${appSettings.foldersToScan.length} folders configured`,
+      onClick: () => setShowFoldersModal(true),
+    },
+    {
       id: 'torrent',
       icon: Magnet,
-      label: 'Torrent Downloads',
+      label: 'Download torrent',
       description: activeTorrents.length > 0 ? `${activeTorrents.length} active` : 'Download from torrents',
       badge: activeTorrents.length > 0,
       onClick: () => {
@@ -145,27 +162,40 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     {
       id: 'cloud',
       icon: Cloud,
-      label: 'Cloud Storage',
-      description: googleConnected || dropboxConnected ? 'Connected' : 'Google Drive & Dropbox',
+      label: 'Storage',
+      description: googleConnected || dropboxConnected ? 'Connected' : 'Cloud storage',
       badge: googleConnected || dropboxConnected,
       onClick: () => setIsCloudModalOpen(true),
     },
     {
-      id: 'appearance',
-      icon: Palette,
-      label: 'Appearance',
-      description: 'Theme & colors',
+      id: 'settings',
+      icon: Settings,
+      label: 'Settings',
+      description: 'App preferences',
       onClick: () => {
         setIsOpen(false);
-        onOpenSettings();
+        setShowSettings(true);
       },
     },
     {
-      id: 'storage',
-      icon: HardDrive,
-      label: 'Library',
-      description: `${books.length} books`,
-      onClick: () => setIsStorageModalOpen(true),
+      id: 'recommend',
+      icon: Star,
+      label: 'Recommend',
+      description: 'Rate & share the app',
+      onClick: () => {
+        // In a real app, this would open the app store or share dialog
+        setIsOpen(false);
+      },
+    },
+    {
+      id: 'translate',
+      icon: Globe,
+      label: 'Translate',
+      description: 'Help translate the app',
+      onClick: () => {
+        // In a real app, this would open translation contribution page
+        setIsOpen(false);
+      },
     },
   ];
 
@@ -288,7 +318,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             {/* Footer */}
             <div className="p-4 border-t border-surface-800 safe-area-bottom">
               <div className="text-center text-xs text-surface-500">
-                <p className="font-semibold">Rezon v1.0.15</p>
+                <p className="font-semibold">Rezon v1.0.16</p>
               </div>
             </div>
           </motion.aside>
@@ -441,6 +471,70 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
           </div>
         </div>
       </Modal>
+
+      {/* Folders to Scan Modal */}
+      <Modal
+        isOpen={showFoldersModal}
+        onClose={() => setShowFoldersModal(false)}
+        title="Folders to Scan"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-surface-400">
+            These folders will be scanned for audiobooks when the app starts.
+          </p>
+
+          {appSettings.foldersToScan.length === 0 ? (
+            <div className="text-center py-8 text-surface-500">
+              No folders configured
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {appSettings.foldersToScan.map((folder) => (
+                <div
+                  key={folder}
+                  className="flex items-center justify-between p-3 bg-surface-800 rounded-xl"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Folder className="w-5 h-5 text-primary-500 flex-shrink-0" />
+                    <span className="text-sm text-white truncate">{folder}</span>
+                  </div>
+                  <button
+                    onClick={() => removeFolderToScan(folder)}
+                    className="p-2 text-surface-400 hover:text-red-500"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.webkitdirectory = true;
+              (input as HTMLInputElement & { directory: boolean }).directory = true;
+              input.onchange = (e) => {
+                const files = (e.target as HTMLInputElement).files;
+                if (files && files.length > 0) {
+                  const folderPath = files[0].webkitRelativePath.split('/')[0];
+                  addFolderToScan(folderPath);
+                }
+              };
+              input.click();
+            }}
+            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-surface-700 text-surface-400 hover:border-primary-500 hover:text-primary-500 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-semibold">Add Folder</span>
+          </button>
+        </div>
+      </Modal>
+
+      {/* Settings Screen */}
+      <SettingsScreen isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </>
   );
 }
