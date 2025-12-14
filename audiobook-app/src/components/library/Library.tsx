@@ -23,9 +23,11 @@ import {
   Sparkles,
   FolderSearch,
   FileDown,
+  Cloud,
 } from 'lucide-react';
 import { Button, Modal, RezonLogo, SidebarMenu } from '../ui';
 import { BookCard } from './BookCard';
+import { CloudStorageModal } from './CloudStorageModal';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import { useTranslation } from '../../i18n';
 import type { Book, BookFormat } from '../../types';
@@ -119,6 +121,7 @@ export function Library() {
   const [isTorrentModalOpen, setIsTorrentModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [isCloudStorageModalOpen, setIsCloudStorageModalOpen] = useState(false);
   const [torrentUrl, setTorrentUrl] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [dragOver, setDragOver] = useState(false);
@@ -172,11 +175,11 @@ export function Library() {
     });
   }, [books, searchQuery, formatFilter, progressFilter]);
 
-  const handleFileSelect = useCallback(async (files: FileList | null) => {
-    if (!files) return;
+  // Process files (works with both FileList and File[])
+  const processFiles = useCallback(async (fileArray: File[]) => {
     setIsLoadingMetadata(true);
 
-    for (const file of Array.from(files)) {
+    for (const file of fileArray) {
       const format = getFileFormat(file.name);
       if (!format) continue;
 
@@ -242,7 +245,19 @@ export function Library() {
 
     setIsLoadingMetadata(false);
     setIsAddModalOpen(false);
+    setIsCloudStorageModalOpen(false);
   }, [addBook, updateBook]);
+
+  // Wrapper for FileList (from file inputs)
+  const handleFileSelect = useCallback((files: FileList | null) => {
+    if (!files) return;
+    processFiles(Array.from(files));
+  }, [processFiles]);
+
+  // Handler for cloud storage files
+  const handleCloudFilesSelected = useCallback((files: File[]) => {
+    processFiles(files);
+  }, [processFiles]);
 
   const getFileFormat = (filename: string): BookFormat | null => {
     const ext = filename.split('.').pop()?.toLowerCase();
@@ -250,6 +265,7 @@ export function Library() {
     if (audioFormats.includes(ext || '')) return 'audio';
     if (ext === 'epub') return 'epub';
     if (ext === 'pdf') return 'pdf';
+    if (ext === 'doc' || ext === 'docx') return 'doc';
     return null;
   };
 
@@ -258,6 +274,7 @@ export function Library() {
     if (book.format === 'audio') {
       setCurrentView('player');
     } else {
+      // epub, pdf, and doc all use the reader view
       setCurrentView('reader');
     }
   };
@@ -549,6 +566,7 @@ export function Library() {
     { value: 'audio', label: 'Audio', icon: Headphones },
     { value: 'epub', label: 'EPUB', icon: BookOpen },
     { value: 'pdf', label: 'PDF', icon: FileText },
+    { value: 'doc', label: 'DOC', icon: FileText },
   ];
 
   const progressFilterOptions = [
@@ -983,7 +1001,7 @@ export function Library() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".mp3,.m4b,.m4a,.aac,.ogg,.flac,.wav,.epub,.pdf"
+        accept=".mp3,.m4b,.m4a,.aac,.ogg,.flac,.wav,.epub,.pdf,.doc,.docx"
         onChange={(e) => handleFileSelect(e.target.files)}
         className="hidden"
       />
@@ -1038,12 +1056,29 @@ export function Library() {
             </p>
           </div>
 
+          {/* Cloud Storage Button */}
+          <div className="border-t border-surface-200 dark:border-surface-700 pt-6">
+            <button
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setIsCloudStorageModalOpen(true);
+              }}
+              className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-cyan-700 transition-all shadow-lg shadow-blue-500/25"
+            >
+              <Cloud className="w-5 h-5" />
+              Import from Cloud Storage
+            </button>
+            <p className="text-xs text-surface-500 text-center mt-2">
+              Connect Google Drive or Dropbox to import files
+            </p>
+          </div>
+
           {/* Supported formats */}
           <div className="grid grid-cols-3 gap-4">
             {[
               { icon: Headphones, label: 'Audio', formats: 'MP3, M4B, AAC, OGG' },
               { icon: BookOpen, label: 'EPUB', formats: 'EPUB format' },
-              { icon: FileText, label: 'PDF', formats: 'PDF documents' },
+              { icon: FileText, label: 'PDF/DOC', formats: 'PDF, DOC, DOCX' },
             ].map(({ icon: Icon, label, formats }) => (
               <div
                 key={label}
@@ -1463,6 +1498,13 @@ export function Library() {
           )}
         </div>
       </Modal>
+
+      {/* Cloud Storage Modal */}
+      <CloudStorageModal
+        isOpen={isCloudStorageModalOpen}
+        onClose={() => setIsCloudStorageModalOpen(false)}
+        onFilesSelected={handleCloudFilesSelected}
+      />
     </div>
   );
 }

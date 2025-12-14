@@ -1,4 +1,4 @@
-export type BookFormat = 'audio' | 'epub' | 'pdf';
+export type BookFormat = 'audio' | 'epub' | 'pdf' | 'doc';
 
 export type AudioFormat = 'mp3' | 'm4b' | 'aac' | 'ogg' | 'flac' | 'wav';
 

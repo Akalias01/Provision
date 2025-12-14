@@ -95,7 +95,7 @@ export const translations = {
 
     // Formats
     epubFormat: 'EPUB format with TTS',
-    pdfFormat: 'PDF with text-to-speech',
+    pdfFormat: 'PDF, DOC, DOCX with TTS',
     audioFormat: 'MP3, M4B, and more',
 
     // Messages

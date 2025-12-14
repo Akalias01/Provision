@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Library } from './components/library';
 import { AudioPlayer } from './components/player';
-import { EpubReader, PdfReader } from './components/reader';
+import { EpubReader, PdfReader, DocReader } from './components/reader';
 import { SplashScreen } from './components/SplashScreen';
 import { useStore } from './store/useStore';
 
@@ -39,6 +39,18 @@ function App() {
 
       case 'reader':
         if (!currentBook) return null;
+        const renderReader = () => {
+          switch (currentBook.format) {
+            case 'epub':
+              return <EpubReader />;
+            case 'pdf':
+              return <PdfReader />;
+            case 'doc':
+              return <DocReader />;
+            default:
+              return <EpubReader />;
+          }
+        };
         return (
           <motion.div
             key="reader"
@@ -48,7 +60,7 @@ function App() {
             transition={{ duration: 0.3 }}
             className="h-screen"
           >
-            {currentBook.format === 'epub' ? <EpubReader /> : <PdfReader />}
+            {renderReader()}
           </motion.div>
         );
 

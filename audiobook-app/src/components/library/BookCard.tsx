@@ -19,6 +19,7 @@ export function BookCard({ book, onClick, onDelete, index, viewMode = 'grid' }: 
     audio: Headphones,
     epub: BookOpen,
     pdf: FileText,
+    doc: FileText,
   };
 
   const FormatIcon = formatIcon[book.format];
@@ -29,6 +30,7 @@ export function BookCard({ book, onClick, onDelete, index, viewMode = 'grid' }: 
     audio: 'bg-emerald-500/20 text-emerald-400',
     epub: 'bg-primary-500/20 text-primary-400',
     pdf: 'bg-orange-500/20 text-orange-400',
+    doc: 'bg-blue-500/20 text-blue-400',
   };
 
   // List view layout
