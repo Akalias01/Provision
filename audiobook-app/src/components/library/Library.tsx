@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -29,6 +29,10 @@ import { BookCard } from './BookCard';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import { useTranslation } from '../../i18n';
 import type { Book, BookFormat } from '../../types';
+import '../../types/electron.d.ts';
+
+// Check if running in Electron
+const isElectron = () => typeof window !== 'undefined' && !!window.electronAPI;
 
 // Play download complete sound notification
 function playDownloadCompleteSound() {
@@ -239,18 +243,96 @@ export function Library() {
     handleFileSelect(e.dataTransfer.files);
   };
 
+  // Set up Electron torrent event listeners
+  useEffect(() => {
+    if (!isElectron()) return;
+
+    const api = window.electronAPI!;
+
+    // Handle progress updates
+    const unsubProgress = api.onTorrentProgress((data) => {
+      updateTorrent(data.id, data.progress);
+    });
+
+    // Handle completion
+    const unsubComplete = api.onTorrentComplete((data) => {
+      // Play completion sound
+      playDownloadCompleteSound();
+
+      // Get the first audio file path for playback
+      const fileUrl = data.files.length > 0 ? `file://${data.files[0]}` : data.downloadPath;
+
+      // Create book entry
+      const cleanName = data.name
+        .replace(/[_-]/g, ' ')
+        .replace(/\.[^/.]+$/, '');
+
+      const book: Book = {
+        id: crypto.randomUUID(),
+        title: cleanName,
+        author: 'Unknown Author',
+        format: 'audio',
+        fileUrl: fileUrl,
+        currentPosition: 0,
+        dateAdded: new Date(),
+      };
+      addBook(book);
+
+      // Fetch metadata for the new book
+      fetchBookMetadata(cleanName, '').then((metadata) => {
+        if (metadata.cover || metadata.description) {
+          updateBook(book.id, {
+            cover: metadata.cover,
+            description: metadata.description,
+          });
+        }
+      });
+
+      // Remove torrent progress indicator after a delay
+      setTimeout(() => removeTorrent(data.id), 2000);
+    });
+
+    // Handle errors
+    const unsubError = api.onTorrentError((data) => {
+      console.error('Torrent error:', data.error);
+      removeTorrent(data.id);
+    });
+
+    return () => {
+      unsubProgress();
+      unsubComplete();
+      unsubError();
+    };
+  }, [addBook, updateBook, removeTorrent, updateTorrent]);
+
   // Shared function to start a torrent download and add book when complete
-  const startTorrentDownload = useCallback((name: string) => {
-    const cleanName = name
+  const startTorrentDownload = useCallback(async (torrentSource: string) => {
+    const cleanName = torrentSource
       .replace(/\.torrent$/i, '')
       .replace(/[_-]/g, ' ')
       .replace(/\.[^/.]+$/, '')
       .slice(0, 100);
 
+    // Use real Electron torrent API if available
+    if (isElectron()) {
+      try {
+        const result = await window.electronAPI!.startTorrentDownload(torrentSource);
+
+        if (result.success && result.id) {
+          addTorrent({ id: result.id, name: result.name || cleanName, progress: 0 });
+        } else {
+          console.error('Failed to start torrent:', result.error);
+        }
+      } catch (error) {
+        console.error('Error starting torrent:', error);
+      }
+      return;
+    }
+
+    // Fallback: Simulate progress for browser testing
     const torrentId = crypto.randomUUID();
     addTorrent({ id: torrentId, name: cleanName, progress: 0 });
 
-    // Simulate progress (in real app, this would use WebTorrent)
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.random() * 15 + 5;
@@ -261,13 +343,13 @@ export function Library() {
         // Play completion sound
         playDownloadCompleteSound();
 
-        // Add the downloaded content to library
+        // Add the downloaded content to library (simulated)
         const book: Book = {
           id: crypto.randomUUID(),
           title: cleanName,
           author: 'Unknown Author',
-          format: 'audio', // Default to audio for torrents (usually audiobooks)
-          fileUrl: `torrent://${torrentId}`,
+          format: 'audio',
+          fileUrl: `simulated://${torrentId}`, // Placeholder for browser testing
           currentPosition: 0,
           dateAdded: new Date(),
         };

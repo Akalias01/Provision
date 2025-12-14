@@ -63,6 +63,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className={`relative w-full ${sizes[size]} bg-white dark:bg-surface-900 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col`}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             {title && (
