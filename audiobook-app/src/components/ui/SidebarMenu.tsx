@@ -321,7 +321,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             {/* Footer */}
             <div className="p-4 border-t border-surface-200 dark:border-surface-700">
               <div className="text-center text-sm text-surface-500">
-                <p className="font-medium">Rezon v1.0.3</p>
+                <p className="font-medium">Rezon v1.0.4</p>
                 <p className="text-xs mt-1">{totalBooks} {t('booksInLibrary')}</p>
               </div>
             </div>

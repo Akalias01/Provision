@@ -58,6 +58,12 @@ let sharedAudioContext: AudioContext | null = null;
 let sharedSourceNode: MediaElementAudioSourceNode | null = null;
 let sharedGainNode: GainNode | null = null;
 let connectedAudioElement: HTMLAudioElement | null = null;
+let isInitializing = false;
+
+// Check if audio element is ready
+function isAudioElementReady(audioElement: HTMLAudioElement): boolean {
+  return !!(audioElement && audioElement.src && audioElement.src !== '' && audioElement.readyState >= 1);
+}
 
 // Get or create shared audio context
 export function getSharedAudioContext(audioElement: HTMLAudioElement): {
@@ -65,7 +71,19 @@ export function getSharedAudioContext(audioElement: HTMLAudioElement): {
   sourceNode: MediaElementAudioSourceNode;
   gainNode: GainNode;
 } | null {
+  // Prevent double initialization
+  if (isInitializing) {
+    console.log('[Equalizer] Already initializing, skipping...');
+    return null;
+  }
+
   try {
+    // Check if audio element is ready
+    if (!isAudioElementReady(audioElement)) {
+      console.log('[Equalizer] Audio element not ready yet');
+      return null;
+    }
+
     // If we already have a context for this audio element, return it
     if (sharedAudioContext && connectedAudioElement === audioElement && sharedSourceNode && sharedGainNode) {
       return {
@@ -77,13 +95,19 @@ export function getSharedAudioContext(audioElement: HTMLAudioElement): {
 
     // If we have a context for a different element, we need to handle it
     if (sharedAudioContext && connectedAudioElement !== audioElement) {
-      // Close the old context
-      sharedAudioContext.close();
+      // Close the old context safely
+      try {
+        sharedAudioContext.close();
+      } catch (e) {
+        console.log('[Equalizer] Error closing old context:', e);
+      }
       sharedAudioContext = null;
       sharedSourceNode = null;
       sharedGainNode = null;
       connectedAudioElement = null;
     }
+
+    isInitializing = true;
 
     // Create new context
     sharedAudioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -96,13 +120,18 @@ export function getSharedAudioContext(audioElement: HTMLAudioElement): {
     sharedSourceNode.connect(sharedGainNode);
     sharedGainNode.connect(sharedAudioContext.destination);
 
+    isInitializing = false;
+
+    console.log('[Equalizer] Shared audio context created successfully');
+
     return {
       audioContext: sharedAudioContext,
       sourceNode: sharedSourceNode,
       gainNode: sharedGainNode,
     };
   } catch (error) {
-    console.error('Error creating shared audio context:', error);
+    isInitializing = false;
+    console.error('[Equalizer] Error creating shared audio context:', error);
     return null;
   }
 }
@@ -143,15 +172,35 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
   const initializeEQ = useCallback(() => {
     if (!audioRef.current || isInitialized) return;
 
+    // Wait for audio element to be ready
+    const audioElement = audioRef.current;
+    if (!audioElement.src || audioElement.readyState < 1) {
+      console.log('[Equalizer] Waiting for audio element to be ready...');
+      // Listen for loadedmetadata to try again
+      const handleLoaded = () => {
+        audioElement.removeEventListener('loadedmetadata', handleLoaded);
+        initializeEQ();
+      };
+      audioElement.addEventListener('loadedmetadata', handleLoaded);
+      return;
+    }
+
     try {
       const shared = getSharedAudioContext(audioRef.current);
-      if (!shared) return;
+      if (!shared) {
+        console.log('[Equalizer] Could not get shared audio context');
+        return;
+      }
 
       const { audioContext, sourceNode, gainNode } = shared;
       audioContextRef.current = audioContext;
 
-      // Disconnect source from gain temporarily
-      sourceNode.disconnect();
+      // Safely disconnect source from gain
+      try {
+        sourceNode.disconnect();
+      } catch (e) {
+        console.log('[Equalizer] Source already disconnected or error:', e);
+      }
 
       // Create filters for each frequency band
       const filters: BiquadFilterNode[] = FREQUENCY_BANDS.map((freq, index) => {
@@ -186,6 +235,7 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
       console.log('[Equalizer] Initialized successfully');
     } catch (error) {
       console.error('[Equalizer] Error initializing:', error);
+      // Don't crash - just log and continue without EQ
     }
   }, [audioRef, customGains, isInitialized]);
 

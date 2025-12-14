@@ -30,6 +30,7 @@ import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type 
 import { useTranslation } from '../../i18n';
 import type { Book, BookFormat, Chapter } from '../../types';
 import '../../types/electron.d.ts';
+import * as musicMetadata from 'music-metadata-browser';
 
 // Check if running in Electron
 const isElectron = () => typeof window !== 'undefined' && !!window.electronAPI;
@@ -191,47 +192,120 @@ export function Library() {
         dateAdded: new Date(),
       };
 
-      // Try to get duration for audio files and generate chapters
+      // Try to extract metadata from audio files (especially M4B)
       if (format === 'audio') {
-        const audio = new Audio(book.fileUrl);
-        audio.addEventListener('loadedmetadata', () => {
-          const duration = audio.duration;
+        try {
+          // Parse audio metadata using music-metadata-browser
+          const metadata = await musicMetadata.parseBlob(file);
+          console.log('[Library] Parsed audio metadata:', metadata);
 
-          // Generate automatic chapters (every 30 minutes for long books, or divide into ~10 chapters)
-          const chapters: Chapter[] = [];
-          const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
-          const numChapters = duration > CHAPTER_DURATION * 3
-            ? Math.ceil(duration / CHAPTER_DURATION)
-            : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60)))); // At least 5 min per chapter
-
-          const chapterLength = duration / numChapters;
-
-          for (let i = 0; i < numChapters; i++) {
-            chapters.push({
-              id: crypto.randomUUID(),
-              title: `Chapter ${i + 1}`,
-              startTime: i * chapterLength,
-              duration: chapterLength,
-            });
+          // Extract title and author from metadata
+          if (metadata.common.title) {
+            book.title = metadata.common.title;
+          }
+          if (metadata.common.artist || metadata.common.albumartist) {
+            book.author = metadata.common.artist || metadata.common.albumartist || 'Unknown Author';
           }
 
-          updateBook(book.id, { duration, chapters });
-        });
+          // Extract cover art
+          if (metadata.common.picture && metadata.common.picture.length > 0) {
+            const picture = metadata.common.picture[0];
+            // Convert Buffer to Uint8Array for Blob compatibility
+            const uint8Array = new Uint8Array(picture.data);
+            const blob = new Blob([uint8Array], { type: picture.format });
+            book.cover = URL.createObjectURL(blob);
+            console.log('[Library] Extracted cover art from file');
+          }
+
+          // Extract duration
+          if (metadata.format.duration) {
+            book.duration = metadata.format.duration;
+          }
+
+          // Extract chapters from M4B or generate them
+          const chapters: Chapter[] = [];
+
+          // Check for native chapters in the metadata (type assertion needed)
+          const metadataAny = metadata as unknown as { chapters?: Array<{ title?: string; startTime?: number; duration?: number }> };
+
+          // If metadata has chapter information
+          if (metadataAny.chapters && metadataAny.chapters.length > 0) {
+            console.log('[Library] Found chapters in metadata:', metadataAny.chapters);
+            metadataAny.chapters.forEach((chapter: { title?: string; startTime?: number; duration?: number }, index: number) => {
+              chapters.push({
+                id: crypto.randomUUID(),
+                title: chapter.title || `Chapter ${index + 1}`,
+                startTime: (chapter.startTime || 0) / 1000, // Convert ms to seconds
+                duration: chapter.duration ? chapter.duration / 1000 : 0,
+              });
+            });
+          } else if (book.duration) {
+            // Generate automatic chapters if none found
+            const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
+            const numChapters = book.duration > CHAPTER_DURATION * 3
+              ? Math.ceil(book.duration / CHAPTER_DURATION)
+              : Math.min(10, Math.max(1, Math.floor(book.duration / (5 * 60))));
+
+            const chapterLength = book.duration / numChapters;
+
+            for (let i = 0; i < numChapters; i++) {
+              chapters.push({
+                id: crypto.randomUUID(),
+                title: `Chapter ${i + 1}`,
+                startTime: i * chapterLength,
+                duration: chapterLength,
+              });
+            }
+          }
+
+          if (chapters.length > 0) {
+            book.chapters = chapters;
+          }
+
+        } catch (error) {
+          console.error('[Library] Error parsing audio metadata:', error);
+
+          // Fallback: get duration from audio element and generate chapters
+          const audio = new Audio(book.fileUrl);
+          audio.addEventListener('loadedmetadata', () => {
+            const duration = audio.duration;
+            const chapters: Chapter[] = [];
+            const CHAPTER_DURATION = 30 * 60;
+            const numChapters = duration > CHAPTER_DURATION * 3
+              ? Math.ceil(duration / CHAPTER_DURATION)
+              : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60))));
+
+            const chapterLength = duration / numChapters;
+
+            for (let i = 0; i < numChapters; i++) {
+              chapters.push({
+                id: crypto.randomUUID(),
+                title: `Chapter ${i + 1}`,
+                startTime: i * chapterLength,
+                duration: chapterLength,
+              });
+            }
+
+            updateBook(book.id, { duration, chapters });
+          });
+        }
       }
 
       addBook(book);
 
-      // Fetch metadata (cover and description) from Open Library
-      try {
-        const metadata = await fetchBookMetadata(cleanTitle, '');
-        if (metadata.cover || metadata.description) {
-          updateBook(book.id, {
-            cover: metadata.cover,
-            description: metadata.description,
-          });
+      // Fetch metadata from Open Library only if we don't have cover art
+      if (!book.cover) {
+        try {
+          const metadata = await fetchBookMetadata(book.title, book.author);
+          if (metadata.cover || metadata.description) {
+            updateBook(book.id, {
+              cover: metadata.cover,
+              description: metadata.description,
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching metadata:', error);
         }
-      } catch (error) {
-        console.error('Error fetching metadata:', error);
       }
     }
 
@@ -486,47 +560,120 @@ export function Library() {
         dateAdded: new Date(),
       };
 
-      // Try to get duration for audio files and generate chapters
+      // Try to extract metadata from audio files (especially M4B)
       if (format === 'audio') {
-        const audio = new Audio(book.fileUrl);
-        audio.addEventListener('loadedmetadata', () => {
-          const duration = audio.duration;
+        try {
+          // Parse audio metadata using music-metadata-browser
+          const metadata = await musicMetadata.parseBlob(file);
+          console.log('[Library] Parsed audio metadata:', metadata);
 
-          // Generate automatic chapters (every 30 minutes for long books, or divide into ~10 chapters)
-          const chapters: Chapter[] = [];
-          const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
-          const numChapters = duration > CHAPTER_DURATION * 3
-            ? Math.ceil(duration / CHAPTER_DURATION)
-            : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60)))); // At least 5 min per chapter
-
-          const chapterLength = duration / numChapters;
-
-          for (let i = 0; i < numChapters; i++) {
-            chapters.push({
-              id: crypto.randomUUID(),
-              title: `Chapter ${i + 1}`,
-              startTime: i * chapterLength,
-              duration: chapterLength,
-            });
+          // Extract title and author from metadata
+          if (metadata.common.title) {
+            book.title = metadata.common.title;
+          }
+          if (metadata.common.artist || metadata.common.albumartist) {
+            book.author = metadata.common.artist || metadata.common.albumartist || 'Unknown Author';
           }
 
-          updateBook(book.id, { duration, chapters });
-        });
+          // Extract cover art
+          if (metadata.common.picture && metadata.common.picture.length > 0) {
+            const picture = metadata.common.picture[0];
+            // Convert Buffer to Uint8Array for Blob compatibility
+            const uint8Array = new Uint8Array(picture.data);
+            const blob = new Blob([uint8Array], { type: picture.format });
+            book.cover = URL.createObjectURL(blob);
+            console.log('[Library] Extracted cover art from file');
+          }
+
+          // Extract duration
+          if (metadata.format.duration) {
+            book.duration = metadata.format.duration;
+          }
+
+          // Extract chapters from M4B or generate them
+          const chapters: Chapter[] = [];
+
+          // Check for native chapters in the metadata (type assertion needed)
+          const metadataAny = metadata as unknown as { chapters?: Array<{ title?: string; startTime?: number; duration?: number }> };
+
+          // If metadata has chapter information
+          if (metadataAny.chapters && metadataAny.chapters.length > 0) {
+            console.log('[Library] Found chapters in metadata:', metadataAny.chapters);
+            metadataAny.chapters.forEach((chapter: { title?: string; startTime?: number; duration?: number }, index: number) => {
+              chapters.push({
+                id: crypto.randomUUID(),
+                title: chapter.title || `Chapter ${index + 1}`,
+                startTime: (chapter.startTime || 0) / 1000, // Convert ms to seconds
+                duration: chapter.duration ? chapter.duration / 1000 : 0,
+              });
+            });
+          } else if (book.duration) {
+            // Generate automatic chapters if none found
+            const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
+            const numChapters = book.duration > CHAPTER_DURATION * 3
+              ? Math.ceil(book.duration / CHAPTER_DURATION)
+              : Math.min(10, Math.max(1, Math.floor(book.duration / (5 * 60))));
+
+            const chapterLength = book.duration / numChapters;
+
+            for (let i = 0; i < numChapters; i++) {
+              chapters.push({
+                id: crypto.randomUUID(),
+                title: `Chapter ${i + 1}`,
+                startTime: i * chapterLength,
+                duration: chapterLength,
+              });
+            }
+          }
+
+          if (chapters.length > 0) {
+            book.chapters = chapters;
+          }
+
+        } catch (error) {
+          console.error('[Library] Error parsing audio metadata:', error);
+
+          // Fallback: get duration from audio element and generate chapters
+          const audio = new Audio(book.fileUrl);
+          audio.addEventListener('loadedmetadata', () => {
+            const duration = audio.duration;
+            const chapters: Chapter[] = [];
+            const CHAPTER_DURATION = 30 * 60;
+            const numChapters = duration > CHAPTER_DURATION * 3
+              ? Math.ceil(duration / CHAPTER_DURATION)
+              : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60))));
+
+            const chapterLength = duration / numChapters;
+
+            for (let i = 0; i < numChapters; i++) {
+              chapters.push({
+                id: crypto.randomUUID(),
+                title: `Chapter ${i + 1}`,
+                startTime: i * chapterLength,
+                duration: chapterLength,
+              });
+            }
+
+            updateBook(book.id, { duration, chapters });
+          });
+        }
       }
 
       addBook(book);
 
-      // Fetch metadata (cover and description) from Open Library
-      try {
-        const metadata = await fetchBookMetadata(cleanTitle, '');
-        if (metadata.cover || metadata.description) {
-          updateBook(book.id, {
-            cover: metadata.cover,
-            description: metadata.description,
-          });
+      // Fetch metadata from Open Library only if we don't have cover art
+      if (!book.cover) {
+        try {
+          const metadata = await fetchBookMetadata(book.title, book.author);
+          if (metadata.cover || metadata.description) {
+            updateBook(book.id, {
+              cover: metadata.cover,
+              description: metadata.description,
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching metadata:', error);
         }
-      } catch (error) {
-        console.error('Error fetching metadata:', error);
       }
     }
 
@@ -863,6 +1010,7 @@ export function Library() {
                 onClick={() => handleBookClick(book)}
                 onDelete={() => removeBook(book.id)}
                 index={index}
+                viewMode={viewMode}
               />
             ))}
           </div>
