@@ -13,6 +13,7 @@ import {
   HardDrive,
   Trash2,
   RefreshCw,
+  Magnet,
 } from 'lucide-react';
 import { Button, Modal } from './index';
 import { useStore } from '../../store/useStore';
@@ -27,13 +28,13 @@ import {
 } from '../../utils/cloudStorage';
 
 interface SidebarMenuProps {
-  onOpenTorrent?: () => void;
+  onOpenTorrent: () => void;
   onOpenSettings: () => void;
 }
 
 const SIDEBAR_WIDTH = 300;
 
-export function SidebarMenu({ onOpenSettings }: SidebarMenuProps) {
+export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
@@ -107,7 +108,7 @@ export function SidebarMenu({ onOpenSettings }: SidebarMenuProps) {
     setDropboxConnected(false);
   };
 
-  // Menu items - simplified
+  // Menu items
   const menuItems = [
     {
       id: 'files',
@@ -128,6 +129,17 @@ export function SidebarMenu({ onOpenSettings }: SidebarMenuProps) {
         };
         input.click();
         setIsOpen(false);
+      },
+    },
+    {
+      id: 'torrent',
+      icon: Magnet,
+      label: 'Torrent Downloads',
+      description: activeTorrents.length > 0 ? `${activeTorrents.length} active` : 'Download from torrents',
+      badge: activeTorrents.length > 0,
+      onClick: () => {
+        setIsOpen(false);
+        onOpenTorrent();
       },
     },
     {
@@ -276,7 +288,7 @@ export function SidebarMenu({ onOpenSettings }: SidebarMenuProps) {
             {/* Footer */}
             <div className="p-4 border-t border-surface-800 safe-area-bottom">
               <div className="text-center text-xs text-surface-500">
-                <p className="font-medium">Rezon v1.0.13</p>
+                <p className="font-semibold">Rezon v1.0.14</p>
               </div>
             </div>
           </motion.aside>

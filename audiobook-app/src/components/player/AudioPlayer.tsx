@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import type { PanInfo } from 'framer-motion';
 import {
   Play,
   Pause,
@@ -36,6 +37,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
   const isDraggingRef = useRef<boolean>(false);
   const dragStartXRef = useRef<number>(0);
   const dragStartTimeRef = useRef<number>(0);
+  const dragControls = useDragControls();
 
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -303,12 +305,25 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
   // Calculate remaining time
   const remainingTime = duration - currentTime;
 
+  // Handle swipe down to minimize
+  const handleDragEnd = useCallback((_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // If swiped down more than 100px with velocity, minimize to library
+    if (info.offset.y > 100 && info.velocity.y > 0) {
+      setCurrentView('library');
+    }
+  }, [setCurrentView]);
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="h-full flex flex-col bg-surface-950 overflow-hidden"
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 50 }}
+      drag="y"
+      dragControls={dragControls}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={{ top: 0, bottom: 0.5 }}
+      onDragEnd={handleDragEnd}
+      className="h-full flex flex-col bg-surface-950 overflow-hidden touch-pan-x"
     >
       <audio ref={audioRef} preload="metadata" crossOrigin="anonymous" />
 

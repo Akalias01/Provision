@@ -40,6 +40,13 @@ export default {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['Cal Sans', 'Inter', 'system-ui', 'sans-serif'],
       },
+      fontWeight: {
+        normal: '500',
+        medium: '600',
+        semibold: '700',
+        bold: '800',
+        extrabold: '900',
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
         'slide-up': 'slideUp 0.5s ease-out',

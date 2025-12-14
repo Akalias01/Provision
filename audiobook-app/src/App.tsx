@@ -1,14 +1,15 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import type { PanInfo } from 'framer-motion';
 import { Library } from './components/library';
 import { AudioPlayer } from './components/player';
 import { EpubReader, PdfReader, DocReader } from './components/reader';
 import { SplashScreen } from './components/SplashScreen';
 import { useStore } from './store/useStore';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { isAndroid } from './utils/mediaControl';
 
 function App() {
-  const { currentView, currentBook, showSplash, setShowSplash } = useStore();
+  const { currentView, currentBook, showSplash, setShowSplash, setCurrentView } = useStore();
 
   // Handle Android status bar and navigation bar
   useEffect(() => {
@@ -17,6 +18,14 @@ function App() {
       document.body.style.backgroundColor = '#0a0a0f';
     }
   }, []);
+
+  // Handle swipe back navigation (swipe from left edge)
+  const handleSwipeBack = useCallback((_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // Only trigger if swipe started from left edge and moved right significantly
+    if (info.offset.x > 100 && info.velocity.x > 200 && currentView !== 'library') {
+      setCurrentView('library');
+    }
+  }, [currentView, setCurrentView]);
 
   const renderView = () => {
     switch (currentView) {
@@ -81,7 +90,13 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <motion.div
+      className="app-container"
+      drag={currentView !== 'library' ? 'x' : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={{ left: 0.3, right: 0 }}
+      onDragEnd={handleSwipeBack}
+    >
       {/* Splash Screen */}
       {showSplash && (
         <SplashScreen onComplete={() => setShowSplash(false)} />
@@ -91,7 +106,7 @@ function App() {
       <AnimatePresence mode="wait">
         {renderView()}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
