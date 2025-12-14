@@ -1,10 +1,8 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import type { PanInfo } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
   Pause,
-  ChevronDown,
   Moon,
   Bookmark,
   BookmarkPlus,
@@ -15,46 +13,39 @@ import {
   RotateCcw,
   RotateCw,
   Headphones,
-  StickyNote,
   List,
-  Settings,
+  MoreVertical,
+  SlidersHorizontal,
+  Lightbulb,
+  Search,
 } from 'lucide-react';
 import { Slider, Modal } from '../ui';
-import { Waveform } from './Waveform';
-import { Equalizer, resumeAudioContext } from './Equalizer';
+import { seekAudio } from './AudioController';
 import { useStore, type SleepTimerMode } from '../../store/useStore';
 import { formatTime } from '../../utils/formatTime';
-import { updateMediaMetadata, updatePlaybackState, isAndroid } from '../../utils/mediaControl';
 
 interface AudioPlayerProps {
   onBack?: () => void;
 }
 
-export function AudioPlayer({ onBack }: AudioPlayerProps) {
-  const audioRef = useRef<HTMLAudioElement>(null);
+export function AudioPlayer(_props: AudioPlayerProps) {
   const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const coverRef = useRef<HTMLDivElement>(null);
-  const isDraggingRef = useRef<boolean>(false);
-  const dragStartXRef = useRef<number>(0);
-  const dragStartTimeRef = useRef<number>(0);
-  const dragControls = useDragControls();
 
+  const [showChaptersSheet, setShowChaptersSheet] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showSleepTimer, setShowSleepTimer] = useState(false);
-  const [showBookmarks, setShowBookmarks] = useState(false);
   const [showSpeedPicker, setShowSpeedPicker] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
-  const [gestureIndicator, setGestureIndicator] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'chapters' | 'notes'>('chapters');
+  const [chaptersTab, setChaptersTab] = useState<'chapters' | 'notes'>('chapters');
 
   const {
     currentBook,
     playerState,
     setPlayerState,
-    updateBook,
-    setCurrentView,
     sleepTimerMode,
     sleepTimerRemaining,
     setSleepTimerMode,
@@ -62,116 +53,9 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     addBookmark,
     removeBookmark,
     updateBookmarkNote,
-    showWaveform,
-    setShowWaveform,
   } = useStore();
 
-  const { isPlaying, currentTime, duration, volume, playbackRate, isMuted } = playerState;
-
-  // Audio setup
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentBook) return;
-
-    console.log('[AudioPlayer] Setting up audio for:', currentBook.title);
-
-    audio.pause();
-    audio.currentTime = 0;
-    audio.src = currentBook.fileUrl;
-    audio.volume = volume;
-    audio.playbackRate = playbackRate;
-
-    const handleLoadedMetadata = () => {
-      console.log('[AudioPlayer] Loaded metadata, duration:', audio.duration);
-      setPlayerState({ duration: audio.duration });
-      if (currentBook.currentPosition > 0 && audio.duration > 0) {
-        audio.currentTime = currentBook.currentPosition * audio.duration;
-      }
-    };
-
-    const handleTimeUpdate = () => {
-      setPlayerState({ currentTime: audio.currentTime });
-    };
-
-    const handleEnded = () => {
-      setPlayerState({ isPlaying: false });
-      updateBook(currentBook.id, { isFinished: true, currentPosition: 1 });
-    };
-
-    const handleError = () => {
-      const mediaError = audio.error;
-      console.error('[AudioPlayer] Audio error:', mediaError?.code, mediaError?.message);
-      setPlayerState({ isPlaying: false });
-    };
-
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.load();
-
-    return () => {
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-    };
-  }, [currentBook?.id, currentBook?.fileUrl]);
-
-  // Play/pause control
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      resumeAudioContext();
-      const attemptPlay = () => {
-        if (audio.readyState >= 2) {
-          audio.play().catch((error) => {
-            console.error('[AudioPlayer] Play error:', error.message);
-            setPlayerState({ isPlaying: false });
-          });
-        } else {
-          const handleCanPlay = () => {
-            audio.removeEventListener('canplay', handleCanPlay);
-            audio.play().catch(() => setPlayerState({ isPlaying: false }));
-          };
-          audio.addEventListener('canplay', handleCanPlay);
-        }
-      };
-      attemptPlay();
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying]);
-
-  // Volume control
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
-  }, [volume, isMuted]);
-
-  // Playback rate control
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackRate;
-    }
-  }, [playbackRate]);
-
-  // Android Auto metadata
-  useEffect(() => {
-    if (isAndroid() && currentBook && isPlaying && duration > 0) {
-      updateMediaMetadata(currentBook.title, currentBook.author || 'Unknown Author', currentBook.cover, duration);
-    }
-  }, [currentBook?.id, isPlaying, duration]);
-
-  // Android Auto playback state
-  useEffect(() => {
-    if (isAndroid() && currentBook && (isPlaying || currentTime > 0)) {
-      updatePlaybackState(isPlaying, currentTime, playbackRate);
-    }
-  }, [isPlaying, currentBook?.id]);
+  const { isPlaying, currentTime, duration, playbackRate } = playerState;
 
   // Sleep timer countdown
   useEffect(() => {
@@ -200,52 +84,19 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
   }, [sleepTimerMode]);
 
   const handleSeek = useCallback((value: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = value;
-      setPlayerState({ currentTime: value });
-    }
-  }, []);
+    seekAudio(value);
+    setPlayerState({ currentTime: value });
+  }, [setPlayerState]);
 
   const handleSkip = useCallback((seconds: number) => {
-    if (audioRef.current) {
-      const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
-      audioRef.current.currentTime = newTime;
-      setPlayerState({ currentTime: newTime });
-    }
-  }, [currentTime, duration]);
+    const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+    seekAudio(newTime);
+    setPlayerState({ currentTime: newTime });
+  }, [currentTime, duration, setPlayerState]);
 
   const togglePlayPause = useCallback(() => {
     setPlayerState({ isPlaying: !isPlaying });
   }, [isPlaying]);
-
-  // Gesture handlers for cover area
-  const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    dragStartXRef.current = clientX;
-    dragStartTimeRef.current = currentTime;
-    isDraggingRef.current = false;
-  }, [currentTime]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
-    if (!coverRef.current) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const deltaX = clientX - dragStartXRef.current;
-
-    if (Math.abs(deltaX) > 20) {
-      isDraggingRef.current = true;
-      const scrubAmount = (deltaX / 100) * 30;
-      const newTime = Math.max(0, Math.min(duration, dragStartTimeRef.current + scrubAmount));
-      setGestureIndicator(deltaX > 0 ? `+${formatTime(scrubAmount)}` : formatTime(scrubAmount));
-      handleSeek(newTime);
-    }
-  }, [duration, handleSeek]);
-
-  const handleTouchEnd = useCallback(() => {
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false;
-      setGestureIndicator(null);
-    }
-  }, []);
 
   const handleAddBookmark = useCallback(() => {
     if (!currentBook) return;
@@ -257,23 +108,21 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     };
     addBookmark(currentBook.id, bookmark);
     setBookmarkNote('');
+    setShowBookmarkModal(false);
   }, [currentBook, currentTime, bookmarkNote, addBookmark]);
 
   const handleJumpToBookmark = useCallback((position: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = position;
-      setPlayerState({ currentTime: position });
-    }
-  }, []);
+    seekAudio(position);
+    setPlayerState({ currentTime: position });
+    setShowChaptersSheet(false);
+  }, [setPlayerState]);
 
   const handleJumpToChapter = useCallback((startTime: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = startTime;
-      setPlayerState({ currentTime: startTime });
-    }
-  }, []);
+    seekAudio(startTime);
+    setPlayerState({ currentTime: startTime });
+    setShowChaptersSheet(false);
+  }, [setPlayerState]);
 
-  const progress = duration > 0 ? currentTime / duration : 0;
 
   const sleepTimerOptions: { value: SleepTimerMode; label: string }[] = [
     { value: 'off', label: 'Off' },
@@ -302,149 +151,150 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     ? chapters.findIndex(ch => ch.id === currentChapter.id) + 1
     : 1;
 
-  // Calculate remaining time
-  const remainingTime = duration - currentTime;
+  // Calculate times
+  const bookRemainingTime = duration - currentTime;
 
-  // Handle swipe down to minimize
-  const handleDragEnd = useCallback((_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    // If swiped down more than 100px with velocity, minimize to library
-    if (info.offset.y > 100 && info.velocity.y > 0) {
-      setCurrentView('library');
-    }
-  }, [setCurrentView]);
+  // Chapter progress (if chapters exist)
+  const chapterStartTime = currentChapter?.startTime || 0;
+  const nextChapterIndex = currentChapterIndex < chapters.length ? currentChapterIndex : -1;
+  const chapterEndTime = nextChapterIndex >= 0 && chapters[nextChapterIndex]
+    ? chapters[nextChapterIndex].startTime || duration
+    : duration;
+  const chapterDuration = chapterEndTime - chapterStartTime;
+  const chapterCurrentTime = currentTime - chapterStartTime;
+  const chapterRemainingTime = chapterEndTime - currentTime;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: '100%' }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 50 }}
-      drag="y"
-      dragControls={dragControls}
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={{ top: 0, bottom: 0.5 }}
-      onDragEnd={handleDragEnd}
-      className="h-full flex flex-col bg-surface-950 overflow-hidden touch-pan-x"
+      exit={{ opacity: 0, y: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="h-full flex flex-col bg-surface-950 overflow-hidden"
     >
-      <audio ref={audioRef} preload="metadata" crossOrigin="anonymous" />
-
-      {/* New Header: Thumbnail + Chapter + Author */}
-      <div className="flex-shrink-0 flex items-center gap-3 p-4 bg-surface-900/50 safe-area-top">
-        <button
-          onClick={onBack || (() => setCurrentView('library'))}
-          className="p-2 text-surface-400 hover:text-white transition-colors"
-        >
-          <ChevronDown className="w-6 h-6" />
-        </button>
-
+      {/* Header: Thumbnail | Title + Author | Chapters Button | 3-dot Menu */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 safe-area-top">
         {/* Thumbnail */}
-        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-800">
+        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-800">
           {currentBook.cover ? (
             <img src={currentBook.cover} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-primary-500/20">
-              <Headphones className="w-5 h-5 text-primary-500" />
+              <Headphones className="w-6 h-6 text-primary-500" />
             </div>
           )}
         </div>
 
-        {/* Chapter + Author */}
+        {/* Title + Author */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">
-            {currentChapter?.title || currentBook.title}
+          <p className="text-sm font-semibold text-white truncate">
+            {currentBook.title}
           </p>
           <p className="text-xs text-surface-400 truncate">
-            {currentBook.author}
+            {currentBook.author || 'Unknown Author'}
           </p>
         </div>
 
-        {/* Settings button */}
+        {/* Chapters Button */}
         <button
-          onClick={() => setShowSettings(true)}
+          onClick={() => setShowChaptersSheet(true)}
           className="p-2 text-surface-400 hover:text-white transition-colors"
         >
-          <Settings className="w-5 h-5" />
+          <List className="w-6 h-6" />
+        </button>
+
+        {/* 3-dot Menu */}
+        <button
+          onClick={() => setShowMenu(true)}
+          className="p-2 text-surface-400 hover:text-white transition-colors"
+        >
+          <MoreVertical className="w-6 h-6" />
         </button>
       </div>
 
-      {/* Cover Art with gesture support */}
-      <div
-        ref={coverRef}
-        className="flex-1 min-h-0 flex items-center justify-center px-8 py-4 select-none"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleTouchStart}
-        onMouseMove={(e) => e.buttons === 1 && handleTouchMove(e)}
-        onMouseUp={handleTouchEnd}
-      >
-        <motion.div
-          className="relative w-full max-w-xs aspect-square"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        >
+      {/* Large Cover Art - Full Width, Squared */}
+      <div className="flex-1 min-h-0 flex items-center justify-center p-4">
+        <div className="relative w-full max-w-sm aspect-square">
           {currentBook.cover ? (
             <img
               src={currentBook.cover}
               alt={currentBook.title}
-              className="w-full h-full object-cover rounded-2xl shadow-2xl shadow-black/50 pointer-events-none"
+              className="w-full h-full object-cover rounded-lg shadow-2xl shadow-black/50"
               draggable={false}
             />
           ) : (
-            <div className="w-full h-full rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-2xl">
-              <Headphones className="w-20 h-20 text-white/80" />
+            <div className="w-full h-full rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-2xl">
+              <Headphones className="w-24 h-24 text-white/80" />
             </div>
           )}
-
-          {/* Gesture indicator overlay */}
-          <AnimatePresence>
-            {gestureIndicator && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl"
-              >
-                <span className="text-white text-2xl font-bold">{gestureIndicator}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Optional Waveform */}
-      {showWaveform && (
-        <div className="flex-shrink-0 px-6 py-2">
-          <Waveform isPlaying={isPlaying} progress={progress} />
+      {/* Book Progress Bar: elapsed | chapter x/y | remaining */}
+      <div className="flex-shrink-0 px-4">
+        <div className="h-1 bg-surface-800 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-primary-500"
+            style={{ width: `${(currentTime / duration) * 100}%` }}
+          />
+        </div>
+        <div className="flex justify-between mt-1.5 text-xs text-surface-400">
+          <span>{formatTime(currentTime)}</span>
+          <span className="font-medium">
+            {chapters.length > 0 ? `${currentChapterIndex}/${chapters.length}` : ''}
+          </span>
+          <span>-{formatTime(bookRemainingTime)}</span>
+        </div>
+      </div>
+
+      {/* Chapter Name */}
+      <div className="flex-shrink-0 px-4 py-3">
+        <p className="text-center text-lg font-semibold text-white">
+          {currentChapter?.title || currentBook.title}
+        </p>
+      </div>
+
+      {/* Chapter Progress Bar */}
+      {chapters.length > 0 && (
+        <div className="flex-shrink-0 px-4 pb-2">
+          <Slider
+            value={chapterCurrentTime}
+            max={chapterDuration || 100}
+            onChange={(v) => handleSeek(chapterStartTime + v)}
+            showTooltip
+            formatTooltip={formatTime}
+          />
+          <div className="flex justify-between mt-1.5 text-xs text-surface-400">
+            <span>{formatTime(chapterCurrentTime)}</span>
+            <span>-{formatTime(chapterRemainingTime)}</span>
+          </div>
         </div>
       )}
 
-      {/* Progress Bar */}
-      <div className="flex-shrink-0 px-6 py-2">
-        <Slider
-          value={currentTime}
-          max={duration || 100}
-          onChange={handleSeek}
-          showTooltip
-          formatTooltip={formatTime}
-        />
-        {/* Progress Info: elapsed | chapter x/y | remaining */}
-        <div className="flex justify-between mt-2 text-xs text-surface-400">
-          <span>{formatTime(currentTime)}</span>
-          <span>
-            {chapters.length > 0 ? `Chapter ${currentChapterIndex}/${chapters.length}` : ''}
-          </span>
-          <span>-{formatTime(remainingTime)}</span>
+      {/* If no chapters, show main progress slider */}
+      {chapters.length === 0 && (
+        <div className="flex-shrink-0 px-4 pb-2">
+          <Slider
+            value={currentTime}
+            max={duration || 100}
+            onChange={handleSeek}
+            showTooltip
+            formatTooltip={formatTime}
+          />
+          <div className="flex justify-between mt-1.5 text-xs text-surface-400">
+            <span>{formatTime(currentTime)}</span>
+            <span>-{formatTime(bookRemainingTime)}</span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Simplified Controls: Speed | Rewind | Play | Forward | Sleep */}
-      <div className="flex-shrink-0 px-6 py-4">
+      {/* Controls: Speed | Rewind | Play | Forward | Sleep */}
+      <div className="flex-shrink-0 px-6 py-4 safe-area-bottom">
         <div className="flex items-center justify-between">
           {/* Speed */}
           <button
             onClick={() => setShowSpeedPicker(true)}
-            className="w-14 h-10 rounded-lg bg-surface-800 text-sm font-semibold text-surface-300 hover:bg-surface-700 transition-colors"
+            className="w-12 h-12 flex items-center justify-center text-sm font-bold text-surface-300 hover:text-white transition-colors"
           >
             {playbackRate}x
           </button>
@@ -452,49 +302,43 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
           {/* Rewind 10s */}
           <button
             onClick={() => handleSkip(-10)}
-            className="w-12 h-12 flex items-center justify-center text-surface-300 hover:text-white transition-colors relative"
+            className="w-14 h-14 flex items-center justify-center text-surface-300 hover:text-white transition-colors relative"
           >
-            <RotateCcw className="w-7 h-7" />
+            <RotateCcw className="w-8 h-8" />
             <span className="absolute text-[10px] font-bold">10</span>
           </button>
 
           {/* Play/Pause */}
           <motion.button
-            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={togglePlayPause}
-            className="w-16 h-16 rounded-full bg-primary-500 text-white shadow-lg shadow-primary-500/30 flex items-center justify-center"
+            className="w-18 h-18 rounded-full bg-primary-500 text-white shadow-lg shadow-primary-500/30 flex items-center justify-center"
+            style={{ width: 72, height: 72 }}
           >
-            <AnimatePresence mode="wait">
-              {isPlaying ? (
-                <motion.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                  <Pause className="w-8 h-8" fill="currentColor" />
-                </motion.div>
-              ) : (
-                <motion.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                  <Play className="w-8 h-8 ml-1" fill="currentColor" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {isPlaying ? (
+              <Pause className="w-9 h-9" fill="currentColor" />
+            ) : (
+              <Play className="w-9 h-9 ml-1" fill="currentColor" />
+            )}
           </motion.button>
 
           {/* Forward 10s */}
           <button
             onClick={() => handleSkip(10)}
-            className="w-12 h-12 flex items-center justify-center text-surface-300 hover:text-white transition-colors relative"
+            className="w-14 h-14 flex items-center justify-center text-surface-300 hover:text-white transition-colors relative"
           >
-            <RotateCw className="w-7 h-7" />
+            <RotateCw className="w-8 h-8" />
             <span className="absolute text-[10px] font-bold">10</span>
           </button>
 
           {/* Sleep Timer */}
           <button
             onClick={() => setShowSleepTimer(true)}
-            className="w-14 h-10 rounded-lg bg-surface-800 flex items-center justify-center text-surface-300 hover:bg-surface-700 transition-colors relative"
+            className="w-12 h-12 flex items-center justify-center text-surface-300 hover:text-white transition-colors relative"
           >
-            <Moon className="w-5 h-5" />
+            <Moon className="w-6 h-6" />
             {sleepTimerRemaining !== null && (
-              <span className="absolute -top-1 -right-1 text-[10px] bg-primary-500 text-white rounded-full px-1.5 py-0.5">
+              <span className="absolute -top-1 -right-1 text-[9px] bg-primary-500 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">
                 {Math.ceil(sleepTimerRemaining / 60)}
               </span>
             )}
@@ -502,150 +346,324 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
         </div>
       </div>
 
-      {/* Chapters/Notes Tabs */}
-      <div className="flex-shrink-0 border-t border-surface-800">
-        <div className="flex">
-          <button
-            onClick={() => setActiveTab('chapters')}
-            className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              activeTab === 'chapters'
-                ? 'text-primary-500 border-b-2 border-primary-500'
-                : 'text-surface-400 hover:text-white'
-            }`}
+      {/* ===== CHAPTERS SHEET (Full Screen Animated) ===== */}
+      <AnimatePresence>
+        {showChaptersSheet && (
+          <motion.div
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-50 bg-surface-950 flex flex-col"
           >
-            <List className="w-4 h-4" />
-            Chapters ({chapters.length})
+            {/* Header */}
+            <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 safe-area-top border-b border-surface-800">
+              {/* Thumbnail */}
+              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-surface-800">
+                {currentBook.cover ? (
+                  <img src={currentBook.cover} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary-500/20">
+                    <Headphones className="w-6 h-6 text-primary-500" />
+                  </div>
+                )}
+              </div>
+
+              {/* Title + Author */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{currentBook.title}</p>
+                <p className="text-xs text-surface-400 truncate">{currentBook.author || 'Unknown Author'}</p>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowChaptersSheet(false)}
+                className="p-2 text-surface-400 hover:text-white transition-colors"
+              >
+                <List className="w-6 h-6" />
+              </button>
+
+              <button
+                onClick={() => setShowMenu(true)}
+                className="p-2 text-surface-400 hover:text-white transition-colors"
+              >
+                <MoreVertical className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Tabs: CHAPTERS | NOTES */}
+            <div className="flex-shrink-0 flex border-b border-surface-800">
+              <button
+                onClick={() => setChaptersTab('chapters')}
+                className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${
+                  chaptersTab === 'chapters'
+                    ? 'text-primary-500 border-b-2 border-primary-500'
+                    : 'text-surface-400 hover:text-white'
+                }`}
+              >
+                Chapters
+              </button>
+              <button
+                onClick={() => setChaptersTab('notes')}
+                className={`flex-1 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${
+                  chaptersTab === 'notes'
+                    ? 'text-primary-500 border-b-2 border-primary-500'
+                    : 'text-surface-400 hover:text-white'
+                }`}
+              >
+                Notes
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto safe-area-bottom">
+              {chaptersTab === 'chapters' ? (
+                <div className="py-2">
+                  {chapters.length === 0 ? (
+                    <p className="text-center text-surface-500 py-12">No chapters available</p>
+                  ) : (
+                    chapters.map((chapter, index) => {
+                      const isCurrentChapter = currentChapter?.id === chapter.id;
+                      const chapterDur = index < chapters.length - 1
+                        ? (chapters[index + 1].startTime || 0) - (chapter.startTime || 0)
+                        : duration - (chapter.startTime || 0);
+                      return (
+                        <button
+                          key={chapter.id}
+                          onClick={() => handleJumpToChapter(chapter.startTime || 0)}
+                          className={`w-full flex items-center justify-between px-4 py-4 transition-colors ${
+                            isCurrentChapter ? 'text-primary-400' : 'text-white hover:bg-surface-900'
+                          }`}
+                        >
+                          <span className={`font-semibold ${isCurrentChapter ? 'text-primary-400' : ''}`}>
+                            {chapter.title}
+                          </span>
+                          <span className={`text-sm ${isCurrentChapter ? 'text-primary-400' : 'text-surface-400'}`}>
+                            {formatTime(chapterDur)}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 space-y-3">
+                  {/* Add bookmark button */}
+                  <button
+                    onClick={() => setShowBookmarkModal(true)}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl bg-surface-800 text-primary-400 hover:bg-surface-700 transition-colors"
+                  >
+                    <BookmarkPlus className="w-5 h-5" />
+                    <span className="font-semibold">Add bookmark at {formatTime(currentTime)}</span>
+                  </button>
+
+                  {bookmarks.length === 0 ? (
+                    <p className="text-center text-surface-500 py-12">No bookmarks yet</p>
+                  ) : (
+                    bookmarks
+                      .sort((a, b) => a.position - b.position)
+                      .map((bookmark) => (
+                        <div
+                          key={bookmark.id}
+                          className="flex items-center gap-3 p-4 bg-surface-800 rounded-xl"
+                        >
+                          <button
+                            onClick={() => handleJumpToBookmark(bookmark.position)}
+                            className="flex-1 text-left"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Bookmark className="w-4 h-4 text-primary-500" />
+                              <span className="font-semibold text-white">{formatTime(bookmark.position)}</span>
+                            </div>
+                            {editingBookmarkId === bookmark.id ? (
+                              <div className="flex items-center gap-2 mt-2">
+                                <input
+                                  type="text"
+                                  value={editingNote}
+                                  onChange={(e) => setEditingNote(e.target.value)}
+                                  className="flex-1 bg-surface-700 px-3 py-2 rounded-lg text-sm text-white"
+                                  autoFocus
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (currentBook) {
+                                      updateBookmarkNote(currentBook.id, bookmark.id, editingNote);
+                                    }
+                                    setEditingBookmarkId(null);
+                                  }}
+                                  className="p-2 text-green-500"
+                                >
+                                  <Check className="w-5 h-5" />
+                                </button>
+                              </div>
+                            ) : bookmark.note ? (
+                              <p className="text-sm text-surface-400 mt-1">{bookmark.note}</p>
+                            ) : null}
+                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setEditingBookmarkId(bookmark.id);
+                                setEditingNote(bookmark.note || '');
+                              }}
+                              className="p-2 text-surface-400 hover:text-primary-500"
+                            >
+                              <Edit3 className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
+                              className="p-2 text-surface-400 hover:text-red-500"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== 3-DOT MENU MODAL ===== */}
+      <Modal
+        isOpen={showMenu}
+        onClose={() => setShowMenu(false)}
+        title="Options"
+        size="sm"
+      >
+        <div className="space-y-2">
+          {/* Equalizer & Amplifier */}
+          <button
+            onClick={() => {
+              setShowMenu(false);
+              // TODO: Open equalizer
+            }}
+            className="w-full flex items-center gap-4 p-4 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors"
+          >
+            <SlidersHorizontal className="w-6 h-6 text-primary-500" />
+            <div className="text-left">
+              <p className="font-semibold text-white">Equalizer & Amplifier</p>
+              <p className="text-sm text-surface-400">Adjust audio settings</p>
+            </div>
           </button>
+
+          {/* Add Bookmark */}
           <button
-            onClick={() => setActiveTab('notes')}
-            className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-              activeTab === 'notes'
-                ? 'text-primary-500 border-b-2 border-primary-500'
-                : 'text-surface-400 hover:text-white'
-            }`}
+            onClick={() => {
+              setShowMenu(false);
+              setShowBookmarkModal(true);
+            }}
+            className="w-full flex items-center gap-4 p-4 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors"
           >
-            <StickyNote className="w-4 h-4" />
-            Notes ({bookmarks.length})
+            <BookmarkPlus className="w-6 h-6 text-primary-500" />
+            <div className="text-left">
+              <p className="font-semibold text-white">Add Bookmark</p>
+              <p className="text-sm text-surface-400">Save current position with notes</p>
+            </div>
+          </button>
+
+          {/* Edit Book Info */}
+          <button
+            onClick={() => {
+              setShowMenu(false);
+              // TODO: Open edit book info modal to fetch metadata
+            }}
+            className="w-full flex items-center gap-4 p-4 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors"
+          >
+            <Search className="w-6 h-6 text-primary-500" />
+            <div className="text-left">
+              <p className="font-semibold text-white">Edit Book Info</p>
+              <p className="text-sm text-surface-400">Search for cover, author, synopsis</p>
+            </div>
+          </button>
+
+          {/* Tips */}
+          <button
+            onClick={() => {
+              setShowMenu(false);
+              setShowTips(true);
+            }}
+            className="w-full flex items-center gap-4 p-4 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors"
+          >
+            <Lightbulb className="w-6 h-6 text-primary-500" />
+            <div className="text-left">
+              <p className="font-semibold text-white">Tips</p>
+              <p className="text-sm text-surface-400">Learn how to use the player</p>
+            </div>
           </button>
         </div>
-      </div>
+      </Modal>
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-auto px-4 py-2 safe-area-bottom" style={{ maxHeight: '30vh' }}>
-        {activeTab === 'chapters' ? (
-          <div className="space-y-1">
-            {chapters.length === 0 ? (
-              <p className="text-center text-surface-500 py-4 text-sm">No chapters available</p>
-            ) : (
-              chapters.map((chapter, index) => {
-                const isCurrentChapter = currentChapter?.id === chapter.id;
-                return (
-                  <button
-                    key={chapter.id}
-                    onClick={() => handleJumpToChapter(chapter.startTime || 0)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                      isCurrentChapter
-                        ? 'bg-primary-500/20 text-primary-400'
-                        : 'text-surface-300 hover:bg-surface-800'
-                    }`}
-                  >
-                    <span className={`w-6 h-6 rounded-full text-xs flex items-center justify-center ${
-                      isCurrentChapter ? 'bg-primary-500 text-white' : 'bg-surface-700 text-surface-400'
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <span className="flex-1 text-left text-sm truncate">{chapter.title}</span>
-                    {chapter.startTime !== undefined && (
-                      <span className="text-xs text-surface-500">{formatTime(chapter.startTime)}</span>
-                    )}
-                  </button>
-                );
-              })
-            )}
+      {/* ===== ADD BOOKMARK MODAL ===== */}
+      <Modal
+        isOpen={showBookmarkModal}
+        onClose={() => setShowBookmarkModal(false)}
+        title="Add Bookmark"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-surface-800 rounded-xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-5 h-5 text-primary-500" />
+              <span className="font-semibold text-white">{formatTime(currentTime)}</span>
+            </div>
+            <p className="text-sm text-surface-400">
+              {currentChapter?.title || currentBook.title}
+            </p>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {/* Add bookmark button */}
-            <button
-              onClick={handleAddBookmark}
-              className="w-full flex items-center gap-2 p-3 rounded-lg bg-surface-800 text-primary-400 hover:bg-surface-700 transition-colors"
-            >
-              <BookmarkPlus className="w-4 h-4" />
-              <span className="text-sm">Add bookmark at {formatTime(currentTime)}</span>
-            </button>
+          <input
+            type="text"
+            placeholder="Add a note (optional)..."
+            value={bookmarkNote}
+            onChange={(e) => setBookmarkNote(e.target.value)}
+            className="w-full bg-surface-800 px-4 py-3 rounded-xl text-white placeholder-surface-500"
+          />
+          <button
+            onClick={handleAddBookmark}
+            className="w-full py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors"
+          >
+            Save Bookmark
+          </button>
+        </div>
+      </Modal>
 
-            {bookmarks.length === 0 ? (
-              <p className="text-center text-surface-500 py-4 text-sm">No bookmarks yet</p>
-            ) : (
-              bookmarks
-                .sort((a, b) => a.position - b.position)
-                .map((bookmark) => (
-                  <div
-                    key={bookmark.id}
-                    className="flex items-center gap-3 p-3 bg-surface-800 rounded-lg"
-                  >
-                    <button
-                      onClick={() => handleJumpToBookmark(bookmark.position)}
-                      className="flex-1 text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Bookmark className="w-4 h-4 text-primary-500" />
-                        <span className="text-sm font-medium text-white">
-                          {formatTime(bookmark.position)}
-                        </span>
-                      </div>
-                      {editingBookmarkId === bookmark.id ? (
-                        <div className="flex items-center gap-2 mt-1">
-                          <input
-                            type="text"
-                            value={editingNote}
-                            onChange={(e) => setEditingNote(e.target.value)}
-                            className="flex-1 bg-surface-700 px-2 py-1 rounded text-sm text-white"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (currentBook) {
-                                updateBookmarkNote(currentBook.id, bookmark.id, editingNote);
-                              }
-                              setEditingBookmarkId(null);
-                            }}
-                            className="p-1 text-green-500"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : bookmark.note ? (
-                        <p className="text-xs text-surface-400 mt-1">{bookmark.note}</p>
-                      ) : null}
-                    </button>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingBookmarkId(bookmark.id);
-                          setEditingNote(bookmark.note || '');
-                        }}
-                        className="p-2 text-surface-400 hover:text-primary-500"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
-                        className="p-2 text-surface-400 hover:text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-            )}
+      {/* ===== TIPS MODAL ===== */}
+      <Modal
+        isOpen={showTips}
+        onClose={() => setShowTips(false)}
+        title="Player Tips"
+        size="md"
+      >
+        <div className="space-y-4 text-sm">
+          <div className="p-4 bg-surface-800 rounded-xl">
+            <p className="font-semibold text-white mb-1">Swipe Down</p>
+            <p className="text-surface-400">Swipe down on the player to minimize to mini player and return to library while continuing playback.</p>
           </div>
-        )}
-      </div>
+          <div className="p-4 bg-surface-800 rounded-xl">
+            <p className="font-semibold text-white mb-1">Swipe on Cover</p>
+            <p className="text-surface-400">Swipe left or right on the cover art to scrub through the audio.</p>
+          </div>
+          <div className="p-4 bg-surface-800 rounded-xl">
+            <p className="font-semibold text-white mb-1">Sleep Timer</p>
+            <p className="text-surface-400">Set a sleep timer to automatically pause playback after a set time.</p>
+          </div>
+          <div className="p-4 bg-surface-800 rounded-xl">
+            <p className="font-semibold text-white mb-1">Bookmarks</p>
+            <p className="text-surface-400">Add bookmarks with notes to easily return to important sections.</p>
+          </div>
+          <div className="p-4 bg-surface-800 rounded-xl">
+            <p className="font-semibold text-white mb-1">Chapters</p>
+            <p className="text-surface-400">Tap the chapters button to view and jump to any chapter in the book.</p>
+          </div>
+        </div>
+      </Modal>
 
-      {/* Speed Picker Modal */}
+      {/* ===== SPEED PICKER MODAL ===== */}
       <Modal
         isOpen={showSpeedPicker}
         onClose={() => setShowSpeedPicker(false)}
@@ -660,7 +678,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
                 setPlayerState({ playbackRate: speed });
                 setShowSpeedPicker(false);
               }}
-              className={`py-3 rounded-xl text-sm font-medium transition-colors ${
+              className={`py-3 rounded-xl text-sm font-bold transition-colors ${
                 playbackRate === speed
                   ? 'bg-primary-500 text-white'
                   : 'bg-surface-800 hover:bg-surface-700 text-surface-300'
@@ -672,7 +690,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
         </div>
       </Modal>
 
-      {/* Sleep Timer Modal */}
+      {/* ===== SLEEP TIMER MODAL ===== */}
       <Modal
         isOpen={showSleepTimer}
         onClose={() => setShowSleepTimer(false)}
@@ -693,124 +711,12 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
                   : 'bg-surface-800 hover:bg-surface-700 text-surface-300'
               }`}
             >
-              <span className="font-medium">{option.label}</span>
+              <span className="font-semibold">{option.label}</span>
               {sleepTimerMode === option.value && sleepTimerRemaining !== null && (
                 <span className="text-sm opacity-80">{formatTime(sleepTimerRemaining)}</span>
               )}
             </button>
           ))}
-        </div>
-      </Modal>
-
-      {/* Settings Modal */}
-      <Modal
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        title="Player Settings"
-        size="sm"
-      >
-        <div className="space-y-4">
-          {/* Waveform Toggle */}
-          <div className="flex items-center justify-between p-4 bg-surface-800 rounded-xl">
-            <div>
-              <p className="font-medium text-white">Show Waveform</p>
-              <p className="text-sm text-surface-400">Display audio visualization</p>
-            </div>
-            <button
-              onClick={() => setShowWaveform(!showWaveform)}
-              className={`relative w-12 h-7 rounded-full transition-colors ${
-                showWaveform ? 'bg-primary-500' : 'bg-surface-600'
-              }`}
-            >
-              <motion.div
-                className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
-                animate={{ left: showWaveform ? '24px' : '4px' }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
-            </button>
-          </div>
-
-          {/* Equalizer */}
-          <Equalizer audioRef={audioRef} asMenuItem onClose={() => setShowSettings(false)} />
-
-          {/* Bookmarks */}
-          <button
-            onClick={() => {
-              setShowSettings(false);
-              setShowBookmarks(true);
-            }}
-            className="w-full flex items-center gap-3 p-4 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors"
-          >
-            <Bookmark className="w-5 h-5 text-primary-500" />
-            <div className="text-left">
-              <p className="font-medium text-white">Bookmarks</p>
-              <p className="text-sm text-surface-400">{bookmarks.length} saved</p>
-            </div>
-          </button>
-        </div>
-      </Modal>
-
-      {/* Bookmarks Modal */}
-      <Modal
-        isOpen={showBookmarks}
-        onClose={() => setShowBookmarks(false)}
-        title="Bookmarks"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Add note (optional)..."
-              value={bookmarkNote}
-              onChange={(e) => setBookmarkNote(e.target.value)}
-              className="flex-1 bg-surface-800 px-4 py-2 rounded-xl text-white placeholder-surface-500"
-            />
-            <button
-              onClick={handleAddBookmark}
-              className="px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors flex items-center gap-2"
-            >
-              <BookmarkPlus className="w-4 h-4" />
-              Add
-            </button>
-          </div>
-
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {bookmarks.length === 0 ? (
-              <p className="text-center text-surface-500 py-8">No bookmarks yet</p>
-            ) : (
-              bookmarks
-                .sort((a, b) => a.position - b.position)
-                .map((bookmark) => (
-                  <div
-                    key={bookmark.id}
-                    className="flex items-center gap-3 p-3 bg-surface-800 rounded-xl"
-                  >
-                    <button
-                      onClick={() => {
-                        handleJumpToBookmark(bookmark.position);
-                        setShowBookmarks(false);
-                      }}
-                      className="flex-1 text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-primary-500" />
-                        <span className="font-medium text-white">{formatTime(bookmark.position)}</span>
-                      </div>
-                      {bookmark.note && (
-                        <p className="text-sm text-surface-400 mt-1">{bookmark.note}</p>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
-                      className="p-2 text-surface-400 hover:text-red-500"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
-            )}
-          </div>
         </div>
       </Modal>
     </motion.div>

@@ -288,7 +288,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             {/* Footer */}
             <div className="p-4 border-t border-surface-800 safe-area-bottom">
               <div className="text-center text-xs text-surface-500">
-                <p className="font-semibold">Rezon v1.0.14</p>
+                <p className="font-semibold">Rezon v1.0.15</p>
               </div>
             </div>
           </motion.aside>

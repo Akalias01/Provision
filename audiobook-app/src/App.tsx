@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
 import { Library } from './components/library';
 import { AudioPlayer } from './components/player';
+import { AudioController } from './components/player/AudioController';
 import { EpubReader, PdfReader, DocReader } from './components/reader';
 import { SplashScreen } from './components/SplashScreen';
 import { useStore } from './store/useStore';
@@ -97,6 +98,9 @@ function App() {
       dragElastic={{ left: 0.3, right: 0 }}
       onDragEnd={handleSwipeBack}
     >
+      {/* Global Audio Controller - persists across views */}
+      <AudioController />
+
       {/* Splash Screen */}
       {showSplash && (
         <SplashScreen onComplete={() => setShowSplash(false)} />
