@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Book, PlayerState, TTSState, ReaderSettings, BookFormat, Bookmark } from '../types';
 
 export type ProgressFilter = 'all' | 'not_started' | 'in_progress' | 'finished';
-export type ColorTheme = 'cyber-glitch' | 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow' | 'amber-gold' | 'rose-pink' | 'sunset-orange' | 'midnight-indigo' | 'lime-fresh' | 'aurora-multi' | 'sunset-gradient' | 'ocean-sunset' | 'forest-aurora' | 'candy-pop';
+export type ColorTheme = 'cyber-glitch' | 'cyber-teal' | 'neon-red' | 'ocean-blue' | 'violet-pulse' | 'emerald-glow' | 'amber-gold' | 'rose-pink' | 'sunset-orange' | 'midnight-indigo' | 'lime-fresh' | 'aurora-multi' | 'sunset-gradient' | 'ocean-sunset' | 'forest-aurora' | 'candy-pop' | 'classic-burgundy' | 'modern-slate' | 'basic-neutral' | 'steampunk-brass';
 export type LogoVariant = 'waveform' | 'headphones' | 'pulse' | 'minimal';
 export type SplashVariant = 'pulseWave' | 'glitchCyber' | 'waveformMorph' | 'neonFlicker';
 export type SleepTimerMode = 'off' | '5' | '10' | '15' | '30' | '45' | '60' | 'endOfChapter';
@@ -317,6 +317,80 @@ export const colorThemes: Record<ColorTheme, {
     logoStart: '#ec4899',
     logoMid: '#f59e0b',
     logoEnd: '#06b6d4',
+  },
+  'classic-burgundy': {
+    name: 'Classic',
+    colors: {
+      '--primary-50': '#fdf2f4',
+      '--primary-100': '#fce7ea',
+      '--primary-200': '#f9d0d7',
+      '--primary-300': '#f4a9b6',
+      '--primary-400': '#ed7a90',
+      '--primary-500': '#e14d6b',
+      '--primary-600': '#c62d50',
+      '--primary-700': '#a52240',
+      '--primary-800': '#8a1f3a',
+      '--primary-900': '#771d36',
+      '--primary-950': '#420b19',
+    },
+    logoStart: '#8a1f3a',
+    logoEnd: '#c62d50',
+  },
+  'modern-slate': {
+    name: 'Modern',
+    colors: {
+      '--primary-50': '#f8fafc',
+      '--primary-100': '#f1f5f9',
+      '--primary-200': '#e2e8f0',
+      '--primary-300': '#cbd5e1',
+      '--primary-400': '#94a3b8',
+      '--primary-500': '#64748b',
+      '--primary-600': '#475569',
+      '--primary-700': '#334155',
+      '--primary-800': '#1e293b',
+      '--primary-900': '#0f172a',
+      '--primary-950': '#020617',
+    },
+    logoStart: '#475569',
+    logoEnd: '#1e293b',
+  },
+  'basic-neutral': {
+    name: 'Basic',
+    colors: {
+      '--primary-50': '#fafafa',
+      '--primary-100': '#f5f5f5',
+      '--primary-200': '#e5e5e5',
+      '--primary-300': '#d4d4d4',
+      '--primary-400': '#a3a3a3',
+      '--primary-500': '#737373',
+      '--primary-600': '#525252',
+      '--primary-700': '#404040',
+      '--primary-800': '#262626',
+      '--primary-900': '#171717',
+      '--primary-950': '#0a0a0a',
+    },
+    logoStart: '#525252',
+    logoEnd: '#262626',
+  },
+  'steampunk-brass': {
+    name: 'Steampunk',
+    isMultiColor: true,
+    colors: {
+      '--primary-50': '#fefce8',
+      '--primary-100': '#fef9c3',
+      '--primary-200': '#fef08a',
+      '--primary-300': '#fde047',
+      '--primary-400': '#d4a574',
+      '--primary-500': '#b8860b',
+      '--primary-600': '#996515',
+      '--primary-700': '#7a4e1c',
+      '--primary-800': '#5c3d1e',
+      '--primary-900': '#422c16',
+      '--primary-950': '#2a1a0a',
+    },
+    logoStart: '#b8860b',
+    logoMid: '#cd7f32',
+    logoEnd: '#8b4513',
   },
 };
 
