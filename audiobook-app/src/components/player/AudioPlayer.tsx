@@ -204,9 +204,9 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     }
   }, [playbackRate]);
 
-  // Android Auto: Update media metadata when book changes
+  // Android Auto: Update media metadata when playing starts
   useEffect(() => {
-    if (isAndroid() && currentBook) {
+    if (isAndroid() && currentBook && isPlaying && duration > 0) {
       updateMediaMetadata(
         currentBook.title,
         currentBook.author || 'Unknown Author',
@@ -214,14 +214,17 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
         duration
       );
     }
-  }, [currentBook?.id, currentBook?.title, currentBook?.author, currentBook?.cover, duration]);
+  }, [currentBook?.id, isPlaying, duration]);
 
   // Android Auto: Update playback state when playing/pausing
   useEffect(() => {
-    if (isAndroid()) {
-      updatePlaybackState(isPlaying, currentTime, playbackRate);
+    if (isAndroid() && currentBook) {
+      // Only update state when there's actual playback happening
+      if (isPlaying || currentTime > 0) {
+        updatePlaybackState(isPlaying, currentTime, playbackRate);
+      }
     }
-  }, [isPlaying, playbackRate]);
+  }, [isPlaying, currentBook?.id]);
 
   // Sleep timer countdown
   useEffect(() => {

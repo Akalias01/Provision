@@ -1,10 +1,8 @@
 package com.rezon.app;
 
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.IBinder;
+import android.os.Build;
+import android.util.Log;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -18,49 +16,46 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "MediaControl")
 public class MediaControlPlugin extends Plugin {
 
-    private AudiobookMediaBrowserService mediaBrowserService;
-    private boolean isServiceBound = false;
-
-    @Override
-    public void load() {
-        // Bind to the MediaBrowserService
-        Intent intent = new Intent(getContext(), AudiobookMediaBrowserService.class);
-        getContext().bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-    }
-
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            // Service is bound
-            isServiceBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            isServiceBound = false;
-            mediaBrowserService = null;
-        }
-    };
+    private static final String TAG = "MediaControlPlugin";
 
     /**
      * Update the currently playing media metadata
      */
     @PluginMethod
     public void updateMetadata(PluginCall call) {
-        String title = call.getString("title", "Unknown Title");
-        String author = call.getString("author", "Unknown Author");
-        String coverUrl = call.getString("coverUrl", "");
-        long duration = call.getLong("duration", 0L);
+        try {
+            String title = call.getString("title", "Unknown Title");
+            String author = call.getString("author", "Unknown Author");
+            String coverUrl = call.getString("coverUrl", "");
+            Long durationObj = call.getLong("duration");
+            long duration = durationObj != null ? durationObj : 0L;
 
-        // Start foreground service for background playback
-        Intent serviceIntent = new Intent(getContext(), AudioPlaybackService.class);
-        serviceIntent.putExtra("title", title);
-        serviceIntent.putExtra("author", author);
-        getContext().startForegroundService(serviceIntent);
+            Log.d(TAG, "updateMetadata: " + title + " by " + author);
 
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        call.resolve(ret);
+            // Start foreground service for background playback
+            Intent serviceIntent = new Intent(getContext(), AudioPlaybackService.class);
+            serviceIntent.putExtra("title", title);
+            serviceIntent.putExtra("author", author);
+            serviceIntent.putExtra("coverUrl", coverUrl);
+            serviceIntent.putExtra("duration", duration);
+            serviceIntent.putExtra("isPlaying", true);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(serviceIntent);
+            } else {
+                getContext().startService(serviceIntent);
+            }
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            Log.e(TAG, "updateMetadata error: " + e.getMessage());
+            JSObject ret = new JSObject();
+            ret.put("success", false);
+            ret.put("error", e.getMessage());
+            call.resolve(ret);
+        }
     }
 
     /**
@@ -68,19 +63,39 @@ public class MediaControlPlugin extends Plugin {
      */
     @PluginMethod
     public void updatePlaybackState(PluginCall call) {
-        boolean isPlaying = call.getBoolean("isPlaying", false);
-        long position = call.getLong("position", 0L);
-        float speed = call.getFloat("speed", 1.0f);
+        try {
+            Boolean isPlayingObj = call.getBoolean("isPlaying");
+            boolean isPlaying = isPlayingObj != null ? isPlayingObj : false;
+            Long positionObj = call.getLong("position");
+            long position = positionObj != null ? positionObj : 0L;
+            Float speedObj = call.getFloat("speed");
+            float speed = speedObj != null ? speedObj : 1.0f;
 
-        if (!isPlaying) {
-            // Stop foreground service when paused
-            Intent serviceIntent = new Intent(getContext(), AudioPlaybackService.class);
-            getContext().stopService(serviceIntent);
+            Log.d(TAG, "updatePlaybackState: playing=" + isPlaying + " position=" + position);
+
+            // Only manage service if there's a meaningful state change
+            if (!isPlaying) {
+                // Don't immediately stop service, just update state
+                try {
+                    Intent serviceIntent = new Intent(getContext(), AudioPlaybackService.class);
+                    serviceIntent.putExtra("isPlaying", false);
+                    serviceIntent.putExtra("position", position);
+                    getContext().startService(serviceIntent);
+                } catch (Exception ignored) {
+                    // Service might not be running, that's ok
+                }
+            }
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            Log.e(TAG, "updatePlaybackState error: " + e.getMessage());
+            JSObject ret = new JSObject();
+            ret.put("success", false);
+            ret.put("error", e.getMessage());
+            call.resolve(ret);
         }
-
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        call.resolve(ret);
     }
 
     /**
@@ -88,20 +103,18 @@ public class MediaControlPlugin extends Plugin {
      */
     @PluginMethod
     public void stopService(PluginCall call) {
-        Intent serviceIntent = new Intent(getContext(), AudioPlaybackService.class);
-        getContext().stopService(serviceIntent);
+        try {
+            Intent serviceIntent = new Intent(getContext(), AudioPlaybackService.class);
+            getContext().stopService(serviceIntent);
 
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        call.resolve(ret);
-    }
-
-    @Override
-    protected void handleOnDestroy() {
-        if (isServiceBound) {
-            getContext().unbindService(serviceConnection);
-            isServiceBound = false;
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            Log.e(TAG, "stopService error: " + e.getMessage());
+            JSObject ret = new JSObject();
+            ret.put("success", false);
+            call.resolve(ret);
         }
-        super.handleOnDestroy();
     }
 }

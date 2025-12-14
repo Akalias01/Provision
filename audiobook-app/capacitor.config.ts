@@ -9,17 +9,22 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: true,
+    useLegacyBridge: false,
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 1500,
+      launchAutoHide: true,
       backgroundColor: '#0a0a0f',
       showSpinner: false,
-      androidScaleType: 'CENTER_CROP',
+      androidScaleType: 'FIT_CENTER',
+      splashFullScreen: true,
+      splashImmersive: true,
     },
   },
   server: {
     androidScheme: 'https',
+    cleartext: true,
   },
 };
 
