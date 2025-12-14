@@ -28,7 +28,7 @@ import { Button, Modal, RezonLogo, SidebarMenu } from '../ui';
 import { BookCard } from './BookCard';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import { useTranslation } from '../../i18n';
-import type { Book, BookFormat } from '../../types';
+import type { Book, BookFormat, Chapter } from '../../types';
 import '../../types/electron.d.ts';
 
 // Check if running in Electron
@@ -191,11 +191,31 @@ export function Library() {
         dateAdded: new Date(),
       };
 
-      // Try to get duration for audio files
+      // Try to get duration for audio files and generate chapters
       if (format === 'audio') {
         const audio = new Audio(book.fileUrl);
         audio.addEventListener('loadedmetadata', () => {
-          updateBook(book.id, { duration: audio.duration });
+          const duration = audio.duration;
+
+          // Generate automatic chapters (every 30 minutes for long books, or divide into ~10 chapters)
+          const chapters: Chapter[] = [];
+          const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
+          const numChapters = duration > CHAPTER_DURATION * 3
+            ? Math.ceil(duration / CHAPTER_DURATION)
+            : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60)))); // At least 5 min per chapter
+
+          const chapterLength = duration / numChapters;
+
+          for (let i = 0; i < numChapters; i++) {
+            chapters.push({
+              id: crypto.randomUUID(),
+              title: `Chapter ${i + 1}`,
+              startTime: i * chapterLength,
+              duration: chapterLength,
+            });
+          }
+
+          updateBook(book.id, { duration, chapters });
         });
       }
 
@@ -466,11 +486,31 @@ export function Library() {
         dateAdded: new Date(),
       };
 
-      // Try to get duration for audio files
+      // Try to get duration for audio files and generate chapters
       if (format === 'audio') {
         const audio = new Audio(book.fileUrl);
         audio.addEventListener('loadedmetadata', () => {
-          updateBook(book.id, { duration: audio.duration });
+          const duration = audio.duration;
+
+          // Generate automatic chapters (every 30 minutes for long books, or divide into ~10 chapters)
+          const chapters: Chapter[] = [];
+          const CHAPTER_DURATION = 30 * 60; // 30 minutes in seconds
+          const numChapters = duration > CHAPTER_DURATION * 3
+            ? Math.ceil(duration / CHAPTER_DURATION)
+            : Math.min(10, Math.max(1, Math.floor(duration / (5 * 60)))); // At least 5 min per chapter
+
+          const chapterLength = duration / numChapters;
+
+          for (let i = 0; i < numChapters; i++) {
+            chapters.push({
+              id: crypto.randomUUID(),
+              title: `Chapter ${i + 1}`,
+              startTime: i * chapterLength,
+              duration: chapterLength,
+            });
+          }
+
+          updateBook(book.id, { duration, chapters });
         });
       }
 

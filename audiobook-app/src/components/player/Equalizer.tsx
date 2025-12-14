@@ -53,6 +53,74 @@ export const EQ_PRESETS = {
 
 export type EQPreset = keyof typeof EQ_PRESETS;
 
+// Shared audio context for the entire app
+let sharedAudioContext: AudioContext | null = null;
+let sharedSourceNode: MediaElementAudioSourceNode | null = null;
+let sharedGainNode: GainNode | null = null;
+let connectedAudioElement: HTMLAudioElement | null = null;
+
+// Get or create shared audio context
+export function getSharedAudioContext(audioElement: HTMLAudioElement): {
+  audioContext: AudioContext;
+  sourceNode: MediaElementAudioSourceNode;
+  gainNode: GainNode;
+} | null {
+  try {
+    // If we already have a context for this audio element, return it
+    if (sharedAudioContext && connectedAudioElement === audioElement && sharedSourceNode && sharedGainNode) {
+      return {
+        audioContext: sharedAudioContext,
+        sourceNode: sharedSourceNode,
+        gainNode: sharedGainNode,
+      };
+    }
+
+    // If we have a context for a different element, we need to handle it
+    if (sharedAudioContext && connectedAudioElement !== audioElement) {
+      // Close the old context
+      sharedAudioContext.close();
+      sharedAudioContext = null;
+      sharedSourceNode = null;
+      sharedGainNode = null;
+      connectedAudioElement = null;
+    }
+
+    // Create new context
+    sharedAudioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    sharedSourceNode = sharedAudioContext.createMediaElementSource(audioElement);
+    sharedGainNode = sharedAudioContext.createGain();
+    sharedGainNode.gain.value = 1;
+    connectedAudioElement = audioElement;
+
+    // Connect source -> gain -> destination (EQ filters will be inserted between source and gain)
+    sharedSourceNode.connect(sharedGainNode);
+    sharedGainNode.connect(sharedAudioContext.destination);
+
+    return {
+      audioContext: sharedAudioContext,
+      sourceNode: sharedSourceNode,
+      gainNode: sharedGainNode,
+    };
+  } catch (error) {
+    console.error('Error creating shared audio context:', error);
+    return null;
+  }
+}
+
+// Update amplifier gain (exported for AudioPlayer to use)
+export function setAmplifierGain(gain: number) {
+  if (sharedGainNode) {
+    sharedGainNode.gain.value = gain;
+  }
+}
+
+// Resume audio context (needed for autoplay policies)
+export function resumeAudioContext() {
+  if (sharedAudioContext?.state === 'suspended') {
+    sharedAudioContext.resume();
+  }
+}
+
 interface EqualizerProps {
   audioRef: React.RefObject<HTMLAudioElement | null>;
   asMenuItem?: boolean;
@@ -65,24 +133,25 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
   const [currentPreset, setCurrentPreset] = useState<EQPreset>('flat');
   const [customGains, setCustomGains] = useState<number[]>([...EQ_PRESETS.flat.gains]);
   const [isCustom, setIsCustom] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Web Audio API refs
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  // EQ filter refs
   const filtersRef = useRef<BiquadFilterNode[]>([]);
-  const gainNodeRef = useRef<GainNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Initialize Web Audio API
-  const initializeAudio = useCallback(() => {
-    if (!audioRef.current || audioContextRef.current) return;
+  // Initialize EQ filters
+  const initializeEQ = useCallback(() => {
+    if (!audioRef.current || isInitialized) return;
 
     try {
-      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const shared = getSharedAudioContext(audioRef.current);
+      if (!shared) return;
+
+      const { audioContext, sourceNode, gainNode } = shared;
       audioContextRef.current = audioContext;
 
-      // Create source from audio element
-      const source = audioContext.createMediaElementSource(audioRef.current);
-      sourceNodeRef.current = source;
+      // Disconnect source from gain temporarily
+      sourceNode.disconnect();
 
       // Create filters for each frequency band
       const filters: BiquadFilterNode[] = FREQUENCY_BANDS.map((freq, index) => {
@@ -105,24 +174,20 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
 
       filtersRef.current = filters;
 
-      // Create master gain node
-      const gainNode = audioContext.createGain();
-      gainNode.gain.value = 1;
-      gainNodeRef.current = gainNode;
-
-      // Connect nodes: source -> filters -> gain -> destination
-      let currentNode: AudioNode = source;
+      // Connect: source -> filters -> gain -> destination
+      let currentNode: AudioNode = sourceNode;
       filters.forEach((filter) => {
         currentNode.connect(filter);
         currentNode = filter;
       });
       currentNode.connect(gainNode);
-      gainNode.connect(audioContext.destination);
 
+      setIsInitialized(true);
+      console.log('[Equalizer] Initialized successfully');
     } catch (error) {
-      console.error('Error initializing audio context:', error);
+      console.error('[Equalizer] Error initializing:', error);
     }
-  }, [audioRef, customGains]);
+  }, [audioRef, customGains, isInitialized]);
 
   // Apply gains to filters
   const applyGains = useCallback((gains: number[]) => {
@@ -133,17 +198,19 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
     });
   }, [isEnabled]);
 
-  // Initialize audio context on first open
+  // Initialize on first open
   useEffect(() => {
-    if (isOpen && !audioContextRef.current && audioRef.current) {
-      initializeAudio();
+    if (isOpen && !isInitialized && audioRef.current) {
+      initializeEQ();
     }
-  }, [isOpen, initializeAudio, audioRef]);
+  }, [isOpen, isInitialized, initializeEQ, audioRef]);
 
   // Apply gains when they change
   useEffect(() => {
-    applyGains(customGains);
-  }, [customGains, applyGains]);
+    if (isInitialized) {
+      applyGains(customGains);
+    }
+  }, [customGains, applyGains, isInitialized]);
 
   // Handle preset selection
   const handlePresetSelect = (preset: EQPreset) => {
@@ -168,21 +235,22 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
   // Toggle EQ on/off
   const handleToggle = () => {
     setIsEnabled(!isEnabled);
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = !isEnabled ? 1 : 0.001;
-    }
     applyGains(customGains);
   };
 
   const handleOpen = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Close parent menu first, then open EQ modal after a brief delay
-    // This prevents the parent modal's closing animation from interfering
+    // Close parent menu first
     onClose?.();
+    // Open EQ modal after brief delay
     setTimeout(() => {
       setIsOpen(true);
-    }, 50);
+    }, 100);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
   };
 
   return (
@@ -221,7 +289,7 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
       {/* EQ Modal */}
       <Modal
         isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        onClose={handleClose}
         title="Audio Equalizer"
         size="lg"
       >

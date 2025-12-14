@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { Button, Slider, Modal } from '../ui';
 import { Waveform } from './Waveform';
-import { Equalizer } from './Equalizer';
+import { Equalizer, setAmplifierGain, resumeAudioContext } from './Equalizer';
 import { Tutorial } from '../Tutorial';
 import { useStore, type SleepTimerMode } from '../../store/useStore';
 import { formatTime } from '../../utils/formatTime';
@@ -56,13 +56,8 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
-  const [amplifierGain, setAmplifierGain] = useState(1);
+  const [amplifierGain, setLocalAmplifierGain] = useState(1);
   const [gestureIndicator, setGestureIndicator] = useState<string | null>(null);
-
-  // Audio context for amplifier
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   const {
     currentBook,
@@ -82,26 +77,9 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
 
   const { isPlaying, currentTime, duration, volume, playbackRate, isMuted } = playerState;
 
-  // Initialize audio context for amplifier
+  // Update amplifier gain using shared audio context
   useEffect(() => {
-    if (audioRef.current && !audioContextRef.current) {
-      try {
-        audioContextRef.current = new AudioContext();
-        sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
-        gainNodeRef.current = audioContextRef.current.createGain();
-        sourceNodeRef.current.connect(gainNodeRef.current);
-        gainNodeRef.current.connect(audioContextRef.current.destination);
-      } catch (e) {
-        console.warn('Could not initialize audio context:', e);
-      }
-    }
-  }, []);
-
-  // Update amplifier gain
-  useEffect(() => {
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = amplifierGain;
-    }
+    setAmplifierGain(amplifierGain);
   }, [amplifierGain]);
 
   // Audio setup
@@ -144,10 +122,8 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     if (!audio) return;
 
     if (isPlaying) {
-      // Resume audio context if suspended
-      if (audioContextRef.current?.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
+      // Resume shared audio context if suspended
+      resumeAudioContext();
       audio.play().catch(() => setPlayerState({ isPlaying: false }));
     } else {
       audio.pause();
@@ -795,7 +771,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
               min={1}
               max={3}
               step={0.1}
-              onChange={setAmplifierGain}
+              onChange={setLocalAmplifierGain}
             />
             <div className="flex justify-between mt-1 text-xs text-surface-400">
               <span>1x (Normal)</span>
@@ -803,7 +779,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
             </div>
           </div>
           <button
-            onClick={() => setAmplifierGain(1)}
+            onClick={() => setLocalAmplifierGain(1)}
             className="w-full py-2 text-sm text-surface-500 hover:text-surface-700 dark:hover:text-surface-300"
           >
             Reset to Normal
