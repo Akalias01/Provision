@@ -1,90 +1,85 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { SlidersHorizontal, RotateCcw, Music2 } from 'lucide-react';
-import { Button, Modal } from '../ui';
+import { Modal } from '../ui';
 
-// EQ frequency bands (Hz)
-const FREQUENCY_BANDS = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
-const BAND_LABELS = ['60', '170', '310', '600', '1K', '3K', '6K', '12K', '14K', '16K'];
+// Simplified EQ with 5 bands for mobile
+const FREQUENCY_BANDS = [60, 250, 1000, 4000, 16000];
+const BAND_LABELS = ['Bass', 'Low Mid', 'Mid', 'High Mid', 'Treble'];
 
-// Equalizer presets
+// Simplified presets
 export const EQ_PRESETS = {
   flat: {
     name: 'Flat',
-    gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    gains: [0, 0, 0, 0, 0],
     description: 'No equalization',
   },
   spoken_word: {
     name: 'Spoken Word',
-    gains: [-2, -1, 0, 3, 5, 4, 2, 0, -1, -2],
+    gains: [-2, 0, 4, 3, 0],
     description: 'Optimized for audiobooks',
   },
   bass_boost: {
     name: 'Bass Boost',
-    gains: [6, 5, 4, 2, 0, 0, 0, 0, 0, 0],
-    description: 'Enhanced low frequencies',
+    gains: [6, 3, 0, 0, 0],
+    description: 'Enhanced bass',
   },
   treble_boost: {
     name: 'Treble Boost',
-    gains: [0, 0, 0, 0, 0, 2, 4, 5, 6, 6],
-    description: 'Enhanced high frequencies',
+    gains: [0, 0, 0, 3, 6],
+    description: 'Enhanced treble',
   },
   vocal_clarity: {
     name: 'Vocal Clarity',
-    gains: [-2, -1, 0, 2, 4, 5, 4, 3, 1, 0],
-    description: 'Clear voice reproduction',
-  },
-  podcast: {
-    name: 'Podcast',
-    gains: [-1, 0, 1, 3, 4, 4, 3, 1, 0, -1],
-    description: 'Optimized for podcasts',
+    gains: [-2, 1, 4, 2, 0],
+    description: 'Clear voices',
   },
   night_mode: {
     name: 'Night Mode',
-    gains: [-4, -3, -2, 0, 2, 2, 0, -2, -3, -4],
-    description: 'Reduced dynamic range',
-  },
-  loudness: {
-    name: 'Loudness',
-    gains: [5, 4, 2, 0, -1, -1, 0, 2, 4, 5],
-    description: 'V-shaped enhancement',
+    gains: [-3, 0, 2, 0, -3],
+    description: 'Reduced extremes',
   },
 } as const;
 
 export type EQPreset = keyof typeof EQ_PRESETS;
 
-// Shared audio context for the entire app
+// Shared audio context
 let sharedAudioContext: AudioContext | null = null;
 let sharedSourceNode: MediaElementAudioSourceNode | null = null;
 let sharedGainNode: GainNode | null = null;
 let connectedAudioElement: HTMLAudioElement | null = null;
-let isInitializing = false;
 
-// Check if audio element is ready
-function isAudioElementReady(audioElement: HTMLAudioElement): boolean {
-  return !!(audioElement && audioElement.src && audioElement.src !== '' && audioElement.readyState >= 1);
+// Resume audio context (needed for autoplay policies)
+export function resumeAudioContext() {
+  if (sharedAudioContext?.state === 'suspended') {
+    sharedAudioContext.resume().catch(() => {});
+  }
 }
 
-// Get or create shared audio context
-export function getSharedAudioContext(audioElement: HTMLAudioElement): {
+// Update amplifier gain
+export function setAmplifierGain(gain: number) {
+  if (sharedGainNode) {
+    try {
+      sharedGainNode.gain.value = gain;
+    } catch {
+      // Ignore errors
+    }
+  }
+}
+
+// Safe audio context initialization
+function initializeAudioContext(audioElement: HTMLAudioElement): {
   audioContext: AudioContext;
   sourceNode: MediaElementAudioSourceNode;
   gainNode: GainNode;
 } | null {
-  // Prevent double initialization
-  if (isInitializing) {
-    console.log('[Equalizer] Already initializing, skipping...');
-    return null;
-  }
-
   try {
     // Check if audio element is ready
-    if (!isAudioElementReady(audioElement)) {
-      console.log('[Equalizer] Audio element not ready yet');
+    if (!audioElement || !audioElement.src) {
       return null;
     }
 
-    // If we already have a context for this audio element, return it
+    // Return existing context if same element
     if (sharedAudioContext && connectedAudioElement === audioElement && sharedSourceNode && sharedGainNode) {
       return {
         audioContext: sharedAudioContext,
@@ -93,13 +88,12 @@ export function getSharedAudioContext(audioElement: HTMLAudioElement): {
       };
     }
 
-    // If we have a context for a different element, we need to handle it
-    if (sharedAudioContext && connectedAudioElement !== audioElement) {
-      // Close the old context safely
+    // Clean up old context
+    if (sharedAudioContext) {
       try {
         sharedAudioContext.close();
-      } catch (e) {
-        console.log('[Equalizer] Error closing old context:', e);
+      } catch {
+        // Ignore
       }
       sharedAudioContext = null;
       sharedSourceNode = null;
@@ -107,22 +101,16 @@ export function getSharedAudioContext(audioElement: HTMLAudioElement): {
       connectedAudioElement = null;
     }
 
-    isInitializing = true;
-
     // Create new context
-    sharedAudioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    sharedAudioContext = new AudioContextClass();
     sharedSourceNode = sharedAudioContext.createMediaElementSource(audioElement);
     sharedGainNode = sharedAudioContext.createGain();
     sharedGainNode.gain.value = 1;
     connectedAudioElement = audioElement;
 
-    // Connect source -> gain -> destination (EQ filters will be inserted between source and gain)
     sharedSourceNode.connect(sharedGainNode);
     sharedGainNode.connect(sharedAudioContext.destination);
-
-    isInitializing = false;
-
-    console.log('[Equalizer] Shared audio context created successfully');
 
     return {
       audioContext: sharedAudioContext,
@@ -130,23 +118,8 @@ export function getSharedAudioContext(audioElement: HTMLAudioElement): {
       gainNode: sharedGainNode,
     };
   } catch (error) {
-    isInitializing = false;
-    console.error('[Equalizer] Error creating shared audio context:', error);
+    console.error('[Equalizer] Initialization error:', error);
     return null;
-  }
-}
-
-// Update amplifier gain (exported for AudioPlayer to use)
-export function setAmplifierGain(gain: number) {
-  if (sharedGainNode) {
-    sharedGainNode.gain.value = gain;
-  }
-}
-
-// Resume audio context (needed for autoplay policies)
-export function resumeAudioContext() {
-  if (sharedAudioContext?.state === 'suspended') {
-    sharedAudioContext.resume();
   }
 }
 
@@ -164,45 +137,37 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
   const [isCustom, setIsCustom] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // EQ filter refs
   const filtersRef = useRef<BiquadFilterNode[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Initialize EQ filters
+  // Initialize EQ when modal opens
   const initializeEQ = useCallback(() => {
     if (!audioRef.current || isInitialized) return;
 
-    // Wait for audio element to be ready
     const audioElement = audioRef.current;
-    if (!audioElement.src || audioElement.readyState < 1) {
-      console.log('[Equalizer] Waiting for audio element to be ready...');
-      // Listen for loadedmetadata to try again
-      const handleLoaded = () => {
-        audioElement.removeEventListener('loadedmetadata', handleLoaded);
-        initializeEQ();
-      };
-      audioElement.addEventListener('loadedmetadata', handleLoaded);
+    if (!audioElement.src) {
+      console.log('[Equalizer] No audio source yet');
       return;
     }
 
     try {
-      const shared = getSharedAudioContext(audioRef.current);
-      if (!shared) {
-        console.log('[Equalizer] Could not get shared audio context');
+      const context = initializeAudioContext(audioElement);
+      if (!context) {
+        console.log('[Equalizer] Could not initialize audio context');
         return;
       }
 
-      const { audioContext, sourceNode, gainNode } = shared;
+      const { audioContext, sourceNode, gainNode } = context;
       audioContextRef.current = audioContext;
 
-      // Safely disconnect source from gain
+      // Disconnect source from gain to insert filters
       try {
         sourceNode.disconnect();
-      } catch (e) {
-        console.log('[Equalizer] Source already disconnected or error:', e);
+      } catch {
+        // Already disconnected
       }
 
-      // Create filters for each frequency band
+      // Create filters
       const filters: BiquadFilterNode[] = FREQUENCY_BANDS.map((freq, index) => {
         const filter = audioContext.createBiquadFilter();
 
@@ -212,10 +177,10 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
           filter.type = 'highshelf';
         } else {
           filter.type = 'peaking';
+          filter.Q.value = 1;
         }
 
         filter.frequency.value = freq;
-        filter.Q.value = 1;
         filter.gain.value = customGains[index];
 
         return filter;
@@ -234,24 +199,17 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
       setIsInitialized(true);
       console.log('[Equalizer] Initialized successfully');
     } catch (error) {
-      console.error('[Equalizer] Error initializing:', error);
-      // Don't crash - just log and continue without EQ
+      console.error('[Equalizer] Error:', error);
     }
-    // Note: customGains is NOT in deps - gains are applied separately by applyGains
-  }, [audioRef, isInitialized]);
+  }, [audioRef, isInitialized, customGains]);
 
-  // Apply gains to filters (with error handling to prevent crashes)
+  // Apply gains to filters
   const applyGains = useCallback((gains: number[]) => {
     try {
       filtersRef.current.forEach((filter, index) => {
         if (filter && gains[index] !== undefined) {
-          // Use setValueAtTime for smoother transitions and to avoid potential errors
           const targetValue = isEnabled ? gains[index] : 0;
-          if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-            filter.gain.setValueAtTime(targetValue, audioContextRef.current.currentTime);
-          } else {
-            filter.gain.value = targetValue;
-          }
+          filter.gain.value = targetValue;
         }
       });
     } catch (error) {
@@ -259,10 +217,14 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
     }
   }, [isEnabled]);
 
-  // Initialize on first open
+  // Initialize on modal open
   useEffect(() => {
     if (isOpen && !isInitialized && audioRef.current) {
-      initializeEQ();
+      // Wait a bit for audio to be ready
+      const timer = setTimeout(() => {
+        initializeEQ();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, isInitialized, initializeEQ, audioRef]);
 
@@ -302,12 +264,8 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
   const handleOpen = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // Close parent menu first
     onClose?.();
-    // Open EQ modal after brief delay
-    setTimeout(() => {
-      setIsOpen(true);
-    }, 100);
+    setTimeout(() => setIsOpen(true), 100);
   };
 
   const handleClose = () => {
@@ -316,17 +274,17 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
 
   return (
     <>
-      {/* EQ Button */}
+      {/* EQ Button/Menu Item */}
       {asMenuItem ? (
         <button
           onClick={handleOpen}
-          className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+          className="w-full flex items-center gap-3 p-4 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors"
         >
           <SlidersHorizontal className="w-5 h-5 text-primary-500" />
           <div className="text-left flex-1">
-            <p className="font-medium text-surface-900 dark:text-white">Equalizer</p>
-            <p className="text-sm text-surface-500">
-              {isEnabled && currentPreset !== 'flat' ? EQ_PRESETS[currentPreset].name : 'Adjust audio frequencies'}
+            <p className="font-medium text-white">Equalizer</p>
+            <p className="text-sm text-surface-400">
+              {isEnabled && currentPreset !== 'flat' ? EQ_PRESETS[currentPreset].name : 'Adjust frequencies'}
             </p>
           </div>
           {isEnabled && currentPreset !== 'flat' && (
@@ -334,42 +292,37 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
           )}
         </button>
       ) : (
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={handleOpen}
-          className={`relative ${isEnabled && currentPreset !== 'flat' ? 'text-primary-500' : ''}`}
+          className={`p-2 rounded-lg transition-colors ${
+            isEnabled && currentPreset !== 'flat' ? 'text-primary-500' : 'text-surface-400'
+          } hover:bg-surface-800`}
         >
           <SlidersHorizontal className="w-5 h-5" />
-          {isEnabled && currentPreset !== 'flat' && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary-500 rounded-full" />
-          )}
-        </Button>
+        </button>
       )}
 
       {/* EQ Modal */}
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        title="Audio Equalizer"
-        size="lg"
+        title="Equalizer"
+        size="md"
       >
         <div className="space-y-6">
           {/* Enable/Disable Toggle */}
-          <div className="flex items-center justify-between p-4 bg-surface-100 dark:bg-surface-800 rounded-xl">
+          <div className="flex items-center justify-between p-4 bg-surface-800 rounded-xl">
             <div className="flex items-center gap-3">
               <Music2 className="w-5 h-5 text-primary-500" />
               <div>
-                <p className="font-medium text-surface-900 dark:text-white">Equalizer</p>
-                <p className="text-sm text-surface-500">
-                  {isEnabled ? 'Enabled' : 'Disabled'}
-                </p>
+                <p className="font-medium text-white">Equalizer</p>
+                <p className="text-sm text-surface-400">{isEnabled ? 'Enabled' : 'Disabled'}</p>
               </div>
             </div>
             <button
               onClick={handleToggle}
               className={`relative w-12 h-7 rounded-full transition-colors ${
-                isEnabled ? 'bg-primary-500' : 'bg-surface-300 dark:bg-surface-600'
+                isEnabled ? 'bg-primary-500' : 'bg-surface-600'
               }`}
             >
               <motion.div
@@ -380,16 +333,19 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
             </button>
           </div>
 
-          {/* Presets */}
+          {/* Presets Grid */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-surface-900 dark:text-white">Presets</h4>
-              <Button variant="ghost" size="sm" onClick={handleReset}>
+              <h4 className="font-medium text-white">Presets</h4>
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-1 text-sm text-surface-400 hover:text-white transition-colors"
+              >
                 <RotateCcw className="w-4 h-4" />
                 Reset
-              </Button>
+              </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {(Object.entries(EQ_PRESETS) as [EQPreset, typeof EQ_PRESETS[EQPreset]][]).map(([key, preset]) => (
                 <button
                   key={key}
@@ -397,89 +353,41 @@ export function Equalizer({ audioRef, asMenuItem, onClose }: EqualizerProps) {
                   className={`p-3 rounded-xl border-2 transition-all text-left ${
                     currentPreset === key && !isCustom
                       ? 'border-primary-500 bg-primary-500/10'
-                      : 'border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600'
+                      : 'border-surface-700 hover:border-surface-600'
                   }`}
                 >
-                  <p className="font-medium text-sm text-surface-900 dark:text-white">
-                    {preset.name}
-                  </p>
-                  <p className="text-xs text-surface-500 mt-0.5">{preset.description}</p>
+                  <p className="font-medium text-sm text-white">{preset.name}</p>
+                  <p className="text-xs text-surface-400">{preset.description}</p>
                 </button>
               ))}
             </div>
             {isCustom && (
-              <p className="text-sm text-primary-500 mt-2">* Custom settings applied</p>
+              <p className="text-sm text-primary-500 mt-2">* Custom settings</p>
             )}
           </div>
 
-          {/* Frequency Bands */}
+          {/* Frequency Bands - Simplified Sliders */}
           <div>
-            <h4 className="font-medium text-surface-900 dark:text-white mb-4">
-              Frequency Bands
-            </h4>
-            <div className="flex items-end justify-between gap-2 h-48 px-2">
+            <h4 className="font-medium text-white mb-4">Frequency Bands</h4>
+            <div className="space-y-4">
               {customGains.map((gain, index) => (
-                <div key={index} className="flex flex-col items-center flex-1">
-                  {/* Vertical slider */}
-                  <div className="flex-1 flex flex-col items-center justify-end relative w-full">
-                    <div className="absolute inset-x-0 top-0 bottom-6 flex items-center justify-center">
-                      <div className="w-1.5 h-full bg-surface-200 dark:bg-surface-700 rounded-full relative">
-                        {/* Zero line */}
-                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 w-3 h-0.5 bg-surface-400" />
-                        {/* Value indicator */}
-                        <motion.div
-                          className={`absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full ${
-                            gain >= 0 ? 'bg-primary-500' : 'bg-red-500'
-                          } shadow-lg cursor-grab active:cursor-grabbing`}
-                          style={{
-                            top: `${50 - (gain / 12) * 50}%`,
-                          }}
-                          drag="y"
-                          dragConstraints={{ top: 0, bottom: 0 }}
-                          dragElastic={0}
-                          onDrag={(_, info) => {
-                            const parentHeight = 160;
-                            const percentage = info.point.y / parentHeight;
-                            const newGain = Math.round((0.5 - percentage) * 24);
-                            const clampedGain = Math.max(-12, Math.min(12, newGain));
-                            handleBandChange(index, clampedGain);
-                          }}
-                        />
-                        {/* Fill bar */}
-                        <motion.div
-                          className={`absolute left-0 right-0 rounded-full ${
-                            gain >= 0 ? 'bg-primary-500/40' : 'bg-red-500/40'
-                          }`}
-                          style={{
-                            top: gain >= 0 ? `${50 - (gain / 12) * 50}%` : '50%',
-                            bottom: gain >= 0 ? '50%' : `${50 + (gain / 12) * 50}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {/* dB value */}
-                  <span className="text-xs font-mono text-surface-500 mb-1">
-                    {gain > 0 ? '+' : ''}{gain}
+                <div key={index} className="flex items-center gap-4">
+                  <span className="w-16 text-sm text-surface-400">{BAND_LABELS[index]}</span>
+                  <input
+                    type="range"
+                    min="-12"
+                    max="12"
+                    step="1"
+                    value={gain}
+                    onChange={(e) => handleBandChange(index, parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                  />
+                  <span className={`w-12 text-sm text-right ${gain >= 0 ? 'text-primary-400' : 'text-red-400'}`}>
+                    {gain > 0 ? '+' : ''}{gain}dB
                   </span>
-                  {/* Frequency label */}
-                  <span className="text-xs text-surface-400">{BAND_LABELS[index]}</span>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Quick adjust buttons */}
-          <div className="flex items-center justify-center gap-4 pt-2">
-            {[
-              { label: '-3dB All', action: () => setCustomGains(customGains.map(g => Math.max(-12, g - 3))) },
-              { label: 'Flat', action: handleReset },
-              { label: '+3dB All', action: () => setCustomGains(customGains.map(g => Math.min(12, g + 3))) },
-            ].map(({ label, action }) => (
-              <Button key={label} variant="secondary" size="sm" onClick={action}>
-                {label}
-              </Button>
-            ))}
           </div>
         </div>
       </Modal>

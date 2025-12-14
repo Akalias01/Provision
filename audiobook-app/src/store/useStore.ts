@@ -465,6 +465,10 @@ interface AppState {
   skipInterval: SkipInterval;
   setSkipInterval: (interval: SkipInterval) => void;
 
+  // Player Settings
+  showWaveform: boolean;
+  setShowWaveform: (show: boolean) => void;
+
   // Bookmarks
   addBookmark: (bookId: string, bookmark: Bookmark) => void;
   removeBookmark: (bookId: string, bookmarkId: string) => void;
@@ -617,6 +621,10 @@ export const useStore = create<AppState>()(
       skipInterval: 10,
       setSkipInterval: (interval) => set({ skipInterval: interval }),
 
+      // Player Settings
+      showWaveform: false,
+      setShowWaveform: (show) => set({ showWaveform: show }),
+
       // Bookmarks
       addBookmark: (bookId, bookmark) =>
         set((state) => ({
@@ -667,6 +675,7 @@ export const useStore = create<AppState>()(
           pitch: state.ttsState.pitch,
         },
         skipInterval: state.skipInterval,
+        showWaveform: state.showWaveform,
       }),
     }
   )

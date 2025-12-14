@@ -3,13 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
   Pause,
-  SkipBack,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  Rewind,
-  FastForward,
-  BookOpen,
   ChevronDown,
   Moon,
   Bookmark,
@@ -18,16 +11,16 @@ import {
   Trash2,
   Edit3,
   Check,
-  MoreVertical,
+  RotateCcw,
+  RotateCw,
+  Headphones,
+  StickyNote,
   List,
-  HelpCircle,
-  Gauge,
-  Sliders,
+  Settings,
 } from 'lucide-react';
-import { Button, Slider, Modal } from '../ui';
+import { Slider, Modal } from '../ui';
 import { Waveform } from './Waveform';
-import { Equalizer, setAmplifierGain, resumeAudioContext } from './Equalizer';
-import { Tutorial } from '../Tutorial';
+import { Equalizer, resumeAudioContext } from './Equalizer';
 import { useStore, type SleepTimerMode } from '../../store/useStore';
 import { formatTime } from '../../utils/formatTime';
 import { updateMediaMetadata, updatePlaybackState, isAndroid } from '../../utils/mediaControl';
@@ -40,25 +33,19 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const sleepTimerRef = useRef<NodeJS.Timeout | null>(null);
   const coverRef = useRef<HTMLDivElement>(null);
-  const lastTapRef = useRef<number>(0);
-  const lastTapXRef = useRef<number>(0);
   const isDraggingRef = useRef<boolean>(false);
   const dragStartXRef = useRef<number>(0);
   const dragStartTimeRef = useRef<number>(0);
 
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
-  const [showChapters, setShowChapters] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [showTips, setShowTips] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
   const [showSpeedPicker, setShowSpeedPicker] = useState(false);
-  const [showAmplifier, setShowAmplifier] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [editingNote, setEditingNote] = useState('');
-  const [amplifierGain, setLocalAmplifierGain] = useState(1);
   const [gestureIndicator, setGestureIndicator] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'chapters' | 'notes'>('chapters');
 
   const {
     currentBook,
@@ -70,18 +57,14 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     sleepTimerRemaining,
     setSleepTimerMode,
     setSleepTimerRemaining,
-    skipInterval,
     addBookmark,
     removeBookmark,
     updateBookmarkNote,
+    showWaveform,
+    setShowWaveform,
   } = useStore();
 
   const { isPlaying, currentTime, duration, volume, playbackRate, isMuted } = playerState;
-
-  // Update amplifier gain using shared audio context
-  useEffect(() => {
-    setAmplifierGain(amplifierGain);
-  }, [amplifierGain]);
 
   // Audio setup
   useEffect(() => {
@@ -89,13 +72,9 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     if (!audio || !currentBook) return;
 
     console.log('[AudioPlayer] Setting up audio for:', currentBook.title);
-    console.log('[AudioPlayer] File URL:', currentBook.fileUrl);
 
-    // Reset audio state
     audio.pause();
     audio.currentTime = 0;
-
-    // Set the source
     audio.src = currentBook.fileUrl;
     audio.volume = volume;
     audio.playbackRate = playbackRate;
@@ -103,7 +82,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     const handleLoadedMetadata = () => {
       console.log('[AudioPlayer] Loaded metadata, duration:', audio.duration);
       setPlayerState({ duration: audio.duration });
-      // Restore position after metadata is loaded
       if (currentBook.currentPosition > 0 && audio.duration > 0) {
         audio.currentTime = currentBook.currentPosition * audio.duration;
       }
@@ -124,17 +102,10 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       setPlayerState({ isPlaying: false });
     };
 
-    const handleCanPlay = () => {
-      console.log('[AudioPlayer] Audio can play');
-    };
-
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
-    audio.addEventListener('canplay', handleCanPlay);
-
-    // Try to load the audio
     audio.load();
 
     return () => {
@@ -142,7 +113,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
-      audio.removeEventListener('canplay', handleCanPlay);
     };
   }, [currentBook?.id, currentBook?.fileUrl]);
 
@@ -152,38 +122,21 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     if (!audio) return;
 
     if (isPlaying) {
-      // Resume shared audio context if suspended
       resumeAudioContext();
-
-      // Wait for audio to be ready before playing
       const attemptPlay = () => {
-        if (audio.readyState >= 2) { // HAVE_CURRENT_DATA or higher
-          audio.play()
-            .then(() => {
-              console.log('[AudioPlayer] Playback started successfully');
-            })
-            .catch((error) => {
-              console.error('[AudioPlayer] Play error:', error.name, error.message);
-              setPlayerState({ isPlaying: false });
-            });
+        if (audio.readyState >= 2) {
+          audio.play().catch((error) => {
+            console.error('[AudioPlayer] Play error:', error.message);
+            setPlayerState({ isPlaying: false });
+          });
         } else {
-          console.log('[AudioPlayer] Audio not ready, waiting... readyState:', audio.readyState);
-          // Wait for canplay event
           const handleCanPlay = () => {
             audio.removeEventListener('canplay', handleCanPlay);
-            audio.play()
-              .then(() => {
-                console.log('[AudioPlayer] Playback started after waiting');
-              })
-              .catch((error) => {
-                console.error('[AudioPlayer] Play error after waiting:', error.name, error.message);
-                setPlayerState({ isPlaying: false });
-              });
+            audio.play().catch(() => setPlayerState({ isPlaying: false }));
           };
           audio.addEventListener('canplay', handleCanPlay);
         }
       };
-
       attemptPlay();
     } else {
       audio.pause();
@@ -204,25 +157,17 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     }
   }, [playbackRate]);
 
-  // Android Auto: Update media metadata when playing starts
+  // Android Auto metadata
   useEffect(() => {
     if (isAndroid() && currentBook && isPlaying && duration > 0) {
-      updateMediaMetadata(
-        currentBook.title,
-        currentBook.author || 'Unknown Author',
-        currentBook.cover,
-        duration
-      );
+      updateMediaMetadata(currentBook.title, currentBook.author || 'Unknown Author', currentBook.cover, duration);
     }
   }, [currentBook?.id, isPlaying, duration]);
 
-  // Android Auto: Update playback state when playing/pausing
+  // Android Auto playback state
   useEffect(() => {
-    if (isAndroid() && currentBook) {
-      // Only update state when there's actual playback happening
-      if (isPlaying || currentTime > 0) {
-        updatePlaybackState(isPlaying, currentTime, playbackRate);
-      }
+    if (isAndroid() && currentBook && (isPlaying || currentTime > 0)) {
+      updatePlaybackState(isPlaying, currentTime, playbackRate);
     }
   }, [isPlaying, currentBook?.id]);
 
@@ -232,7 +177,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       sleepTimerRef.current = setInterval(() => {
         setSleepTimerRemaining(sleepTimerRemaining - 1);
       }, 1000);
-
       return () => {
         if (sleepTimerRef.current) clearInterval(sleepTimerRef.current);
       };
@@ -272,41 +216,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     setPlayerState({ isPlaying: !isPlaying });
   }, [isPlaying]);
 
-  const goToNextChapter = useCallback(() => {
-    const chapters = currentBook?.chapters || [];
-    if (chapters.length === 0) {
-      // No chapters, skip forward 5 minutes
-      handleSkip(300);
-      return;
-    }
-    const nextChapter = chapters.find(ch => (ch.startTime || 0) > currentTime);
-    if (nextChapter && nextChapter.startTime !== undefined) {
-      handleSeek(nextChapter.startTime);
-    }
-  }, [currentBook, currentTime, handleSeek, handleSkip]);
-
-  const goToPrevChapter = useCallback(() => {
-    const chapters = currentBook?.chapters || [];
-    if (chapters.length === 0) {
-      // No chapters, skip backward 5 minutes
-      handleSkip(-300);
-      return;
-    }
-    // Find current chapter and go to previous
-    const currentChapterIndex = chapters.findIndex(
-      (ch, i) => (ch.startTime || 0) <= currentTime &&
-        (i === chapters.length - 1 || (chapters[i + 1].startTime || 0) > currentTime)
-    );
-    if (currentChapterIndex > 0) {
-      const prevChapter = chapters[currentChapterIndex - 1];
-      if (prevChapter.startTime !== undefined) {
-        handleSeek(prevChapter.startTime);
-      }
-    } else {
-      handleSeek(0);
-    }
-  }, [currentBook, currentTime, handleSeek, handleSkip]);
-
   // Gesture handlers for cover area
   const handleTouchStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -322,7 +231,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
 
     if (Math.abs(deltaX) > 20) {
       isDraggingRef.current = true;
-      // Scrub: 100px = 30 seconds
       const scrubAmount = (deltaX / 100) * 30;
       const newTime = Math.max(0, Math.min(duration, dragStartTimeRef.current + scrubAmount));
       setGestureIndicator(deltaX > 0 ? `+${formatTime(scrubAmount)}` : formatTime(scrubAmount));
@@ -330,44 +238,12 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     }
   }, [duration, handleSeek]);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+  const handleTouchEnd = useCallback(() => {
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       setGestureIndicator(null);
-      return;
     }
-
-    // Double-tap detection
-    const now = Date.now();
-    const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : e.clientX;
-
-    if (now - lastTapRef.current < 300) {
-      // Double tap detected
-      const rect = coverRef.current?.getBoundingClientRect();
-      if (rect) {
-        const relativeX = clientX - rect.left;
-        const third = rect.width / 3;
-
-        if (relativeX < third) {
-          // Left third - previous chapter
-          goToPrevChapter();
-          setGestureIndicator('Previous Chapter');
-        } else if (relativeX > third * 2) {
-          // Right third - next chapter
-          goToNextChapter();
-          setGestureIndicator('Next Chapter');
-        } else {
-          // Center - play/pause
-          togglePlayPause();
-          setGestureIndicator(isPlaying ? 'Pause' : 'Play');
-        }
-        setTimeout(() => setGestureIndicator(null), 800);
-      }
-    }
-
-    lastTapRef.current = now;
-    lastTapXRef.current = clientX;
-  }, [goToPrevChapter, goToNextChapter, togglePlayPause, isPlaying]);
+  }, []);
 
   const handleAddBookmark = useCallback(() => {
     if (!currentBook) return;
@@ -379,7 +255,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     };
     addBookmark(currentBook.id, bookmark);
     setBookmarkNote('');
-    setShowMoreMenu(false);
   }, [currentBook, currentTime, bookmarkNote, addBookmark]);
 
   const handleJumpToBookmark = useCallback((position: number) => {
@@ -387,7 +262,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       audioRef.current.currentTime = position;
       setPlayerState({ currentTime: position });
     }
-    setShowBookmarks(false);
   }, []);
 
   const handleJumpToChapter = useCallback((startTime: number) => {
@@ -395,7 +269,6 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
       audioRef.current.currentTime = startTime;
       setPlayerState({ currentTime: startTime });
     }
-    setShowChapters(false);
   }, []);
 
   const progress = duration > 0 ? currentTime / duration : 0;
@@ -411,8 +284,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     { value: 'endOfChapter', label: 'End of Chapter' },
   ];
 
-  // Speed options from 1.0 to 2.0 in 0.1 increments
-  const speedOptions = Array.from({ length: 11 }, (_, i) => Number((1 + i * 0.1).toFixed(1)));
+  const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   if (!currentBook) return null;
 
@@ -424,43 +296,65 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
     (ch, i) => (ch.startTime || 0) <= currentTime &&
       (i === chapters.length - 1 || (chapters[i + 1].startTime || 0) > currentTime)
   );
+  const currentChapterIndex = currentChapter
+    ? chapters.findIndex(ch => ch.id === currentChapter.id) + 1
+    : 1;
+
+  // Calculate remaining time
+  const remainingTime = duration - currentTime;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="h-full flex flex-col bg-gradient-to-b from-surface-100 to-surface-50 dark:from-surface-900 dark:to-surface-950 overflow-hidden safe-area-top safe-area-bottom"
+      className="h-full flex flex-col bg-surface-950 overflow-hidden"
     >
       <audio ref={audioRef} preload="metadata" crossOrigin="anonymous" />
 
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-3 sm:p-4">
-        <Button variant="icon" onClick={onBack || (() => setCurrentView('library'))}>
-          <ChevronDown className="w-6 h-6" />
-        </Button>
-
-        {/* Chapter selector button */}
+      {/* New Header: Thumbnail + Chapter + Author */}
+      <div className="flex-shrink-0 flex items-center gap-3 p-4 bg-surface-900/50 safe-area-top">
         <button
-          onClick={() => setShowChapters(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-800 transition-colors"
+          onClick={onBack || (() => setCurrentView('library'))}
+          className="p-2 text-surface-400 hover:text-white transition-colors"
         >
-          <List className="w-4 h-4 text-surface-500" />
-          <span className="text-sm text-surface-500 dark:text-surface-400 max-w-[150px] truncate">
-            {currentChapter?.title || 'Now Playing'}
-          </span>
+          <ChevronDown className="w-6 h-6" />
         </button>
 
-        {/* 3-dot menu */}
-        <Button variant="icon" onClick={() => setShowMoreMenu(true)}>
-          <MoreVertical className="w-5 h-5" />
-        </Button>
+        {/* Thumbnail */}
+        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-surface-800">
+          {currentBook.cover ? (
+            <img src={currentBook.cover} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-primary-500/20">
+              <Headphones className="w-5 h-5 text-primary-500" />
+            </div>
+          )}
+        </div>
+
+        {/* Chapter + Author */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">
+            {currentChapter?.title || currentBook.title}
+          </p>
+          <p className="text-xs text-surface-400 truncate">
+            {currentBook.author}
+          </p>
+        </div>
+
+        {/* Settings button */}
+        <button
+          onClick={() => setShowSettings(true)}
+          className="p-2 text-surface-400 hover:text-white transition-colors"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Cover Art with gesture support */}
       <div
         ref={coverRef}
-        className="flex-1 min-h-0 flex items-center justify-center px-4 sm:px-8 py-2 sm:py-4 select-none"
+        className="flex-1 min-h-0 flex items-center justify-center px-8 py-4 select-none"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -469,7 +363,7 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
         onMouseUp={handleTouchEnd}
       >
         <motion.div
-          className="relative w-full max-w-sm aspect-square"
+          className="relative w-full max-w-xs aspect-square"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
@@ -478,12 +372,12 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
             <img
               src={currentBook.cover}
               alt={currentBook.title}
-              className="w-full h-full object-cover rounded-3xl shadow-2xl shadow-primary-500/20 pointer-events-none"
+              className="w-full h-full object-cover rounded-2xl shadow-2xl shadow-black/50 pointer-events-none"
               draggable={false}
             />
           ) : (
-            <div className="w-full h-full rounded-3xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-2xl shadow-primary-500/20">
-              <BookOpen className="w-24 h-24 text-white/80" />
+            <div className="w-full h-full rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-2xl">
+              <Headphones className="w-20 h-20 text-white/80" />
             </div>
           )}
 
@@ -494,55 +388,24 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-3xl"
+                className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl"
               >
                 <span className="text-white text-2xl font-bold">{gestureIndicator}</span>
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Glow effect when playing */}
-          <AnimatePresence>
-            {isPlaying && !gestureIndicator && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 rounded-3xl bg-primary-500/20 blur-3xl -z-10"
-              />
-            )}
-          </AnimatePresence>
         </motion.div>
       </div>
 
-      {/* Info */}
-      <div className="flex-shrink-0 px-4 sm:px-8 py-2 sm:py-4 text-center">
-        <motion.h2
-          className="text-lg sm:text-2xl font-bold text-surface-900 dark:text-white truncate"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          {currentBook.title}
-        </motion.h2>
-        <motion.p
-          className="text-sm sm:text-base text-surface-500 dark:text-surface-400 mt-1 truncate"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.15 }}
-        >
-          {currentBook.author}
-          {currentBook.narrator && ` • Narrated by ${currentBook.narrator}`}
-        </motion.p>
-      </div>
+      {/* Optional Waveform */}
+      {showWaveform && (
+        <div className="flex-shrink-0 px-6 py-2">
+          <Waveform isPlaying={isPlaying} progress={progress} />
+        </div>
+      )}
 
-      {/* Waveform */}
-      <div className="flex-shrink-0 px-4 sm:px-8 py-1 sm:py-2">
-        <Waveform isPlaying={isPlaying} progress={progress} />
-      </div>
-
-      {/* Progress */}
-      <div className="flex-shrink-0 px-4 sm:px-8 py-2 sm:py-4">
+      {/* Progress Bar */}
+      <div className="flex-shrink-0 px-6 py-2">
         <Slider
           value={currentTime}
           max={duration || 100}
@@ -550,260 +413,222 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
           showTooltip
           formatTooltip={formatTime}
         />
-        <div className="flex justify-between mt-2 text-sm text-surface-500 dark:text-surface-400">
+        {/* Progress Info: elapsed | chapter x/y | remaining */}
+        <div className="flex justify-between mt-2 text-xs text-surface-400">
           <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
+          <span>
+            {chapters.length > 0 ? `Chapter ${currentChapterIndex}/${chapters.length}` : ''}
+          </span>
+          <span>-{formatTime(remainingTime)}</span>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex-shrink-0 px-4 sm:px-8 py-3 sm:py-6">
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
-          {/* Skip backward */}
-          <Button
-            variant="ghost"
-            size="lg"
-            onClick={() => handleSkip(-skipInterval)}
-            className="relative"
+      {/* Simplified Controls: Speed | Rewind | Play | Forward | Sleep */}
+      <div className="flex-shrink-0 px-6 py-4">
+        <div className="flex items-center justify-between">
+          {/* Speed */}
+          <button
+            onClick={() => setShowSpeedPicker(true)}
+            className="w-14 h-10 rounded-lg bg-surface-800 text-sm font-semibold text-surface-300 hover:bg-surface-700 transition-colors"
           >
-            <Rewind className="w-6 h-6" />
-            <span className="absolute -bottom-1 text-[10px] font-medium">{skipInterval}</span>
-          </Button>
+            {playbackRate}x
+          </button>
 
-          {/* Previous Chapter */}
-          <Button variant="ghost" size="lg" onClick={goToPrevChapter}>
-            <SkipBack className="w-6 h-6" />
-          </Button>
+          {/* Rewind 10s */}
+          <button
+            onClick={() => handleSkip(-10)}
+            className="w-12 h-12 flex items-center justify-center text-surface-300 hover:text-white transition-colors relative"
+          >
+            <RotateCcw className="w-7 h-7" />
+            <span className="absolute text-[10px] font-bold">10</span>
+          </button>
 
           {/* Play/Pause */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={togglePlayPause}
-            className="w-16 h-16 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/30 flex items-center justify-center"
+            className="w-16 h-16 rounded-full bg-primary-500 text-white shadow-lg shadow-primary-500/30 flex items-center justify-center"
           >
             <AnimatePresence mode="wait">
               {isPlaying ? (
-                <motion.div
-                  key="pause"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                >
-                  <Pause className="w-7 h-7" fill="currentColor" />
+                <motion.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Pause className="w-8 h-8" fill="currentColor" />
                 </motion.div>
               ) : (
-                <motion.div
-                  key="play"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                >
-                  <Play className="w-7 h-7 ml-1" fill="currentColor" />
+                <motion.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <Play className="w-8 h-8 ml-1" fill="currentColor" />
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.button>
 
-          {/* Next Chapter */}
-          <Button variant="ghost" size="lg" onClick={goToNextChapter}>
-            <SkipForward className="w-6 h-6" />
-          </Button>
-
-          {/* Skip forward */}
-          <Button
-            variant="ghost"
-            size="lg"
-            onClick={() => handleSkip(skipInterval)}
-            className="relative"
+          {/* Forward 10s */}
+          <button
+            onClick={() => handleSkip(10)}
+            className="w-12 h-12 flex items-center justify-center text-surface-300 hover:text-white transition-colors relative"
           >
-            <FastForward className="w-6 h-6" />
-            <span className="absolute -bottom-1 text-[10px] font-medium">{skipInterval}</span>
-          </Button>
-        </div>
-
-        {/* Secondary controls */}
-        <div className="flex items-center justify-between mt-3 sm:mt-6">
-          {/* Speed */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSpeedPicker(true)}
-            className="text-xs font-semibold min-w-[48px] sm:min-w-[60px]"
-          >
-            {playbackRate.toFixed(1)}x
-          </Button>
+            <RotateCw className="w-7 h-7" />
+            <span className="absolute text-[10px] font-bold">10</span>
+          </button>
 
           {/* Sleep Timer */}
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={() => setShowSleepTimer(true)}
-            className="relative"
+            className="w-14 h-10 rounded-lg bg-surface-800 flex items-center justify-center text-surface-300 hover:bg-surface-700 transition-colors relative"
           >
-            <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Moon className="w-5 h-5" />
             {sleepTimerRemaining !== null && (
-              <span className="absolute -top-1 -right-1 text-[10px] bg-primary-500 text-white rounded-full px-1">
+              <span className="absolute -top-1 -right-1 text-[10px] bg-primary-500 text-white rounded-full px-1.5 py-0.5">
                 {Math.ceil(sleepTimerRemaining / 60)}
               </span>
             )}
-          </Button>
-
-          {/* Quick Bookmark */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAddBookmark}
-          >
-            <BookmarkPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
-
-          {/* Bookmarks */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowBookmarks(true)}
-          >
-            <Bookmark className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
-
-          {/* Volume - simplified on mobile */}
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPlayerState({ isMuted: !isMuted })}
-            >
-              {isMuted || volume === 0 ? (
-                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </Button>
-            <div className="hidden sm:block w-20 lg:w-24">
-              <Slider
-                value={isMuted ? 0 : volume}
-                max={1}
-                step={0.01}
-                onChange={(v) => setPlayerState({ volume: v, isMuted: false })}
-              />
-            </div>
-          </div>
+          </button>
         </div>
       </div>
 
-      {/* 3-Dot More Menu */}
-      <Modal
-        isOpen={showMoreMenu}
-        onClose={() => setShowMoreMenu(false)}
-        title="Options"
-        size="sm"
-      >
-        <div className="space-y-2">
-          <Equalizer audioRef={audioRef} asMenuItem onClose={() => setShowMoreMenu(false)} />
-
+      {/* Chapters/Notes Tabs */}
+      <div className="flex-shrink-0 border-t border-surface-800">
+        <div className="flex">
           <button
-            onClick={() => {
-              setShowMoreMenu(false);
-              setShowAmplifier(true);
-            }}
-            className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+            onClick={() => setActiveTab('chapters')}
+            className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+              activeTab === 'chapters'
+                ? 'text-primary-500 border-b-2 border-primary-500'
+                : 'text-surface-400 hover:text-white'
+            }`}
           >
-            <Gauge className="w-5 h-5 text-primary-500" />
-            <div className="text-left">
-              <p className="font-medium text-surface-900 dark:text-white">Amplifier</p>
-              <p className="text-sm text-surface-500">Boost audio volume</p>
-            </div>
+            <List className="w-4 h-4" />
+            Chapters ({chapters.length})
           </button>
-
           <button
-            onClick={handleAddBookmark}
-            className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+            onClick={() => setActiveTab('notes')}
+            className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+              activeTab === 'notes'
+                ? 'text-primary-500 border-b-2 border-primary-500'
+                : 'text-surface-400 hover:text-white'
+            }`}
           >
-            <BookmarkPlus className="w-5 h-5 text-primary-500" />
-            <div className="text-left">
-              <p className="font-medium text-surface-900 dark:text-white">Add Bookmark</p>
-              <p className="text-sm text-surface-500">Save current position</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              setShowMoreMenu(false);
-              setShowTips(true);
-            }}
-            className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
-          >
-            <HelpCircle className="w-5 h-5 text-primary-500" />
-            <div className="text-left">
-              <p className="font-medium text-surface-900 dark:text-white">Player Tips</p>
-              <p className="text-sm text-surface-500">Learn gestures & controls</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => {
-              setShowMoreMenu(false);
-              setShowSpeedPicker(true);
-            }}
-            className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
-          >
-            <Sliders className="w-5 h-5 text-primary-500" />
-            <div className="text-left">
-              <p className="font-medium text-surface-900 dark:text-white">Playback Speed</p>
-              <p className="text-sm text-surface-500">Current: {playbackRate.toFixed(1)}x</p>
-            </div>
+            <StickyNote className="w-4 h-4" />
+            Notes ({bookmarks.length})
           </button>
         </div>
-      </Modal>
+      </div>
 
-      {/* Chapter Selection Modal */}
-      <Modal
-        isOpen={showChapters}
-        onClose={() => setShowChapters(false)}
-        title="Chapters"
-        size="md"
-      >
-        <div className="max-h-96 overflow-y-auto space-y-1">
-          {chapters.length === 0 ? (
-            <p className="text-center text-surface-500 py-8">No chapters available</p>
-          ) : (
-            chapters.map((chapter, index) => {
-              const isCurrentChapter = currentChapter?.id === chapter.id;
-              return (
-                <button
-                  key={chapter.id}
-                  onClick={() => handleJumpToChapter(chapter.startTime || 0)}
-                  className={`w-full flex items-center gap-3 p-4 rounded-xl transition-colors ${
-                    isCurrentChapter
-                      ? 'bg-primary-500/10 border border-primary-500'
-                      : 'hover:bg-surface-100 dark:hover:bg-surface-800'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    isCurrentChapter
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-surface-200 dark:bg-surface-700 text-surface-600 dark:text-surface-300'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className={`font-medium ${isCurrentChapter ? 'text-primary-500' : 'text-surface-900 dark:text-white'}`}>
-                      {chapter.title}
-                    </p>
-                    {chapter.duration && (
-                      <p className="text-sm text-surface-500">{formatTime(chapter.duration)}</p>
+      {/* Tab Content */}
+      <div className="flex-1 overflow-auto px-4 py-2 safe-area-bottom" style={{ maxHeight: '30vh' }}>
+        {activeTab === 'chapters' ? (
+          <div className="space-y-1">
+            {chapters.length === 0 ? (
+              <p className="text-center text-surface-500 py-4 text-sm">No chapters available</p>
+            ) : (
+              chapters.map((chapter, index) => {
+                const isCurrentChapter = currentChapter?.id === chapter.id;
+                return (
+                  <button
+                    key={chapter.id}
+                    onClick={() => handleJumpToChapter(chapter.startTime || 0)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                      isCurrentChapter
+                        ? 'bg-primary-500/20 text-primary-400'
+                        : 'text-surface-300 hover:bg-surface-800'
+                    }`}
+                  >
+                    <span className={`w-6 h-6 rounded-full text-xs flex items-center justify-center ${
+                      isCurrentChapter ? 'bg-primary-500 text-white' : 'bg-surface-700 text-surface-400'
+                    }`}>
+                      {index + 1}
+                    </span>
+                    <span className="flex-1 text-left text-sm truncate">{chapter.title}</span>
+                    {chapter.startTime !== undefined && (
+                      <span className="text-xs text-surface-500">{formatTime(chapter.startTime)}</span>
                     )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {/* Add bookmark button */}
+            <button
+              onClick={handleAddBookmark}
+              className="w-full flex items-center gap-2 p-3 rounded-lg bg-surface-800 text-primary-400 hover:bg-surface-700 transition-colors"
+            >
+              <BookmarkPlus className="w-4 h-4" />
+              <span className="text-sm">Add bookmark at {formatTime(currentTime)}</span>
+            </button>
+
+            {bookmarks.length === 0 ? (
+              <p className="text-center text-surface-500 py-4 text-sm">No bookmarks yet</p>
+            ) : (
+              bookmarks
+                .sort((a, b) => a.position - b.position)
+                .map((bookmark) => (
+                  <div
+                    key={bookmark.id}
+                    className="flex items-center gap-3 p-3 bg-surface-800 rounded-lg"
+                  >
+                    <button
+                      onClick={() => handleJumpToBookmark(bookmark.position)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Bookmark className="w-4 h-4 text-primary-500" />
+                        <span className="text-sm font-medium text-white">
+                          {formatTime(bookmark.position)}
+                        </span>
+                      </div>
+                      {editingBookmarkId === bookmark.id ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            type="text"
+                            value={editingNote}
+                            onChange={(e) => setEditingNote(e.target.value)}
+                            className="flex-1 bg-surface-700 px-2 py-1 rounded text-sm text-white"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (currentBook) {
+                                updateBookmarkNote(currentBook.id, bookmark.id, editingNote);
+                              }
+                              setEditingBookmarkId(null);
+                            }}
+                            className="p-1 text-green-500"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : bookmark.note ? (
+                        <p className="text-xs text-surface-400 mt-1">{bookmark.note}</p>
+                      ) : null}
+                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingBookmarkId(bookmark.id);
+                          setEditingNote(bookmark.note || '');
+                        }}
+                        className="p-2 text-surface-400 hover:text-primary-500"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
+                        className="p-2 text-surface-400 hover:text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  {chapter.startTime !== undefined && (
-                    <span className="text-sm text-surface-400">{formatTime(chapter.startTime)}</span>
-                  )}
-                </button>
-              );
-            })
-          )}
-        </div>
-      </Modal>
+                ))
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Speed Picker Modal */}
       <Modal
@@ -823,135 +648,14 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
               className={`py-3 rounded-xl text-sm font-medium transition-colors ${
                 playbackRate === speed
                   ? 'bg-primary-500 text-white'
-                  : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+                  : 'bg-surface-800 hover:bg-surface-700 text-surface-300'
               }`}
             >
-              {speed.toFixed(1)}x
+              {speed}x
             </button>
           ))}
         </div>
       </Modal>
-
-      {/* Amplifier Modal */}
-      <Modal
-        isOpen={showAmplifier}
-        onClose={() => setShowAmplifier(false)}
-        title="Audio Amplifier"
-        size="sm"
-      >
-        <div className="space-y-6">
-          <p className="text-sm text-surface-500">
-            Boost your audio beyond normal volume. Use carefully to avoid distortion.
-          </p>
-          <div>
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Gain</span>
-              <span className="text-sm text-primary-500 font-bold">{amplifierGain.toFixed(1)}x</span>
-            </div>
-            <Slider
-              value={amplifierGain}
-              min={1}
-              max={3}
-              step={0.1}
-              onChange={setLocalAmplifierGain}
-            />
-            <div className="flex justify-between mt-1 text-xs text-surface-400">
-              <span>1x (Normal)</span>
-              <span>3x (Max)</span>
-            </div>
-          </div>
-          <button
-            onClick={() => setLocalAmplifierGain(1)}
-            className="w-full py-2 text-sm text-surface-500 hover:text-surface-700 dark:hover:text-surface-300"
-          >
-            Reset to Normal
-          </button>
-        </div>
-      </Modal>
-
-      {/* Tips Modal */}
-      <Modal
-        isOpen={showTips}
-        onClose={() => setShowTips(false)}
-        title="Player Tips"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="p-4 bg-surface-100 dark:bg-surface-800 rounded-xl">
-            <h4 className="font-medium text-surface-900 dark:text-white mb-2">Gesture Controls</h4>
-            <ul className="space-y-2 text-sm text-surface-600 dark:text-surface-400">
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Double-tap left</span>
-                <span>Previous chapter</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Double-tap right</span>
-                <span>Next chapter</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Double-tap center</span>
-                <span>Play/Pause</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Swipe & hold</span>
-                <span>Scrub forward/backward</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="p-4 bg-surface-100 dark:bg-surface-800 rounded-xl">
-            <h4 className="font-medium text-surface-900 dark:text-white mb-2">Playback Controls</h4>
-            <ul className="space-y-2 text-sm text-surface-600 dark:text-surface-400">
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Speed</span>
-                <span>1.0x to 2.0x in 0.1 increments</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Skip buttons</span>
-                <span>Jump {skipInterval} seconds</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Sleep timer</span>
-                <span>Auto-stop playback</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="p-4 bg-surface-100 dark:bg-surface-800 rounded-xl">
-            <h4 className="font-medium text-surface-900 dark:text-white mb-2">Audio Features</h4>
-            <ul className="space-y-2 text-sm text-surface-600 dark:text-surface-400">
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Equalizer</span>
-                <span>Adjust bass, mid, treble</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Amplifier</span>
-                <span>Boost volume up to 3x</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-24 font-medium">Bookmarks</span>
-                <span>Save positions with notes</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Interactive Tutorial Button */}
-          <Button
-            variant="primary"
-            className="w-full mt-4"
-            onClick={() => {
-              setShowTips(false);
-              setShowTutorial(true);
-            }}
-          >
-            <HelpCircle className="w-4 h-4" />
-            Start Interactive Tutorial
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Interactive Tutorial */}
-      <Tutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
 
       {/* Sleep Timer Modal */}
       <Modal
@@ -971,17 +675,63 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
               className={`w-full p-4 rounded-xl flex items-center justify-between transition-colors ${
                 sleepTimerMode === option.value
                   ? 'bg-primary-500 text-white'
-                  : 'bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700'
+                  : 'bg-surface-800 hover:bg-surface-700 text-surface-300'
               }`}
             >
               <span className="font-medium">{option.label}</span>
               {sleepTimerMode === option.value && sleepTimerRemaining !== null && (
-                <span className="text-sm opacity-80">
-                  {formatTime(sleepTimerRemaining)}
-                </span>
+                <span className="text-sm opacity-80">{formatTime(sleepTimerRemaining)}</span>
               )}
             </button>
           ))}
+        </div>
+      </Modal>
+
+      {/* Settings Modal */}
+      <Modal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Player Settings"
+        size="sm"
+      >
+        <div className="space-y-4">
+          {/* Waveform Toggle */}
+          <div className="flex items-center justify-between p-4 bg-surface-800 rounded-xl">
+            <div>
+              <p className="font-medium text-white">Show Waveform</p>
+              <p className="text-sm text-surface-400">Display audio visualization</p>
+            </div>
+            <button
+              onClick={() => setShowWaveform(!showWaveform)}
+              className={`relative w-12 h-7 rounded-full transition-colors ${
+                showWaveform ? 'bg-primary-500' : 'bg-surface-600'
+              }`}
+            >
+              <motion.div
+                className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
+                animate={{ left: showWaveform ? '24px' : '4px' }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
+            </button>
+          </div>
+
+          {/* Equalizer */}
+          <Equalizer audioRef={audioRef} asMenuItem onClose={() => setShowSettings(false)} />
+
+          {/* Bookmarks */}
+          <button
+            onClick={() => {
+              setShowSettings(false);
+              setShowBookmarks(true);
+            }}
+            className="w-full flex items-center gap-3 p-4 rounded-xl bg-surface-800 hover:bg-surface-700 transition-colors"
+          >
+            <Bookmark className="w-5 h-5 text-primary-500" />
+            <div className="text-left">
+              <p className="font-medium text-white">Bookmarks</p>
+              <p className="text-sm text-surface-400">{bookmarks.length} saved</p>
+            </div>
+          </button>
         </div>
       </Modal>
 
@@ -993,22 +743,23 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
         size="md"
       >
         <div className="space-y-4">
-          {/* Add new bookmark */}
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="Add note (optional)..."
               value={bookmarkNote}
               onChange={(e) => setBookmarkNote(e.target.value)}
-              className="input flex-1"
+              className="flex-1 bg-surface-800 px-4 py-2 rounded-xl text-white placeholder-surface-500"
             />
-            <Button variant="primary" onClick={handleAddBookmark}>
+            <button
+              onClick={handleAddBookmark}
+              className="px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors flex items-center gap-2"
+            >
               <BookmarkPlus className="w-4 h-4" />
               Add
-            </Button>
+            </button>
           </div>
 
-          {/* Bookmark list */}
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {bookmarks.length === 0 ? (
               <p className="text-center text-surface-500 py-8">No bookmarks yet</p>
@@ -1018,62 +769,29 @@ export function AudioPlayer({ onBack }: AudioPlayerProps) {
                 .map((bookmark) => (
                   <div
                     key={bookmark.id}
-                    className="flex items-center gap-3 p-3 bg-surface-100 dark:bg-surface-800 rounded-xl"
+                    className="flex items-center gap-3 p-3 bg-surface-800 rounded-xl"
                   >
                     <button
-                      onClick={() => handleJumpToBookmark(bookmark.position)}
+                      onClick={() => {
+                        handleJumpToBookmark(bookmark.position);
+                        setShowBookmarks(false);
+                      }}
                       className="flex-1 text-left"
                     >
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-primary-500" />
-                        <span className="font-medium text-surface-900 dark:text-white">
-                          {formatTime(bookmark.position)}
-                        </span>
+                        <span className="font-medium text-white">{formatTime(bookmark.position)}</span>
                       </div>
-                      {editingBookmarkId === bookmark.id ? (
-                        <div className="flex items-center gap-2 mt-1">
-                          <input
-                            type="text"
-                            value={editingNote}
-                            onChange={(e) => setEditingNote(e.target.value)}
-                            className="input text-sm py-1 flex-1"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (currentBook) {
-                                updateBookmarkNote(currentBook.id, bookmark.id, editingNote);
-                              }
-                              setEditingBookmarkId(null);
-                            }}
-                            className="p-1 text-green-500 hover:bg-green-500/10 rounded"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : bookmark.note ? (
-                        <p className="text-sm text-surface-500 mt-1">{bookmark.note}</p>
-                      ) : null}
+                      {bookmark.note && (
+                        <p className="text-sm text-surface-400 mt-1">{bookmark.note}</p>
+                      )}
                     </button>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingBookmarkId(bookmark.id);
-                          setEditingNote(bookmark.note || '');
-                        }}
-                        className="p-2 text-surface-400 hover:text-primary-500 hover:bg-primary-500/10 rounded-lg"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
-                        className="p-2 text-surface-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => currentBook && removeBookmark(currentBook.id, bookmark.id)}
+                      className="p-2 text-surface-400 hover:text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))
             )}

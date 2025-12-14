@@ -5,47 +5,56 @@ import {
   Menu,
   X,
   FolderOpen,
-  FolderSearch,
-  HardDrive,
   Palette,
-  Languages,
   Cloud,
-  Trash2,
   ChevronRight,
-  Magnet,
   Download,
   CheckCircle2,
+  HardDrive,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { Button, Modal } from './index';
 import { useStore } from '../../store/useStore';
-import { useTranslation } from '../../i18n';
 import { RezonLogo } from './RezonLogo';
+import {
+  connectGoogleDrive,
+  isGoogleDriveConnected,
+  disconnectGoogleDrive,
+  isDropboxConnected,
+  disconnectDropbox,
+  getDropboxAuthUrl,
+} from '../../utils/cloudStorage';
 
 interface SidebarMenuProps {
-  onOpenTorrent: () => void;
+  onOpenTorrent?: () => void;
   onOpenSettings: () => void;
 }
 
-const SIDEBAR_WIDTH = 320;
+const SIDEBAR_WIDTH = 300;
 
-export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps) {
+export function SidebarMenu({ onOpenSettings }: SidebarMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
-  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
-  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+  const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [dropboxConnected, setDropboxConnected] = useState(false);
+  const [connectingGoogle, setConnectingGoogle] = useState(false);
+  const [connectingDropbox, setConnectingDropbox] = useState(false);
 
   const {
     books,
     removeBook,
     logoVariant,
-    language,
-    setLanguage,
     isDarkMode,
     activeTorrents,
   } = useStore();
 
-  const { t } = useTranslation();
+  // Check cloud connection status on mount
+  useEffect(() => {
+    setGoogleConnected(isGoogleDriveConnected());
+    setDropboxConnected(isDropboxConnected());
+  }, [isCloudModalOpen]);
 
   // Handle escape key to close menu
   useEffect(() => {
@@ -58,112 +67,116 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen]);
 
-  // Push main content when sidebar opens
+  // Prevent body scroll when menu is open
   useEffect(() => {
-    const mainContent = document.getElementById('main-app-content');
-    if (mainContent) {
-      mainContent.style.transition = 'margin-left 0.3s ease-out';
-      mainContent.style.marginLeft = isOpen ? `${SIDEBAR_WIDTH}px` : '0';
-    }
-    // Prevent body scroll when menu is open
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
 
-  const languages = [
-    { code: 'en', name: 'English', nativeName: 'English' },
-    { code: 'es', name: 'Spanish', nativeName: 'Español' },
-    { code: 'fr', name: 'French', nativeName: 'Français' },
-    { code: 'de', name: 'German', nativeName: 'Deutsch' },
-    { code: 'it', name: 'Italian', nativeName: 'Italiano' },
-    { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
-    { code: 'zh', name: 'Chinese', nativeName: '中文' },
-    { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-    { code: 'ko', name: 'Korean', nativeName: '한국어' },
-    { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
-    { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
-    { code: 'ru', name: 'Russian', nativeName: 'Русский' },
-  ];
+  const handleConnectGoogle = async () => {
+    setConnectingGoogle(true);
+    try {
+      const success = await connectGoogleDrive();
+      setGoogleConnected(success);
+    } catch (error) {
+      console.error('Google Drive connection error:', error);
+    }
+    setConnectingGoogle(false);
+  };
 
+  const handleConnectDropbox = async () => {
+    setConnectingDropbox(true);
+    try {
+      const authUrl = await getDropboxAuthUrl();
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Dropbox connection error:', error);
+      setConnectingDropbox(false);
+    }
+  };
+
+  const handleDisconnectGoogle = () => {
+    disconnectGoogleDrive();
+    setGoogleConnected(false);
+  };
+
+  const handleDisconnectDropbox = () => {
+    disconnectDropbox();
+    setDropboxConnected(false);
+  };
+
+  // Menu items - simplified
   const menuItems = [
     {
-      id: 'folders',
+      id: 'files',
       icon: FolderOpen,
-      label: t('scanFolders'),
-      description: t('addBooksFromFolders'),
-      onClick: () => setIsFolderModalOpen(true),
-    },
-    {
-      id: 'torrent',
-      icon: Magnet,
-      label: t('downloadTorrent'),
-      description: t('downloadFromMagnet'),
+      label: 'Add Files',
+      description: 'Import audiobooks from device',
       onClick: () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.accept = '.mp3,.m4b,.m4a,.epub,.pdf';
+        input.onchange = (e) => {
+          const files = (e.target as HTMLInputElement).files;
+          if (files) {
+            console.log('Selected', files.length, 'files');
+            // File handling is done by the Library component
+          }
+        };
+        input.click();
         setIsOpen(false);
-        onOpenTorrent();
       },
     },
     {
-      id: 'storage',
-      icon: HardDrive,
-      label: t('storage'),
-      description: t('manageLibrary'),
-      onClick: () => setIsStorageModalOpen(true),
+      id: 'cloud',
+      icon: Cloud,
+      label: 'Cloud Storage',
+      description: googleConnected || dropboxConnected ? 'Connected' : 'Google Drive & Dropbox',
+      badge: googleConnected || dropboxConnected,
+      onClick: () => setIsCloudModalOpen(true),
     },
     {
       id: 'appearance',
       icon: Palette,
-      label: t('appearance'),
-      description: t('colorsAndThemes'),
+      label: 'Appearance',
+      description: 'Theme & colors',
       onClick: () => {
         setIsOpen(false);
         onOpenSettings();
       },
     },
     {
-      id: 'language',
-      icon: Languages,
-      label: t('language'),
-      description: `${t('currentLanguage')}: ${languages.find(l => l.code === language)?.nativeName || 'English'}`,
-      onClick: () => setIsLanguageModalOpen(true),
-    },
-    {
-      id: 'cloud',
-      icon: Cloud,
-      label: t('cloudSync'),
-      description: t('connectGoogleDrive'),
-      onClick: () => setIsCloudModalOpen(true),
+      id: 'storage',
+      icon: HardDrive,
+      label: 'Library',
+      description: `${books.length} books`,
+      onClick: () => setIsStorageModalOpen(true),
     },
   ];
 
+  const toggleMenu = () => setIsOpen(!isOpen);
+
   // Calculate storage stats
-  const totalBooks = books.length;
   const audioBooks = books.filter(b => b.format === 'audio').length;
   const epubBooks = books.filter(b => b.format === 'epub').length;
   const pdfBooks = books.filter(b => b.format === 'pdf').length;
 
-  const toggleMenu = () => setIsOpen(!isOpen);
-
-  // Sidebar content - rendered via portal to document.body
+  // Sidebar content - rendered via portal
   const sidebarContent = (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop - clicking closes menu */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setIsOpen(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              zIndex: 9998,
-            }}
+            className="fixed inset-0 bg-black/50 z-[9998]"
           />
 
           {/* Sidebar Panel */}
@@ -172,42 +185,27 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             animate={{ x: 0 }}
             exit={{ x: -SIDEBAR_WIDTH }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            drag="x"
-            dragConstraints={{ left: -SIDEBAR_WIDTH, right: 0 }}
-            dragElastic={0.1}
-            onDragEnd={(_, info) => {
-              if (info.offset.x < -100 || info.velocity.x < -500) {
-                setIsOpen(false);
-              }
-            }}
+            className="fixed left-0 top-0 h-full z-[9999] flex flex-col shadow-2xl"
             style={{
-              position: 'fixed',
-              left: 0,
-              top: 0,
-              height: '100vh',
               width: SIDEBAR_WIDTH,
               backgroundColor: isDarkMode ? '#0c0a09' : '#ffffff',
-              zIndex: 9999,
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '4px 0 25px rgba(0, 0, 0, 0.3)',
             }}
           >
             {/* Header */}
-            <div className="p-6 border-b border-surface-200 dark:border-surface-700">
+            <div className="p-5 border-b border-surface-800 safe-area-top">
               <div className="flex items-center justify-between">
                 <RezonLogo size="md" variant={logoVariant} animated={false} />
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+                  className="p-2 rounded-lg hover:bg-surface-800 transition-colors"
                 >
-                  <X className="w-5 h-5 text-surface-500" />
+                  <X className="w-5 h-5 text-surface-400" />
                 </button>
               </div>
             </div>
 
             {/* Menu Items */}
-            <nav className="flex-1 overflow-y-auto p-4">
+            <nav className="flex-1 overflow-y-auto p-3">
               <div className="space-y-1">
                 {menuItems.map((item, index) => (
                   <motion.button
@@ -216,113 +214,69 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={item.onClick}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors group"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-surface-800 transition-colors group"
                   >
                     <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center group-hover:bg-primary-500/20 transition-colors">
                       <item.icon className="w-5 h-5 text-primary-500" />
                     </div>
                     <div className="flex-1 text-left">
-                      <p className="font-medium text-surface-900 dark:text-white">
-                        {item.label}
-                      </p>
-                      <p className="text-sm text-surface-500">{item.description}</p>
+                      <p className="font-medium text-white text-sm">{item.label}</p>
+                      <p className="text-xs text-surface-500">{item.description}</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-surface-400 group-hover:text-primary-500 group-hover:translate-x-1 transition-all" />
+                    {item.badge && (
+                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                    )}
+                    <ChevronRight className="w-4 h-4 text-surface-500 group-hover:text-primary-500 transition-colors" />
                   </motion.button>
                 ))}
               </div>
 
-              {/* Downloads Section - Always visible */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 pt-4 border-t border-surface-200 dark:border-surface-700"
-              >
-                <h3 className="flex items-center gap-2 px-4 mb-3 text-sm font-semibold text-surface-500 uppercase tracking-wider">
-                  <Download className="w-4 h-4" />
-                  Downloads
-                </h3>
-                <div className="space-y-2 px-2">
-                  {activeTorrents.length === 0 ? (
-                    <div className="p-4 text-center text-surface-400 text-sm">
-                      <p>No active downloads</p>
-                      <p className="text-xs mt-1">Select a torrent file to start</p>
-                    </div>
-                  ) : (
-                    activeTorrents.map((torrent) => {
-                      const circumference = 2 * Math.PI * 18; // radius 18
-                      const strokeDashoffset = circumference - (torrent.progress / 100) * circumference;
+              {/* Downloads Section */}
+              {activeTorrents.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 pt-4 border-t border-surface-800"
+                >
+                  <h3 className="flex items-center gap-2 px-3 mb-2 text-xs font-semibold text-surface-500 uppercase">
+                    <Download className="w-3 h-3" />
+                    Downloads
+                  </h3>
+                  <div className="space-y-2">
+                    {activeTorrents.map((torrent) => {
                       const isComplete = torrent.progress >= 100;
-
                       return (
-                        <motion.div
+                        <div
                           key={torrent.id}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center gap-3 p-3 bg-surface-100 dark:bg-surface-800 rounded-xl"
+                          className="flex items-center gap-3 p-3 bg-surface-800 rounded-xl"
                         >
-                          {/* Circular Progress */}
-                          <div className="relative w-10 h-10 flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-surface-700 flex items-center justify-center">
                             {isComplete ? (
-                              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                              </div>
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
                             ) : (
-                              <>
-                                <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
-                                  <circle
-                                    cx="20"
-                                    cy="20"
-                                    r="18"
-                                    fill="none"
-                                    strokeWidth="3"
-                                    className="stroke-surface-300 dark:stroke-surface-600"
-                                  />
-                                  <motion.circle
-                                    cx="20"
-                                    cy="20"
-                                    r="18"
-                                    fill="none"
-                                    strokeWidth="3"
-                                    strokeLinecap="round"
-                                    className="stroke-primary-500"
-                                    style={{ strokeDasharray: circumference }}
-                                    initial={{ strokeDashoffset: circumference }}
-                                    animate={{ strokeDashoffset }}
-                                    transition={{ duration: 0.3 }}
-                                  />
-                                </svg>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="text-[10px] font-bold text-surface-900 dark:text-white">
-                                    {Math.round(torrent.progress)}%
-                                  </span>
-                                </div>
-                              </>
+                              <span className="text-[10px] font-bold text-white">
+                                {Math.round(torrent.progress)}%
+                              </span>
                             )}
                           </div>
-
-                          {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-surface-900 dark:text-white truncate">
-                              {torrent.name}
-                            </p>
-                            <p className={`text-xs ${isComplete ? 'text-emerald-500' : 'text-primary-500'}`}>
+                            <p className="text-xs font-medium text-white truncate">{torrent.name}</p>
+                            <p className={`text-[10px] ${isComplete ? 'text-green-500' : 'text-primary-500'}`}>
                               {isComplete ? 'Complete' : 'Downloading...'}
                             </p>
                           </div>
-                        </motion.div>
+                        </div>
                       );
-                    })
-                  )}
-                </div>
-              </motion.div>
+                    })}
+                  </div>
+                </motion.div>
+              )}
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-surface-200 dark:border-surface-700">
-              <div className="text-center text-sm text-surface-500">
-                <p className="font-medium">Rezon v1.0.5</p>
-                <p className="text-xs mt-1">{totalBooks} {t('booksInLibrary')}</p>
+            <div className="p-4 border-t border-surface-800 safe-area-bottom">
+              <div className="text-center text-xs text-surface-500">
+                <p className="font-medium">Rezon v1.0.13</p>
               </div>
             </div>
           </motion.aside>
@@ -333,187 +287,145 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
 
   return (
     <>
-      {/* Menu Toggle Button - Hamburger */}
+      {/* Menu Toggle Button */}
       <Button variant="icon" onClick={toggleMenu}>
-        <motion.div
-          animate={isOpen ? { rotate: 90 } : { rotate: 0 }}
-          transition={{ duration: 0.2 }}
-        >
+        <motion.div animate={isOpen ? { rotate: 90 } : { rotate: 0 }} transition={{ duration: 0.2 }}>
           {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </motion.div>
       </Button>
 
-      {/* Render sidebar via portal to document.body */}
+      {/* Render sidebar via portal */}
       {typeof document !== 'undefined' && createPortal(sidebarContent, document.body)}
 
-      {/* Folder Scan Modal */}
+      {/* Cloud Storage Modal */}
       <Modal
-        isOpen={isFolderModalOpen}
-        onClose={() => setIsFolderModalOpen(false)}
-        title={t('scanFoldersForBooks')}
+        isOpen={isCloudModalOpen}
+        onClose={() => setIsCloudModalOpen(false)}
+        title="Cloud Storage"
         size="md"
       >
         <div className="space-y-4">
-          <p className="text-sm text-surface-500 dark:text-surface-400">
-            {t('selectFolderToScan')}
+          <p className="text-sm text-surface-400">
+            Connect your cloud storage to import audiobooks directly.
           </p>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.setAttribute('webkitdirectory', '');
-                input.setAttribute('directory', '');
-                input.onchange = (e) => {
-                  const files = (e.target as HTMLInputElement).files;
-                  if (files) {
-                    console.log('Selected folder with', files.length, 'files');
-                  }
-                };
-                input.click();
-              }}
-              className="w-full p-4 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:bg-primary-500/5 transition-colors"
-            >
-              <FolderSearch className="w-8 h-8 mx-auto text-surface-400 mb-2" />
-              <p className="font-medium text-surface-900 dark:text-white">
-                {t('browseForFolder')}
-              </p>
-              <p className="text-sm text-surface-500 mt-1">
-                {t('selectFolder')}
-              </p>
-            </button>
+          {/* Google Drive */}
+          <div className="p-4 border border-surface-700 rounded-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 via-green-500 to-yellow-500 flex items-center justify-center">
+                <Cloud className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-white">Google Drive</p>
+                <p className="text-sm text-surface-400">
+                  {googleConnected ? 'Connected' : 'Not connected'}
+                </p>
+              </div>
+              {googleConnected ? (
+                <button
+                  onClick={handleDisconnectGoogle}
+                  className="px-4 py-2 text-sm bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                >
+                  Disconnect
+                </button>
+              ) : (
+                <button
+                  onClick={handleConnectGoogle}
+                  disabled={connectingGoogle}
+                  className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {connectingGoogle && <RefreshCw className="w-4 h-4 animate-spin" />}
+                  Connect
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="text-xs text-surface-400 mt-4">
-            {t('supportedFormats')}
+          {/* Dropbox */}
+          <div className="p-4 border border-surface-700 rounded-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center">
+                <Cloud className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-white">Dropbox</p>
+                <p className="text-sm text-surface-400">
+                  {dropboxConnected ? 'Connected' : 'Not connected'}
+                </p>
+              </div>
+              {dropboxConnected ? (
+                <button
+                  onClick={handleDisconnectDropbox}
+                  className="px-4 py-2 text-sm bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                >
+                  Disconnect
+                </button>
+              ) : (
+                <button
+                  onClick={handleConnectDropbox}
+                  disabled={connectingDropbox}
+                  className="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {connectingDropbox && <RefreshCw className="w-4 h-4 animate-spin" />}
+                  Connect
+                </button>
+              )}
+            </div>
           </div>
+
+          <p className="text-xs text-surface-500 text-center pt-2">
+            Your files remain in the cloud. We only download what you select.
+          </p>
         </div>
       </Modal>
 
-      {/* Storage Modal */}
+      {/* Library Storage Modal */}
       <Modal
         isOpen={isStorageModalOpen}
         onClose={() => setIsStorageModalOpen(false)}
-        title={t('storageManagement')}
+        title="Library"
         size="lg"
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Stats */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-2">
             {[
-              { label: t('total'), value: totalBooks, color: 'bg-primary-500' },
-              { label: t('audio'), value: audioBooks, color: 'bg-cyan-500' },
-              { label: t('epub'), value: epubBooks, color: 'bg-violet-500' },
-              { label: t('pdf'), value: pdfBooks, color: 'bg-orange-500' },
+              { label: 'Total', value: books.length, color: 'bg-primary-500' },
+              { label: 'Audio', value: audioBooks, color: 'bg-cyan-500' },
+              { label: 'EPUB', value: epubBooks, color: 'bg-violet-500' },
+              { label: 'PDF', value: pdfBooks, color: 'bg-orange-500' },
             ].map((stat) => (
-              <div key={stat.label} className="text-center p-4 bg-surface-100 dark:bg-surface-800 rounded-xl">
-                <div className={`w-3 h-3 ${stat.color} rounded-full mx-auto mb-2`} />
-                <p className="text-2xl font-bold text-surface-900 dark:text-white">{stat.value}</p>
-                <p className="text-xs text-surface-500">{stat.label}</p>
+              <div key={stat.label} className="text-center p-3 bg-surface-800 rounded-xl">
+                <div className={`w-2 h-2 ${stat.color} rounded-full mx-auto mb-1`} />
+                <p className="text-xl font-bold text-white">{stat.value}</p>
+                <p className="text-[10px] text-surface-500">{stat.label}</p>
               </div>
             ))}
           </div>
 
           {/* File List */}
-          <div>
-            <h4 className="font-medium text-surface-900 dark:text-white mb-3">{t('libraryFiles')}</h4>
-            <div className="max-h-64 overflow-y-auto space-y-2">
-              {books.length === 0 ? (
-                <p className="text-center text-surface-500 py-8">{t('noFilesInLibrary')}</p>
-              ) : (
-                books.map((book) => (
-                  <div
-                    key={book.id}
-                    className="flex items-center justify-between p-3 bg-surface-100 dark:bg-surface-800 rounded-xl"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-surface-900 dark:text-white truncate">
-                        {book.title}
-                      </p>
-                      <p className="text-xs text-surface-500 uppercase">{book.format}</p>
-                    </div>
-                    <button
-                      onClick={() => removeBook(book.id)}
-                      className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {books.length === 0 ? (
+              <p className="text-center text-surface-500 py-8 text-sm">No books in library</p>
+            ) : (
+              books.map((book) => (
+                <div
+                  key={book.id}
+                  className="flex items-center justify-between p-3 bg-surface-800 rounded-xl"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-white truncate">{book.title}</p>
+                    <p className="text-xs text-surface-500 uppercase">{book.format}</p>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Language Modal */}
-      <Modal
-        isOpen={isLanguageModalOpen}
-        onClose={() => setIsLanguageModalOpen(false)}
-        title={t('selectLanguage')}
-        size="md"
-      >
-        <div className="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto">
-          {languages.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => {
-                setLanguage(lang.code);
-                setIsLanguageModalOpen(false);
-              }}
-              className={`p-4 rounded-xl border-2 transition-all text-left ${
-                language === lang.code
-                  ? 'border-primary-500 bg-primary-500/10'
-                  : 'border-surface-200 dark:border-surface-700 hover:border-surface-300'
-              }`}
-            >
-              <p className="font-medium text-surface-900 dark:text-white">
-                {lang.nativeName}
-              </p>
-              <p className="text-sm text-surface-500">{lang.name}</p>
-            </button>
-          ))}
-        </div>
-        <div className="text-xs text-surface-400 text-center pt-4 border-t border-surface-200 dark:border-surface-700 mt-4">
-          {t('translationsComingSoon')}
-        </div>
-      </Modal>
-
-      {/* Cloud Sync Modal */}
-      <Modal
-        isOpen={isCloudModalOpen}
-        onClose={() => setIsCloudModalOpen(false)}
-        title={t('cloudSync')}
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-surface-500 dark:text-surface-400">
-            {t('connectCloudStorage')}
-          </p>
-
-          <button
-            onClick={() => {
-              alert(t('googleDriveIntegration'));
-            }}
-            className="w-full flex items-center gap-4 p-4 border-2 border-surface-200 dark:border-surface-700 rounded-xl hover:border-primary-500 transition-colors"
-          >
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 via-green-500 to-yellow-500 flex items-center justify-center">
-              <Cloud className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-medium text-surface-900 dark:text-white">
-                Google Drive
-              </p>
-              <p className="text-sm text-surface-500">
-                {t('connectGoogleDrive')}
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-surface-400" />
-          </button>
-
-          <div className="text-xs text-surface-400 text-center pt-4">
-            {t('moreCloudProviders')}
+                  <button
+                    onClick={() => removeBook(book.id)}
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </Modal>
