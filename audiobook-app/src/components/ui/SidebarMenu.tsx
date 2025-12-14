@@ -89,14 +89,6 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
 
   const menuItems = [
     {
-      id: 'downloads',
-      icon: Download,
-      label: 'Downloads',
-      description: activeTorrents.length > 0 ? `${activeTorrents.length} active` : 'View download progress',
-      onClick: () => {}, // Just shows the section below
-      hasContent: true, // Flag to show downloads section
-    },
-    {
       id: 'folders',
       icon: FolderOpen,
       label: t('scanFolders'),
@@ -329,7 +321,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             {/* Footer */}
             <div className="p-4 border-t border-surface-200 dark:border-surface-700">
               <div className="text-center text-sm text-surface-500">
-                <p className="font-medium">VOCA v1.0.0</p>
+                <p className="font-medium">Rezon v1.0.1</p>
                 <p className="text-xs mt-1">{totalBooks} {t('booksInLibrary')}</p>
               </div>
             </div>
