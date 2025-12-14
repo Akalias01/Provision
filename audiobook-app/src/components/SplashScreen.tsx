@@ -6,6 +6,37 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
+const TAGLINE = "Audiobooks Reimagined. Resonate With Every Word.";
+
+// Animated tagline component - letters appear from left to right
+function AnimatedTagline({ show, className, style }: { show: boolean; className?: string; style?: React.CSSProperties }) {
+  const letters = TAGLINE.split('');
+
+  return (
+    <motion.p
+      className={`text-center ${className}`}
+      style={style}
+      initial={{ opacity: 0 }}
+      animate={show ? { opacity: 1 } : {}}
+    >
+      {letters.map((letter, index) => (
+        <motion.span
+          key={index}
+          initial={{ opacity: 0, y: 10 }}
+          animate={show ? { opacity: 1, y: 0 } : {}}
+          transition={{
+            duration: 0.03,
+            delay: index * 0.02,
+            ease: "easeOut"
+          }}
+        >
+          {letter}
+        </motion.span>
+      ))}
+    </motion.p>
+  );
+}
+
 // ============================================
 // OPTION 1: Minimal Elegance - Clean, sophisticated
 // ============================================
@@ -16,7 +47,7 @@ function MinimalEleganceSplash({ onComplete }: SplashScreenProps) {
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 300 : phase === 3 ? 600 : 800);
+    }, phase === 0 ? 300 : phase === 3 ? 1200 : 800);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
 
@@ -56,8 +87,8 @@ function MinimalEleganceSplash({ onComplete }: SplashScreenProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <h1 className="text-8xl font-extralight tracking-[0.3em] text-white/90 voca-font-orbitron">
-            VOCA
+          <h1 className="text-8xl font-extralight tracking-[0.3em] text-white/90 rezon-font-orbitron">
+            REZON
           </h1>
         </motion.div>
 
@@ -69,15 +100,13 @@ function MinimalEleganceSplash({ onComplete }: SplashScreenProps) {
           transition={{ duration: 0.8, delay: 0.3 }}
         />
 
-        {/* Tagline */}
-        <motion.p
-          className="mt-8 text-sm tracking-[0.4em] uppercase text-white/40 font-light"
-          initial={{ opacity: 0 }}
-          animate={phase >= 2 ? { opacity: 1 } : {}}
-          transition={{ duration: 0.6 }}
-        >
-          Audiobooks Reimagined
-        </motion.p>
+        {/* Animated Tagline */}
+        <div className="mt-8">
+          <AnimatedTagline
+            show={phase >= 2}
+            className="text-sm tracking-[0.2em] uppercase text-white/40 font-light"
+          />
+        </div>
       </div>
 
       {/* Corner accents */}
@@ -107,7 +136,7 @@ function GradientFlowSplash({ onComplete }: SplashScreenProps) {
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 400 : phase === 3 ? 600 : 900);
+    }, phase === 0 ? 400 : phase === 3 ? 1200 : 900);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
 
@@ -163,14 +192,14 @@ function GradientFlowSplash({ onComplete }: SplashScreenProps) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", duration: 1 }}
         >
-          <h1 className="text-9xl font-black voca-font-orbitron">
+          <h1 className="text-9xl font-black rezon-font-orbitron">
             <span
               className="bg-clip-text text-transparent"
               style={{
                 backgroundImage: 'linear-gradient(135deg, #6366f1 0%, #ec4899 50%, #06b6d4 100%)',
               }}
             >
-              VOCA
+              REZON
             </span>
           </h1>
         </motion.div>
@@ -192,18 +221,16 @@ function GradientFlowSplash({ onComplete }: SplashScreenProps) {
           />
         </motion.div>
 
-        {/* Tagline */}
-        <motion.p
-          className="mt-8 text-lg tracking-[0.2em] voca-font-orbitron bg-clip-text text-transparent"
-          style={{
-            backgroundImage: 'linear-gradient(90deg, #6366f1, #ec4899)',
-          }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={phase >= 2 ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
-        >
-          Audiobooks Reimagined
-        </motion.p>
+        {/* Animated Tagline */}
+        <div className="mt-8">
+          <AnimatedTagline
+            show={phase >= 2}
+            className="text-lg tracking-[0.1em] rezon-font-orbitron bg-clip-text text-transparent"
+            style={{
+              backgroundImage: 'linear-gradient(90deg, #6366f1, #ec4899)',
+            }}
+          />
+        </div>
       </div>
     </motion.div>
   );
@@ -219,7 +246,7 @@ function SoundWaveSplash({ onComplete }: SplashScreenProps) {
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 200 : phase === 3 ? 700 : 800);
+    }, phase === 0 ? 200 : phase === 3 ? 1200 : 800);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
 
@@ -268,7 +295,7 @@ function SoundWaveSplash({ onComplete }: SplashScreenProps) {
           transition={{ type: "spring", duration: 0.8 }}
         >
           <h1
-            className="text-8xl font-bold voca-font-orbitron"
+            className="text-8xl font-bold rezon-font-orbitron"
             style={{
               background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)',
               WebkitBackgroundClip: 'text',
@@ -276,7 +303,7 @@ function SoundWaveSplash({ onComplete }: SplashScreenProps) {
               filter: 'drop-shadow(0 0 40px rgba(6,182,212,0.3))',
             }}
           >
-            VOCA
+            REZON
           </h1>
         </motion.div>
 
@@ -306,14 +333,13 @@ function SoundWaveSplash({ onComplete }: SplashScreenProps) {
           </defs>
         </motion.svg>
 
-        {/* Tagline */}
-        <motion.p
-          className="mt-6 text-lg tracking-[0.15em] text-cyan-400/80 voca-font-orbitron"
-          initial={{ opacity: 0 }}
-          animate={phase >= 2 ? { opacity: 1 } : {}}
-        >
-          Audiobooks Reimagined
-        </motion.p>
+        {/* Animated Tagline */}
+        <div className="mt-6">
+          <AnimatedTagline
+            show={phase >= 2}
+            className="text-lg tracking-[0.1em] text-cyan-400/80 rezon-font-orbitron"
+          />
+        </div>
       </div>
     </motion.div>
   );
@@ -329,7 +355,7 @@ function LuxeDarkSplash({ onComplete }: SplashScreenProps) {
     const timer = setTimeout(() => {
       if (phase < 3) setPhase(phase + 1);
       else onComplete();
-    }, phase === 0 ? 300 : phase === 3 ? 600 : 900);
+    }, phase === 0 ? 300 : phase === 3 ? 1200 : 900);
     return () => clearTimeout(timer);
   }, [phase, onComplete]);
 
@@ -368,12 +394,12 @@ function LuxeDarkSplash({ onComplete }: SplashScreenProps) {
           transition={{ duration: 0.8 }}
           className="relative"
         >
-          <h1 className="text-8xl font-bold voca-font-orbitron text-white">
-            VOCA
+          <h1 className="text-8xl font-bold rezon-font-orbitron text-white">
+            REZON
           </h1>
           {/* Gold shimmer effect */}
           <motion.div
-            className="absolute inset-0 text-8xl font-bold voca-font-orbitron bg-clip-text text-transparent"
+            className="absolute inset-0 text-8xl font-bold rezon-font-orbitron bg-clip-text text-transparent"
             style={{
               backgroundImage: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4), transparent)',
               backgroundSize: '200% 100%',
@@ -381,7 +407,7 @@ function LuxeDarkSplash({ onComplete }: SplashScreenProps) {
             animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
             transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
           >
-            VOCA
+            REZON
           </motion.div>
         </motion.div>
 
@@ -394,15 +420,13 @@ function LuxeDarkSplash({ onComplete }: SplashScreenProps) {
           transition={{ duration: 0.8 }}
         />
 
-        {/* Tagline */}
-        <motion.p
-          className="mt-8 text-sm tracking-[0.3em] uppercase text-amber-500/60 font-light"
-          initial={{ opacity: 0 }}
-          animate={phase >= 2 ? { opacity: 1 } : {}}
-          transition={{ duration: 0.5 }}
-        >
-          Audiobooks Reimagined
-        </motion.p>
+        {/* Animated Tagline */}
+        <div className="mt-8">
+          <AnimatedTagline
+            show={phase >= 2}
+            className="text-sm tracking-[0.2em] uppercase text-amber-500/60 font-light"
+          />
+        </div>
 
         {/* Decorative dots */}
         <motion.div

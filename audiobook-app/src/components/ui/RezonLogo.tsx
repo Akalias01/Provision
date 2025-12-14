@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useStore, colorThemes } from '../../store/useStore';
 
-interface VocaLogoProps {
+interface RezonLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   animated?: boolean;
   variant?: 'waveform' | 'headphones' | 'pulse' | 'minimal';
@@ -175,7 +175,7 @@ function PulseLogo({ iconSize, animated }: { iconSize: number; animated: boolean
 }
 
 // ============================================
-// LOGO OPTION 4: Minimal V (Ultra Clean)
+// LOGO OPTION 4: Minimal R (Ultra Clean)
 // ============================================
 function MinimalLogo({ iconSize, animated }: { iconSize: number; animated: boolean }) {
   return (
@@ -194,19 +194,19 @@ function MinimalLogo({ iconSize, animated }: { iconSize: number; animated: boole
         {/* Circle background */}
         <circle cx="50" cy="50" r="45" fill="url(#minGrad)" />
 
-        {/* Stylized V with wave */}
+        {/* Stylized R with wave */}
         <motion.path
-          d="M28 30 L50 70 L72 30"
+          d="M35 70 L35 30 Q35 25 40 25 L55 25 Q70 25 70 40 Q70 50 55 50 L45 50 L65 70"
           fill="none"
           stroke="white"
-          strokeWidth="8"
+          strokeWidth="6"
           strokeLinecap="round"
           strokeLinejoin="round"
           animate={animated ? {
             d: [
-              "M28 30 L50 70 L72 30",
-              "M28 35 L50 65 L72 35",
-              "M28 30 L50 70 L72 30",
+              "M35 70 L35 30 Q35 25 40 25 L55 25 Q70 25 70 40 Q70 50 55 50 L45 50 L65 70",
+              "M35 68 L35 32 Q35 27 40 27 L55 27 Q68 27 68 40 Q68 50 55 50 L45 50 L63 68",
+              "M35 70 L35 30 Q35 25 40 25 L55 25 Q70 25 70 40 Q70 50 55 50 L45 50 L65 70",
             ]
           } : {}}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -214,8 +214,8 @@ function MinimalLogo({ iconSize, animated }: { iconSize: number; animated: boole
 
         {/* Sound dot */}
         <motion.circle
-          cx="50"
-          cy="50"
+          cx="52"
+          cy="40"
           r="4"
           fill="white"
           animate={animated ? { scale: [1, 1.3, 1], opacity: [1, 0.7, 1] } : {}}
@@ -226,7 +226,7 @@ function MinimalLogo({ iconSize, animated }: { iconSize: number; animated: boole
   );
 }
 
-export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }: VocaLogoProps) {
+export function RezonLogo({ size = 'md', animated = true, variant = 'waveform' }: RezonLogoProps) {
   const colorTheme = useStore((state) => state.colorTheme);
   const themeConfig = colorThemes[colorTheme];
   const isMultiColor = themeConfig?.isMultiColor;
@@ -256,9 +256,9 @@ export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }:
     <div className="flex items-center gap-3">
       <LogoComponent iconSize={icon} animated={animated} />
 
-      {/* VOCA Text - Using Orbitron font for a techy/cool look */}
+      {/* REZON Text - Using Orbitron font for a techy/cool look */}
       <motion.h1
-        className={`${text} font-bold tracking-widest voca-font-orbitron`}
+        className={`${text} font-bold tracking-widest rezon-font-orbitron`}
         whileHover={animated ? { scale: 1.02 } : undefined}
       >
         <span
@@ -267,9 +267,12 @@ export function VocaLogo({ size = 'md', animated = true, variant = 'waveform' }:
             backgroundImage: gradientStyle,
           }}
         >
-          VOCA
+          REZON
         </span>
       </motion.h1>
     </div>
   );
 }
+
+// Also export as VocaLogo for backwards compatibility during transition
+export { RezonLogo as VocaLogo };

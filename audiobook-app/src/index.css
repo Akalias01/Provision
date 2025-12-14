@@ -160,16 +160,16 @@
     background-color: var(--primary-500, #06b6d4);
   }
 
-  /* Cool VOCA logo font styles */
-  .voca-font-orbitron {
+  /* Cool Rezon logo font styles */
+  .rezon-font-orbitron {
     font-family: 'Orbitron', sans-serif;
   }
 
-  .voca-font-audiowide {
+  .rezon-font-audiowide {
     font-family: 'Audiowide', sans-serif;
   }
 
-  .voca-font-rajdhani {
+  .rezon-font-rajdhani {
     font-family: 'Rajdhani', sans-serif;
   }
 }

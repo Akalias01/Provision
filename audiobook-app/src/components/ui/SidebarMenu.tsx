@@ -17,7 +17,7 @@ import {
 import { Button, Modal } from './index';
 import { useStore } from '../../store/useStore';
 import { useTranslation } from '../../i18n';
-import { VocaLogo } from './VocaLogo';
+import { RezonLogo } from './RezonLogo';
 
 interface SidebarMenuProps {
   onOpenTorrent: () => void;
@@ -193,7 +193,7 @@ export function SidebarMenu({ onOpenTorrent, onOpenSettings }: SidebarMenuProps)
             {/* Header */}
             <div className="p-6 border-b border-surface-200 dark:border-surface-700">
               <div className="flex items-center justify-between">
-                <VocaLogo size="md" variant={logoVariant} animated={false} />
+                <RezonLogo size="md" variant={logoVariant} animated={false} />
                 <button
                   onClick={() => setIsOpen(false)}
                   className="p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"

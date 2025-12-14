@@ -24,7 +24,7 @@ import {
   FolderSearch,
   FileDown,
 } from 'lucide-react';
-import { Button, Modal, VocaLogo, SidebarMenu } from '../ui';
+import { Button, Modal, RezonLogo, SidebarMenu } from '../ui';
 import { BookCard } from './BookCard';
 import { useStore, type ProgressFilter, type ColorTheme, type LogoVariant, type SplashVariant, colorThemes } from '../../store/useStore';
 import { useTranslation } from '../../i18n';
@@ -64,18 +64,29 @@ async function fetchBookMetadata(title: string, author: string): Promise<{ cover
   return {};
 }
 
+interface ScannedFile {
+  file: File;
+  format: BookFormat;
+  path: string;
+  selected: boolean;
+}
+
 export function Library() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const torrentInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isTorrentModalOpen, setIsTorrentModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [torrentUrl, setTorrentUrl] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [dragOver, setDragOver] = useState(false);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [foundTorrentFiles, setFoundTorrentFiles] = useState<File[]>([]);
+  const [scannedFiles, setScannedFiles] = useState<ScannedFile[]>([]);
 
   const {
     books,
@@ -218,6 +229,93 @@ export function Library() {
     setIsTorrentModalOpen(false);
   }, [torrentUrl, addTorrent, updateTorrent, removeTorrent]);
 
+  // Handle folder scan
+  const handleFolderScan = useCallback((files: FileList | null) => {
+    if (!files) return;
+    setIsScanning(true);
+
+    const scanned: ScannedFile[] = [];
+
+    for (const file of Array.from(files)) {
+      const format = getFileFormat(file.name);
+      if (format) {
+        // Get the relative path from webkitRelativePath
+        const path = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+        scanned.push({
+          file,
+          format,
+          path,
+          selected: true, // Default to selected
+        });
+      }
+    }
+
+    setScannedFiles(scanned);
+    setIsScanning(false);
+    setIsScanModalOpen(true);
+  }, []);
+
+  // Toggle scanned file selection
+  const toggleScannedFile = useCallback((index: number) => {
+    setScannedFiles(prev => prev.map((f, i) =>
+      i === index ? { ...f, selected: !f.selected } : f
+    ));
+  }, []);
+
+  // Select/deselect all scanned files
+  const toggleAllScannedFiles = useCallback((selected: boolean) => {
+    setScannedFiles(prev => prev.map(f => ({ ...f, selected })));
+  }, []);
+
+  // Import selected scanned files
+  const importScannedFiles = useCallback(async () => {
+    const selectedFiles = scannedFiles.filter(f => f.selected);
+    if (selectedFiles.length === 0) return;
+
+    setIsLoadingMetadata(true);
+
+    for (const { file, format } of selectedFiles) {
+      const cleanTitle = file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ').replace(/-/g, ' ');
+
+      const book: Book = {
+        id: crypto.randomUUID(),
+        title: cleanTitle,
+        author: 'Unknown Author',
+        format,
+        fileUrl: URL.createObjectURL(file),
+        currentPosition: 0,
+        dateAdded: new Date(),
+      };
+
+      // Try to get duration for audio files
+      if (format === 'audio') {
+        const audio = new Audio(book.fileUrl);
+        audio.addEventListener('loadedmetadata', () => {
+          updateBook(book.id, { duration: audio.duration });
+        });
+      }
+
+      addBook(book);
+
+      // Fetch metadata (cover and description) from Open Library
+      try {
+        const metadata = await fetchBookMetadata(cleanTitle, '');
+        if (metadata.cover || metadata.description) {
+          updateBook(book.id, {
+            cover: metadata.cover,
+            description: metadata.description,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching metadata:', error);
+      }
+    }
+
+    setIsLoadingMetadata(false);
+    setIsScanModalOpen(false);
+    setScannedFiles([]);
+  }, [scannedFiles, addBook, updateBook]);
+
   const formatFilterOptions = [
     { value: 'all', label: 'All', icon: Grid3X3 },
     { value: 'audio', label: 'Audio', icon: Headphones },
@@ -332,7 +430,7 @@ export function Library() {
                 onOpenTorrent={() => setIsTorrentModalOpen(true)}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
               />
-              <VocaLogo size="md" variant={logoVariant} />
+              <RezonLogo size="md" variant={logoVariant} />
             </motion.div>
 
             {/* Search */}
@@ -507,14 +605,14 @@ export function Library() {
               transition={{ type: 'spring', duration: 0.8 }}
               className="mb-8"
             >
-              <VocaLogo size="xl" variant={logoVariant} />
+              <RezonLogo size="xl" variant={logoVariant} />
             </motion.div>
 
             <h2 className="text-3xl font-bold text-surface-900 dark:text-white mb-4 text-center">
-              Welcome to VOCA
+              Welcome to Rezon
             </h2>
             <p className="text-lg text-surface-500 dark:text-surface-400 mb-8 text-center max-w-md">
-              Your personal audiobook and ebook library. Import your first book to get started!
+              Audiobooks Reimagined. Resonate With Every Word.
             </p>
 
             {/* Import options */}
@@ -605,6 +703,17 @@ export function Library() {
         className="hidden"
       />
 
+      {/* Hidden folder input for scanning */}
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple
+        // @ts-expect-error webkitdirectory is not in standard types
+        webkitdirectory=""
+        onChange={(e) => handleFolderScan(e.target.files)}
+        className="hidden"
+      />
+
       {/* Add Book Modal */}
       <Modal
         isOpen={isAddModalOpen}
@@ -624,6 +733,23 @@ export function Library() {
             </p>
             <p className="text-sm text-surface-500 mt-2">
               {t('supportedFormats')}
+            </p>
+          </div>
+
+          {/* Scan Folder Button */}
+          <div className="border-t border-surface-200 dark:border-surface-700 pt-6">
+            <button
+              onClick={() => {
+                setIsAddModalOpen(false);
+                folderInputRef.current?.click();
+              }}
+              className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-medium hover:from-violet-600 hover:to-purple-700 transition-all shadow-lg shadow-violet-500/25"
+            >
+              <FolderSearch className="w-5 h-5" />
+              Scan Folder for Compatible Content
+            </button>
+            <p className="text-xs text-surface-500 text-center mt-2">
+              Scan an entire folder to find audiobooks, ebooks, and PDFs
             </p>
           </div>
 
@@ -834,7 +960,7 @@ export function Library() {
                   }`}
                 >
                   <div className="flex justify-center mb-2">
-                    <VocaLogo size="sm" variant={value} animated={false} />
+                    <RezonLogo size="sm" variant={value} animated={false} />
                   </div>
                   <p className="text-xs font-medium text-surface-900 dark:text-white text-center">
                     {label}
@@ -889,6 +1015,150 @@ export function Library() {
               Preview Splash Animation
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Scan Results Modal */}
+      <Modal
+        isOpen={isScanModalOpen}
+        onClose={() => {
+          setIsScanModalOpen(false);
+          setScannedFiles([]);
+        }}
+        title="Scan Results"
+        size="lg"
+      >
+        <div className="space-y-4">
+          {isScanning ? (
+            <div className="flex flex-col items-center py-12">
+              <Loader2 className="w-12 h-12 text-primary-500 animate-spin mb-4" />
+              <p className="text-surface-600 dark:text-surface-400">Scanning folder...</p>
+            </div>
+          ) : scannedFiles.length === 0 ? (
+            <div className="text-center py-12">
+              <FolderSearch className="w-16 h-16 mx-auto text-surface-400 mb-4" />
+              <p className="text-surface-600 dark:text-surface-400">No compatible files found</p>
+              <p className="text-sm text-surface-500 mt-2">Try scanning a different folder</p>
+            </div>
+          ) : (
+            <>
+              {/* Stats */}
+              <div className="flex items-center justify-between p-4 bg-surface-100 dark:bg-surface-800 rounded-xl">
+                <div>
+                  <p className="text-sm text-surface-500">Found</p>
+                  <p className="text-2xl font-bold text-surface-900 dark:text-white">
+                    {scannedFiles.length} files
+                  </p>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Headphones className="w-4 h-4 text-cyan-500" />
+                    <span className="text-surface-600 dark:text-surface-400">
+                      {scannedFiles.filter(f => f.format === 'audio').length} audio
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-violet-500" />
+                    <span className="text-surface-600 dark:text-surface-400">
+                      {scannedFiles.filter(f => f.format === 'epub').length} epub
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-orange-500" />
+                    <span className="text-surface-600 dark:text-surface-400">
+                      {scannedFiles.filter(f => f.format === 'pdf').length} pdf
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Select all / none */}
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-surface-500">
+                  {scannedFiles.filter(f => f.selected).length} selected
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleAllScannedFiles(true)}
+                    className="text-sm text-primary-500 hover:text-primary-600"
+                  >
+                    Select all
+                  </button>
+                  <span className="text-surface-300">|</span>
+                  <button
+                    onClick={() => toggleAllScannedFiles(false)}
+                    className="text-sm text-surface-500 hover:text-surface-600"
+                  >
+                    Select none
+                  </button>
+                </div>
+              </div>
+
+              {/* File list */}
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {scannedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    onClick={() => toggleScannedFile(index)}
+                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
+                      file.selected
+                        ? 'bg-primary-500/10 border border-primary-500/30'
+                        : 'bg-surface-100 dark:bg-surface-800 border border-transparent'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+                      file.selected
+                        ? 'bg-primary-500 border-primary-500'
+                        : 'border-surface-300 dark:border-surface-600'
+                    }`}>
+                      {file.selected && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                    </div>
+                    {file.format === 'audio' && <Headphones className="w-4 h-4 text-cyan-500" />}
+                    {file.format === 'epub' && <BookOpen className="w-4 h-4 text-violet-500" />}
+                    {file.format === 'pdf' && <FileText className="w-4 h-4 text-orange-500" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-surface-900 dark:text-white truncate">
+                        {file.file.name}
+                      </p>
+                      <p className="text-xs text-surface-500 truncate">{file.path}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Import button */}
+              <div className="flex gap-3 pt-4 border-t border-surface-200 dark:border-surface-700">
+                <Button
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => {
+                    setIsScanModalOpen(false);
+                    setScannedFiles([]);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={importScannedFiles}
+                  disabled={scannedFiles.filter(f => f.selected).length === 0 || isLoadingMetadata}
+                >
+                  {isLoadingMetadata ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Import {scannedFiles.filter(f => f.selected).length} Files
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
