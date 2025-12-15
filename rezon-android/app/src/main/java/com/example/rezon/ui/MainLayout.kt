@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import com.example.rezon.ui.components.RezonDrawerContent
 import com.example.rezon.ui.screens.LibraryScreen
 import com.example.rezon.ui.screens.PlayerScreen
+import com.example.rezon.ui.screens.SettingsScreen
 import com.example.rezon.ui.viewmodel.PlayerViewModel
 import com.example.rezon.ui.viewmodel.ThemeViewModel
 import kotlinx.coroutines.launch
@@ -85,7 +86,9 @@ fun MainLayout(
                         currentThemeColor = currentThemeOption.primary
                     )
                 }
-                composable("settings") { /* Settings Screen */ }
+                composable("settings") {
+                    SettingsScreen(onBack = { navController.popBackStack() })
+                }
             }
 
             // 2. Mini Player (Bottom Dock)
