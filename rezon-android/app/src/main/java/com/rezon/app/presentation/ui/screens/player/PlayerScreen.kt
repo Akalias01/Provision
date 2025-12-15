@@ -308,11 +308,7 @@ fun PlayerScreen(
                 )
 
                 // Play/Pause ripple overlay
-                AnimatedVisibility(
-                    visible = showPlayPauseRipple,
-                    enter = scaleIn(initialScale = 0.5f) + fadeIn(),
-                    exit = scaleOut(targetScale = 1.5f) + fadeOut()
-                ) {
+                if (showPlayPauseRipple) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
