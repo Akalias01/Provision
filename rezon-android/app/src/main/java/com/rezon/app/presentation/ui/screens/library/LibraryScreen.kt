@@ -49,12 +49,12 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Headphones
-import androidx.compose.material.icons.outlined.LibraryBooks
+import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -470,7 +470,7 @@ private fun IntegratedHeader(
             // Sort
             Box {
                 MenuIconButton(
-                    icon = Icons.Default.Sort,
+                    icon = Icons.AutoMirrored.Filled.Sort,
                     label = "Sort",
                     onClick = { onSortMenuToggle(true) }
                 )
@@ -498,7 +498,7 @@ private fun IntegratedHeader(
 
             // View toggle
             MenuIconButton(
-                icon = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                icon = if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
                 label = "View",
                 onClick = onToggleViewMode
             )
@@ -759,7 +759,7 @@ private fun WelcomeScreen(
                 modifier = Modifier.weight(1f)
             )
             CategoryCard(
-                icon = Icons.Outlined.LibraryBooks,
+                icon = Icons.AutoMirrored.Outlined.LibraryBooks,
                 title = "E-Books",
                 subtitle = "EPUB format",
                 modifier = Modifier.weight(1f)

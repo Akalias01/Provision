@@ -435,7 +435,7 @@ private fun LogoStyleCard(
         ) {
             // Mini logo preview
             RezonLogo(
-                size = LogoSize.SMALL,
+                logoSize = LogoSize.SMALL,
                 style = style,
                 showText = true,
                 animated = false
