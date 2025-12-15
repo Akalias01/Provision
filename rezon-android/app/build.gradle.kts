@@ -96,6 +96,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.splashscreen)
+    implementation("androidx.documentfile:documentfile:1.0.1")
 
     // ==================== JETPACK COMPOSE ====================
     implementation(platform(libs.androidx.compose.bom))
