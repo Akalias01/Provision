@@ -28,6 +28,7 @@ import com.example.rezon.ui.viewmodel.PlayerViewModel
 fun LibraryScreen(
     onOpenDrawer: () -> Unit,
     onBookClick: () -> Unit,
+    currentThemeColor: Color = MaterialTheme.colorScheme.primary,
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
     val book = playerViewModel.demoBook
@@ -113,7 +114,7 @@ fun LibraryScreen(
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = book.author,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = currentThemeColor,
                             fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -129,7 +130,7 @@ fun LibraryScreen(
                                 .fillMaxWidth()
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(2.dp)),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = currentThemeColor,
                             trackColor = Color(0xFF2A2A2C)
                         )
                         Spacer(modifier = Modifier.height(4.dp))

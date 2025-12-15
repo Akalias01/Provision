@@ -1,23 +1,23 @@
 package com.example.rezon.ui
 
+import android.app.Activity
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -30,6 +30,7 @@ import com.example.rezon.ui.viewmodel.PlayerViewModel
 import com.example.rezon.ui.viewmodel.ThemeViewModel
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun MainLayout(
     themeViewModel: ThemeViewModel = hiltViewModel(),
@@ -39,6 +40,9 @@ fun MainLayout(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // Access current theme from ViewModel
+    val currentThemeOption by themeViewModel.currentTheme
+
     // Player State
     val isPlaying by playerViewModel.isPlaying.collectAsState()
     val book = playerViewModel.demoBook
@@ -46,18 +50,28 @@ fun MainLayout(
     // Sheet Logic
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var isPlayerExpanded by remember { mutableStateOf(false) }
-
-    // We toggle this to show the player bar at all
     var showPlayerBar by remember { mutableStateOf(true) }
+
+    // Side Effect to apply theme colors to the status bar
+    val context = LocalContext.current
+    LaunchedEffect(currentThemeOption) {
+        val window = (context as Activity).window
+        window.statusBarColor = Color.Black.toArgb()
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(drawerContainerColor = Color(0xFF161618)) {
-                RezonDrawerContent(onNavigate = {
-                    scope.launch { drawerState.close() }
-                    // Handle Navigation
-                })
+                RezonDrawerContent(
+                    currentTheme = currentThemeOption,
+                    onThemeSelect = { theme -> themeViewModel.setTheme(theme) },
+                    onNavigate = { route ->
+                        scope.launch { drawerState.close() }
+                        navController.navigate(route)
+                    }
+                )
             }
         }
     ) {
@@ -67,9 +81,11 @@ fun MainLayout(
                 composable("library") {
                     LibraryScreen(
                         onOpenDrawer = { scope.launch { drawerState.open() } },
-                        onBookClick = { isPlayerExpanded = true }
+                        onBookClick = { isPlayerExpanded = true },
+                        currentThemeColor = currentThemeOption.primary
                     )
                 }
+                composable("settings") { /* Settings Screen */ }
             }
 
             // 2. Mini Player (Bottom Dock)
@@ -90,7 +106,7 @@ fun MainLayout(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(book.title, color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                            Text(book.author, color = themeViewModel.currentTheme.value.primary, style = MaterialTheme.typography.bodySmall)
+                            Text(book.author, color = currentThemeOption.primary, style = MaterialTheme.typography.bodySmall)
                         }
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
@@ -101,7 +117,13 @@ fun MainLayout(
                         }
                     }
                     // Progress bar line at top
-                    Box(modifier = Modifier.fillMaxWidth().height(2.dp).align(Alignment.TopStart).background(themeViewModel.currentTheme.value.primary))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .align(Alignment.TopStart)
+                            .background(currentThemeOption.primary)
+                    )
                 }
             }
 
@@ -111,21 +133,18 @@ fun MainLayout(
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it })
             ) {
-                // Wrap PlayerScreen in a draggable box to swipe down
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .draggable(
-                            orientation = Orientation.Vertical,
-                            state = rememberDraggableState { delta ->
-                                if (delta > 50) isPlayerExpanded = false
-                            }
-                        )
-                ) {
-                    PlayerScreen(
-                        onBack = { isPlayerExpanded = false }
-                    )
-                }
+                PlayerScreen(
+                    onBack = { isPlayerExpanded = false },
+                    currentThemeColor = currentThemeOption.primary,
+                    onTogglePlayPause = { playerViewModel.togglePlayPause() },
+                    onSkipForward = { playerViewModel.skipForward() },
+                    onSkipBackward = { playerViewModel.skipBackward() },
+                    onCycleSpeed = { playerViewModel.cyclePlaybackSpeed() },
+                    onSleepTimerClick = { /* TODO: Implement Sleep Timer UI */ },
+                    onEqualizerClick = { /* TODO: Implement Equalizer UI */ },
+                    onChapterClick = { /* TODO: Implement Chapter Selection UI */ },
+                    onMoreOptionsClick = { /* TODO: Implement More Options */ }
+                )
             }
         }
     }

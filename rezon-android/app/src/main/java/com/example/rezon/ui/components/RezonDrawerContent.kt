@@ -16,17 +16,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rezon.ui.theme.RezonThemeOption
-import com.example.rezon.ui.viewmodel.ThemeViewModel
 
 @Composable
 fun RezonDrawerContent(
-    onNavigate: (String) -> Unit,
-    themeViewModel: ThemeViewModel = hiltViewModel()
+    currentTheme: RezonThemeOption,
+    onThemeSelect: (RezonThemeOption) -> Unit,
+    onNavigate: (String) -> Unit
 ) {
-    val currentTheme by themeViewModel.currentTheme
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,7 +98,7 @@ fun RezonDrawerContent(
                 ThemeColorButton(
                     color = theme.primary,
                     selected = currentTheme == theme,
-                    onClick = { themeViewModel.setTheme(theme) }
+                    onClick = { onThemeSelect(theme) }
                 )
             }
         }
