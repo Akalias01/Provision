@@ -1,162 +1,78 @@
-@Suppress("DSL_SCOPE_VIOLATION")
+// FILE: app/build.gradle.kts
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.hilt)
-    alias(libs.plugins.ksp)
+    alias(libs.plugins.jetbrains.kotlin.android)
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
-    namespace = "com.rezon.app"
+    namespace = "com.example.rezon"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.rezon.app"
+        applicationId = "com.example.rezon"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "2.0.1"
+        versionCode = 1
+        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // Enable multidex for large dependency set
-        multiDexEnabled = true
     }
 
     buildTypes {
-        debug {
-            isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-        }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
-
     compileOptions {
-        // Enable desugaring for Java 8+ APIs on older Android versions
-        isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
-
     kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.compose.animation.ExperimentalAnimationApi",
-            "-opt-in=androidx.compose.foundation.ExperimentalFoundationApi",
-            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-        )
+        jvmTarget = "1.8"
     }
-
     buildFeatures {
         compose = true
-        buildConfig = true
     }
-
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "/META-INF/DEPENDENCIES"
-            excludes += "/META-INF/LICENSE*"
-            excludes += "/META-INF/NOTICE*"
-        }
-    }
-
-    // Split APKs by ABI for smaller download sizes
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = true
         }
     }
 }
 
 dependencies {
-    // Core Library Desugaring
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
 
-    // ==================== CORE ====================
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.splashscreen)
-    implementation("androidx.documentfile:documentfile:1.0.1")
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // ==================== JETPACK COMPOSE ====================
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose)
-    implementation(libs.androidx.navigation.compose)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Image Loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // ==================== MEDIA3 (EXOPLAYER) - AUDIO ENGINE ====================
-    implementation(libs.bundles.media3)
-    implementation(libs.androidx.media3.effect)
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.51.1")
+    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    // ==================== ROOM DATABASE ====================
-    implementation(libs.bundles.room)
-    ksp(libs.androidx.room.compiler)
-
-    // ==================== HILT (DEPENDENCY INJECTION) ====================
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
-
-    // ==================== NETWORKING ====================
-    implementation(libs.bundles.networking)
-    ksp(libs.moshi.kotlin)
-
-    // ==================== IMAGE LOADING ====================
-    implementation(libs.coil.compose)
-
-    // ==================== CLOUD APIS ====================
-    // Google Drive
-    implementation(libs.google.api.client)
-    implementation(libs.google.drive.api)
-    // Dropbox
-    implementation(libs.dropbox.sdk)
-
-    // ==================== TORRENT ENGINE ====================
-    implementation(libs.bundles.libtorrent)
-
-    // ==================== DOCUMENT PARSING ====================
-    implementation(libs.pdfbox.android)
-    // TODO: Add EPUB parser (epublib not on Maven, will use alternative)
-
-    // ==================== AUDIO METADATA ====================
-    implementation(libs.jaudiotagger)
-
-    // ==================== DATASTORE ====================
-    implementation(libs.datastore.preferences)
-
-    // ==================== COROUTINES ====================
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
-
-    // ==================== ACCOMPANIST ====================
-    implementation(libs.accompanist.systemuicontroller)
-    implementation(libs.accompanist.permissions)
-
-    // ==================== TESTING ====================
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test)
+    // Media3
+    implementation("androidx.media3:media3-exoplayer:1.3.0")
+    implementation("androidx.media3:media3-session:1.3.0")
+    implementation("androidx.media3:media3-ui:1.3.0")
 }
