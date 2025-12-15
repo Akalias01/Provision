@@ -1,171 +1,119 @@
 package com.example.rezon.ui.screens
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.example.rezon.data.Book
+import com.example.rezon.ui.theme.RezonSurface
+import com.example.rezon.ui.viewmodel.LibraryViewModel
 import com.example.rezon.ui.viewmodel.PlayerViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun LibraryScreen(
     onOpenDrawer: () -> Unit,
     onBookClick: () -> Unit,
-    currentThemeColor: Color = MaterialTheme.colorScheme.primary,
+    currentThemeColor: Color,
+    libraryViewModel: LibraryViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
-    val book = playerViewModel.demoBook
+    val books by libraryViewModel.allBooks.collectAsState(initial = emptyList())
+
+    // Permission Handling
+    val permissionState = rememberPermissionState(
+        permission = if (Build.VERSION.SDK_INT >= 33)
+            Manifest.permission.READ_MEDIA_AUDIO
+        else
+            Manifest.permission.READ_EXTERNAL_STORAGE
+    )
+
+    LaunchedEffect(permissionState.status.isGranted) {
+        if (permissionState.status.isGranted) {
+            libraryViewModel.scanLibrary()
+        } else {
+            permissionState.launchPermissionRequest()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Library",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
+                title = { Text("REZON", color = currentThemeColor, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF050505)
-                )
+                actions = {
+                    IconButton(onClick = { libraryViewModel.scanLibrary() }) {
+                        Icon(Icons.Default.Search, contentDescription = "Scan", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = Color(0xFF050505)
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-        ) {
-            Text(
-                text = "Continue Listening",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-
-            // Featured Book Card
-            Box(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            // Stats Row
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF161618))
-                    .clickable { onBookClick() }
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                ) {
-                    AsyncImage(
-                        model = book.coverUrl,
-                        contentDescription = book.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .width(120.dp)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(8.dp))
-                    )
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(
-                        modifier = Modifier.fillMaxHeight(),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = book.title,
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = book.author,
-                            color = currentThemeColor,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = book.seriesInfo,
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        LinearProgressIndicator(
-                            progress = { 0.35f },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp)),
-                            color = currentThemeColor,
-                            trackColor = Color(0xFF2A2A2C)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "35% complete",
-                            color = Color.Gray,
-                            fontSize = 11.sp
-                        )
-                    }
-                }
+                StatCard(count = books.size.toString(), label = "Total", color = Color(0xFF00E5FF), modifier = Modifier.weight(1f))
+                StatCard(count = books.count { !it.isFinished }.toString(), label = "Audio", color = Color(0xFF00E5FF), modifier = Modifier.weight(1f))
+                StatCard(count = "0", label = "EPUB", color = Color(0xFFD500F9), modifier = Modifier.weight(1f))
+                StatCard(count = "0", label = "PDF", color = Color(0xFFFF9100), modifier = Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Your Library",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            // Book Grid (showing demo book multiple times for UI demo)
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp) // Space for mini player
-            ) {
-                items(6) {
-                    BookGridItem(
-                        coverUrl = book.coverUrl,
-                        title = book.title,
-                        onClick = onBookClick
-                    )
+            if (books.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No books found. Tap Search to scan.", color = Color.Gray)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    items(books) { book ->
+                        BookListItem(
+                            book = book,
+                            accentColor = currentThemeColor,
+                            onClick = {
+                                playerViewModel.playBook(book)
+                                onBookClick()
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -173,31 +121,92 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun BookGridItem(
-    coverUrl: String,
-    title: String,
-    onClick: () -> Unit
-) {
+fun StatCard(count: String, label: String, color: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
-            .clickable { onClick() }
+        modifier = modifier
+            .background(RezonSurface, RoundedCornerShape(8.dp))
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AsyncImage(
-            model = coverUrl,
-            contentDescription = title,
-            contentScale = ContentScale.Crop,
+        Box(
             modifier = Modifier
-                .aspectRatio(0.7f)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF161618))
+                .size(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(color)
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = title,
-            color = Color.White,
-            fontSize = 12.sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(count, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(label, color = Color.Gray, fontSize = 12.sp)
+    }
+}
+
+@Composable
+fun BookListItem(book: Book, accentColor: Color, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .clickable { onClick() }
+            .background(RezonSurface, RoundedCornerShape(8.dp))
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Cover
+        if (book.coverUrl != null) {
+            AsyncImage(
+                model = book.coverUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(80.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(4.dp))
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(80.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.DarkGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.Headphones, contentDescription = null, tint = Color.Gray)
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Info
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                book.title,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1
+            )
+            Text(
+                book.author,
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Progress Bar
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LinearProgressIndicator(
+                    progress = { book.progressPercent() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(4.dp),
+                    color = accentColor,
+                    trackColor = Color.DarkGray
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("${(book.progressPercent() * 100).toInt()}%", color = Color.Gray, fontSize = 10.sp)
+            }
+        }
     }
 }
