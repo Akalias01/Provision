@@ -1,7 +1,7 @@
 package com.example.rezon.data
 
-import com.example.rezon.data.api.GoogleBooksApi
-import com.example.rezon.data.api.VolumeInfo
+import com.example.rezon.data.remote.GoogleBooksApi
+import com.example.rezon.data.remote.VolumeInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -27,8 +27,7 @@ class MetadataRepository @Inject constructor(
             if (bestMatch != null) {
                 val updatedBook = book.copy(
                     description = bestMatch.description,
-                    series = extractSeriesInfo(bestMatch),
-                    coverUrl = book.coverUrl ?: bestMatch.imageLinks?.thumbnail?.replace("http://", "https://"),
+                    series = bestMatch.subtitle, // Subtitle often contains series info
                     categories = bestMatch.categories?.joinToString(", ")
                 )
                 bookDao.updateBook(updatedBook)
@@ -61,18 +60,6 @@ class MetadataRepository @Inject constructor(
             "intitle:$cleanTitle+inauthor:$author"
         } else {
             "intitle:$cleanTitle"
-        }
-    }
-
-    private fun extractSeriesInfo(volumeInfo: VolumeInfo): String? {
-        return volumeInfo.seriesInfo?.let { series ->
-            val seriesTitle = series.shortSeriesBookTitle
-            val bookNumber = series.bookDisplayNumber
-            if (seriesTitle != null && bookNumber != null) {
-                "$seriesTitle #$bookNumber"
-            } else {
-                seriesTitle
-            }
         }
     }
 }

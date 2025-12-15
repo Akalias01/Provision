@@ -5,7 +5,7 @@ import androidx.room.Room
 import com.example.rezon.data.AppDatabase
 import com.example.rezon.data.AudioServiceHandler
 import com.example.rezon.data.BookDao
-import com.example.rezon.data.api.GoogleBooksApi
+import com.example.rezon.data.remote.GoogleBooksApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
