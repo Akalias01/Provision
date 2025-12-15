@@ -21,6 +21,10 @@ class AudioServiceHandler @Inject constructor(
     private var mediaController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
 
+    // State for UI to know if we are connected
+    private val _isServiceConnected = MutableStateFlow(false)
+    val isServiceConnected = _isServiceConnected.asStateFlow()
+
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
 
@@ -33,6 +37,9 @@ class AudioServiceHandler @Inject constructor(
     private val _playbackSpeed = MutableStateFlow(1.0f)
     val playbackSpeed = _playbackSpeed.asStateFlow()
 
+    // Queue a book if loaded before service is ready
+    private var pendingMediaItem: MediaItem? = null
+
     init {
         setupMediaController()
     }
@@ -40,27 +47,47 @@ class AudioServiceHandler @Inject constructor(
     private fun setupMediaController() {
         val sessionToken = SessionToken(context, ComponentName(context, RezonPlaybackService::class.java))
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+
         controllerFuture?.addListener({
-            mediaController = controllerFuture?.get()
-            mediaController?.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    _isPlaying.value = isPlaying
+            try {
+                mediaController = controllerFuture?.get()
+                _isServiceConnected.value = true
+
+                // Attach Listener
+                mediaController?.addListener(object : Player.Listener {
+                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        _isPlaying.value = isPlaying
+                    }
+                    override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
+                        _playbackSpeed.value = playbackParameters.speed
+                    }
+                    override fun onEvents(player: Player, events: Player.Events) {
+                        _currentPosition.value = player.currentPosition
+                        _duration.value = player.duration
+                    }
+                })
+
+                // If a book was requested while we were connecting, load it now
+                pendingMediaItem?.let {
+                    mediaController?.setMediaItem(it)
+                    mediaController?.prepare()
+                    pendingMediaItem = null
                 }
-                override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
-                    _playbackSpeed.value = playbackParameters.speed
-                }
-                override fun onEvents(player: Player, events: Player.Events) {
-                    _currentPosition.value = player.currentPosition
-                    _duration.value = player.duration
-                }
-            })
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }, MoreExecutors.directExecutor())
     }
 
     fun loadBook(book: Book) {
-        val mediaItem = MediaItem.fromUri(book.filePath)
-        mediaController?.setMediaItem(mediaItem)
-        mediaController?.prepare()
+        val item = MediaItem.fromUri(book.filePath)
+        if (mediaController != null) {
+            mediaController?.setMediaItem(item)
+            mediaController?.prepare()
+        } else {
+            // Service not ready yet, queue it
+            pendingMediaItem = item
+        }
     }
 
     fun play() { mediaController?.play() }
