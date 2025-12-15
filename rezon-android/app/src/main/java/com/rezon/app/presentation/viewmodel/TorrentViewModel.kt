@@ -6,6 +6,7 @@ import com.rezon.app.service.TorrentDownload
 import com.rezon.app.service.TorrentManager
 import com.rezon.app.service.TorrentState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,9 @@ class TorrentViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TorrentUiState())
     val uiState: StateFlow<TorrentUiState> = _uiState.asStateFlow()
 
+    // Track downloads that have been scheduled for auto-removal
+    private val scheduledForRemoval = mutableSetOf<String>()
+
     init {
         // Start session and observe downloads
         torrentManager.startSession()
@@ -42,6 +46,18 @@ class TorrentViewModel @Inject constructor(
         viewModelScope.launch {
             torrentManager.downloads.collect { downloads ->
                 _uiState.update { it.copy(downloads = downloads) }
+
+                // Auto-remove completed torrents after 5 seconds
+                downloads.filter { it.state == TorrentState.FINISHED }
+                    .filter { it.id !in scheduledForRemoval }
+                    .forEach { download ->
+                        scheduledForRemoval.add(download.id)
+                        viewModelScope.launch {
+                            delay(5000) // 5 seconds
+                            removeDownload(download.id, deleteFiles = false)
+                            scheduledForRemoval.remove(download.id)
+                        }
+                    }
             }
         }
 

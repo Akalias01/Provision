@@ -73,7 +73,7 @@ import com.rezon.app.presentation.ui.theme.RezonPurple
 data class EqualizerBand(
     val frequency: String,
     val label: String,
-    val value: Float = 0f // -12dB to +12dB
+    val value: Float = 0f // -15dB to +15dB
 )
 
 /**
@@ -85,16 +85,20 @@ data class EqualizerPreset(
 )
 
 /**
- * Default presets
+ * Default presets - 12 total including Custom
  */
 val equalizerPresets = listOf(
     EqualizerPreset("Flat", listOf(0f, 0f, 0f, 0f, 0f)),
-    EqualizerPreset("Voice", listOf(-2f, 1f, 4f, 3f, 0f)),
-    EqualizerPreset("Bass Boost", listOf(6f, 4f, 0f, -1f, -2f)),
-    EqualizerPreset("Treble Boost", listOf(-2f, -1f, 0f, 4f, 6f)),
-    EqualizerPreset("Podcast", listOf(-1f, 2f, 5f, 4f, 1f)),
-    EqualizerPreset("Audiobook", listOf(0f, 2f, 4f, 3f, -1f)),
-    EqualizerPreset("Classical", listOf(4f, 2f, 0f, 2f, 4f)),
+    EqualizerPreset("Voice Clarity", listOf(-3f, 2f, 6f, 5f, 1f)),
+    EqualizerPreset("Bass Boost", listOf(8f, 5f, 0f, -2f, -3f)),
+    EqualizerPreset("Treble Boost", listOf(-3f, -2f, 0f, 5f, 8f)),
+    EqualizerPreset("Podcast", listOf(-2f, 3f, 6f, 5f, 2f)),
+    EqualizerPreset("Audiobook", listOf(0f, 3f, 5f, 4f, -1f)),
+    EqualizerPreset("Classical", listOf(5f, 3f, 0f, 3f, 5f)),
+    EqualizerPreset("Jazz", listOf(4f, 2f, -2f, 2f, 4f)),
+    EqualizerPreset("Rock", listOf(5f, 3f, -1f, 4f, 6f)),
+    EqualizerPreset("Electronic", listOf(6f, 4f, 0f, 2f, 5f)),
+    EqualizerPreset("Deep Voice", listOf(6f, 4f, 2f, -1f, -3f)),
     EqualizerPreset("Custom", listOf(0f, 0f, 0f, 0f, 0f))
 )
 
@@ -413,17 +417,17 @@ private fun EqualizerBandSlider(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Vertical slider
+        // Vertical slider with extended range
         Box(
             modifier = Modifier
-                .height(140.dp)
-                .width(40.dp),
+                .height(160.dp)
+                .width(44.dp),
             contentAlignment = Alignment.Center
         ) {
             Slider(
                 value = value,
                 onValueChange = onValueChange,
-                valueRange = -12f..12f,
+                valueRange = -15f..15f,
                 enabled = enabled,
                 colors = SliderDefaults.colors(
                     thumbColor = if (enabled) RezonPurple else MaterialTheme.colorScheme.outline,
@@ -431,7 +435,7 @@ private fun EqualizerBandSlider(
                     inactiveTrackColor = ProgressTrack
                 ),
                 modifier = Modifier
-                    .width(140.dp)
+                    .width(160.dp)
                     .rotate(-90f)
             )
         }

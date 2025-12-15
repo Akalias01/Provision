@@ -42,12 +42,12 @@ import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -81,15 +81,19 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Canvas
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.rezon.app.domain.model.Bookmark
@@ -101,6 +105,7 @@ import com.rezon.app.presentation.ui.theme.ProgressTrack
 import com.rezon.app.presentation.ui.theme.RezonAccentPink
 import com.rezon.app.presentation.ui.theme.RezonPurple
 import com.rezon.app.presentation.viewmodel.PlayerViewModel
+import android.widget.Toast
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -130,11 +135,13 @@ fun PlayerScreen(
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // Chapter sheet and options menu state
     var showChaptersSheet by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var initialSheetTab by remember { mutableIntStateOf(0) } // 0 = chapters, 1 = bookmarks
     val chaptersSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Gesture state
@@ -302,12 +309,22 @@ fun PlayerScreen(
                 title = uiState.book?.title ?: "Unknown",
                 author = uiState.book?.author ?: "Unknown Author",
                 onBackClick = onNavigateBack,
-                onChaptersClick = { showChaptersSheet = true },
+                onChaptersClick = {
+                    initialSheetTab = 0
+                    showChaptersSheet = true
+                },
                 onMenuClick = { showOptionsMenu = true },
                 showOptionsMenu = showOptionsMenu,
                 onDismissMenu = { showOptionsMenu = false },
-                onAddBookmark = { viewModel.addBookmark() },
-                onViewBookmarks = { onNavigateToBookmarks(bookId) },
+                onAddBookmark = {
+                    viewModel.addBookmark()
+                    Toast.makeText(context, "Bookmark added", Toast.LENGTH_SHORT).show()
+                },
+                onViewBookmarks = {
+                    // Open the chapters sheet with bookmarks tab selected
+                    initialSheetTab = 1
+                    showChaptersSheet = true
+                },
                 onEqualizer = onNavigateToEqualizer,
                 onSleepTimer = { showSleepTimerDialog = true },
                 onPlaybackSpeed = { viewModel.cyclePlaybackSpeed() },
@@ -399,13 +416,14 @@ fun PlayerScreen(
             PlaybackControls(
                 isPlaying = uiState.isPlaying,
                 playbackSpeed = uiState.playbackSpeed,
+                sleepTimerActive = uiState.sleepTimerRemaining != null && uiState.sleepTimerRemaining > 0,
                 onPlayPause = { viewModel.togglePlayPause() },
                 onSkipBackward = { viewModel.skipBackward() },
                 onSkipForward = { viewModel.skipForward() },
                 onPreviousChapter = { viewModel.previousChapter() },
                 onNextChapter = { viewModel.nextChapter() },
                 onSpeedChange = { viewModel.cyclePlaybackSpeed() },
-                onSleepTimer = { /* TODO */ }
+                onSleepTimer = { showSleepTimerDialog = true }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -458,6 +476,7 @@ fun PlayerScreen(
                 chapters = uiState.book?.chapters ?: emptyList(),
                 bookmarks = uiState.bookmarks,
                 currentChapterIndex = uiState.currentChapterIndex,
+                initialTab = initialSheetTab,
                 onChapterClick = { chapter ->
                     viewModel.seekTo(chapter.startTime)
                     showChaptersSheet = false
@@ -468,6 +487,7 @@ fun PlayerScreen(
                 },
                 onDeleteBookmark = { bookmark ->
                     viewModel.removeBookmark(bookmark.id)
+                    Toast.makeText(context, "Bookmark deleted", Toast.LENGTH_SHORT).show()
                 }
             )
         }
@@ -498,11 +518,12 @@ private fun ChaptersAndBookmarksSheet(
     chapters: List<Chapter>,
     bookmarks: List<Bookmark>,
     currentChapterIndex: Int,
+    initialTab: Int = 0,
     onChapterClick: (Chapter) -> Unit,
     onBookmarkClick: (Bookmark) -> Unit,
     onDeleteBookmark: (Bookmark) -> Unit
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(initialTab) }
     val tabs = listOf("Chapters", "Bookmarks")
 
     Column(
@@ -736,12 +757,25 @@ private fun SleepTimerDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(
-                imageVector = Icons.Default.Nightlight,
-                contentDescription = null,
-                tint = RezonPurple,
-                modifier = Modifier.size(32.dp)
-            )
+            // Custom Z Timer icon
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.size(48.dp)) {
+                    drawCircle(
+                        color = RezonPurple,
+                        radius = size.minDimension / 2 - 4.dp.toPx(),
+                        style = Stroke(width = 3.dp.toPx())
+                    )
+                }
+                Text(
+                    text = "Z",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = RezonPurple
+                )
+            }
         },
         title = {
             Text(
@@ -1169,7 +1203,7 @@ private fun PlayerHeader(
                     }
                 )
                 PlayerMenuItem(
-                    icon = Icons.Default.Nightlight,
+                    icon = Icons.Default.Timer,
                     text = "Sleep Timer",
                     onClick = {
                         onSleepTimer()
@@ -1326,12 +1360,46 @@ private fun ChapterProgressSlider(
 }
 
 /**
+ * Custom Sleep Timer Icon with Z inside a clock
+ */
+@Composable
+private fun SleepTimerIcon(
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    isActive: Boolean = false
+) {
+    Box(
+        modifier = modifier.size(28.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Clock circle
+        Canvas(modifier = Modifier.size(28.dp)) {
+            // Outer circle
+            drawCircle(
+                color = if (isActive) RezonPurple else tint,
+                radius = size.minDimension / 2 - 2.dp.toPx(),
+                style = Stroke(width = 2.dp.toPx())
+            )
+        }
+        // Z letter in center
+        Text(
+            text = "Z",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Black,
+            fontSize = 14.sp,
+            color = if (isActive) RezonPurple else tint
+        )
+    }
+}
+
+/**
  * Playback controls row
  */
 @Composable
 private fun PlaybackControls(
     isPlaying: Boolean,
     playbackSpeed: Float,
+    sleepTimerActive: Boolean = false,
     onPlayPause: () -> Unit,
     onSkipBackward: () -> Unit,
     onSkipForward: () -> Unit,
@@ -1347,13 +1415,21 @@ private fun PlaybackControls(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Playback speed
-        IconButton(onClick = onSpeedChange) {
+        // Playback speed - Made bigger and more prominent
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .clickable(onClick = onSpeedChange)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
                 text = "${playbackSpeed}x",
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontSize = 18.sp,
+                color = RezonPurple
             )
         }
 
@@ -1364,7 +1440,7 @@ private fun PlaybackControls(
         ) {
             Icon(
                 imageVector = Icons.Default.Replay10,
-                contentDescription = "Skip Backward",
+                contentDescription = "Skip Backward 10s",
                 tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(36.dp)
             )
@@ -1408,19 +1484,17 @@ private fun PlaybackControls(
         ) {
             Icon(
                 imageVector = Icons.Default.Forward30,
-                contentDescription = "Skip Forward",
+                contentDescription = "Skip Forward 30s",
                 tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(36.dp)
             )
         }
 
-        // Sleep timer
+        // Sleep timer with custom Z icon
         IconButton(onClick = onSleepTimer) {
-            Icon(
-                imageVector = Icons.Default.Nightlight,
-                contentDescription = "Sleep Timer",
+            SleepTimerIcon(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(28.dp)
+                isActive = sleepTimerActive
             )
         }
     }

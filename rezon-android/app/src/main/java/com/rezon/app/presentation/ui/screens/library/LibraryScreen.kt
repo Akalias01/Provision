@@ -30,17 +30,24 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.ViewList
@@ -68,6 +75,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -75,23 +83,30 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Canvas
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.rezon.app.domain.model.Book
 import com.rezon.app.presentation.ui.components.MiniPlayer
 import com.rezon.app.presentation.ui.theme.ProgressFill
 import com.rezon.app.presentation.ui.theme.ProgressTrack
+import com.rezon.app.presentation.ui.theme.RezonCyan
 import com.rezon.app.presentation.ui.theme.RezonPurple
 import com.rezon.app.presentation.viewmodel.LibraryViewModel
 import kotlinx.coroutines.launch
@@ -122,11 +137,31 @@ fun LibraryScreen(
     var isSearchActive by remember { mutableStateOf(false) }
     var selectedTabIndex by remember { mutableIntStateOf(1) } // Default to "In Progress"
     var isGridView by remember { mutableStateOf(true) }
+    var useCompactCovers by remember { mutableStateOf(false) } // Smaller cover option
     var showSortMenu by remember { mutableStateOf(false) }
     var sortOption by remember { mutableStateOf(SortOption.RECENT) }
     var bookToDelete by remember { mutableStateOf<Book?>(null) }
+    var showFabMenu by remember { mutableStateOf(false) }
+    var showAllBooks by remember { mutableStateOf(false) } // View All toggle
 
     val tabs = listOf("Not Started", "In Progress", "Finished")
+
+    // Pager state for swipe navigation
+    val pagerState = rememberPagerState(initialPage = 1, pageCount = { tabs.size })
+
+    // Sync tab selection with pager
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect { page ->
+            selectedTabIndex = page
+        }
+    }
+
+    // Sync pager with tab clicks
+    LaunchedEffect(selectedTabIndex) {
+        if (pagerState.currentPage != selectedTabIndex) {
+            pagerState.animateScrollToPage(selectedTabIndex)
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -160,17 +195,79 @@ fun LibraryScreen(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { viewModel.addFiles() },
-                    containerColor = RezonPurple,
-                    contentColor = Color.White,
+                Box(
                     modifier = Modifier.padding(bottom = if (uiState.currentlyPlaying != null) 72.dp else 0.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Files",
-                        modifier = Modifier.size(28.dp)
-                    )
+                    FloatingActionButton(
+                        onClick = { showFabMenu = !showFabMenu },
+                        containerColor = RezonPurple,
+                        contentColor = Color.White
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    // FAB Options Menu
+                    DropdownMenu(
+                        expanded = showFabMenu,
+                        onDismissRequest = { showFabMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.AudioFile, null, Modifier.size(20.dp), tint = RezonPurple)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("Add from device")
+                                }
+                            },
+                            onClick = {
+                                showFabMenu = false
+                                viewModel.addFiles()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Folder, null, Modifier.size(20.dp), tint = RezonPurple)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("Scan folder")
+                                }
+                            },
+                            onClick = {
+                                showFabMenu = false
+                                viewModel.scanFolder()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Link, null, Modifier.size(20.dp), tint = RezonPurple)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("Add magnet/torrent")
+                                }
+                            },
+                            onClick = {
+                                showFabMenu = false
+                                // TODO: Navigate to torrent screen
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Cloud, null, Modifier.size(20.dp), tint = RezonPurple)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("Cloud storage")
+                                }
+                            },
+                            onClick = {
+                                showFabMenu = false
+                                // TODO: Navigate to cloud storage
+                            }
+                        )
+                    }
                 }
             },
             bottomBar = {
@@ -196,84 +293,113 @@ fun LibraryScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Progress filter tabs
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.onBackground,
-                    divider = {}
+                // Progress filter tabs with View All option
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    tabs.forEachIndexed { index, title ->
-                        val count = when (index) {
-                            0 -> uiState.notStartedCount
-                            1 -> uiState.inProgressCount
-                            else -> uiState.finishedCount
+                    TabRow(
+                        selectedTabIndex = if (showAllBooks) -1 else selectedTabIndex,
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onBackground,
+                        divider = {},
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        tabs.forEachIndexed { index, title ->
+                            val count = when (index) {
+                                0 -> uiState.notStartedCount
+                                1 -> uiState.inProgressCount
+                                else -> uiState.finishedCount
+                            }
+                            Tab(
+                                selected = selectedTabIndex == index && !showAllBooks,
+                                onClick = {
+                                    showAllBooks = false
+                                    selectedTabIndex = index
+                                },
+                                text = {
+                                    Text(
+                                        text = "$title ($count)",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = if (selectedTabIndex == index && !showAllBooks) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                selectedContentColor = RezonPurple,
+                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Tab(
-                            selected = selectedTabIndex == index,
-                            onClick = { selectedTabIndex = index },
-                            text = {
-                                Text(
-                                    text = "$title ($count)",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            selectedContentColor = RezonPurple,
-                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+
+                    // View All button
+                    IconButton(
+                        onClick = { showAllBooks = !showAllBooks }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SelectAll,
+                            contentDescription = "View All",
+                            tint = if (showAllBooks) RezonPurple else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Books grid or list
-                val filteredBooks = when (selectedTabIndex) {
-                    0 -> uiState.books.filter { it.progress == 0f }
-                    1 -> uiState.books.filter { it.progress > 0f && !it.isCompleted }
-                    else -> uiState.books.filter { it.isCompleted }
-                }.filter {
-                    searchQuery.isEmpty() ||
-                    it.title.contains(searchQuery, ignoreCase = true) ||
-                    it.author.contains(searchQuery, ignoreCase = true)
-                }.let { books ->
-                    when (sortOption) {
-                        SortOption.RECENT -> books.sortedByDescending { it.lastPlayed ?: it.dateAdded }
-                        SortOption.TITLE -> books.sortedBy { it.title.lowercase() }
-                        SortOption.AUTHOR -> books.sortedBy { it.author.lowercase() }
-                        SortOption.PROGRESS -> books.sortedByDescending { it.progress }
-                        SortOption.DATE_ADDED -> books.sortedByDescending { it.dateAdded }
-                    }
-                }
-
-                if (filteredBooks.isEmpty()) {
-                    EmptyState()
-                } else if (isGridView) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(filteredBooks, key = { it.id }) { book ->
-                            BookGridItem(
-                                book = book,
-                                onClick = { onNavigateToPlayer(book.id) }
-                            )
+                // Swipeable content with HorizontalPager
+                if (showAllBooks) {
+                    // Show all books
+                    val allBooks = uiState.books.filter {
+                        searchQuery.isEmpty() ||
+                        it.title.contains(searchQuery, ignoreCase = true) ||
+                        it.author.contains(searchQuery, ignoreCase = true)
+                    }.let { books ->
+                        when (sortOption) {
+                            SortOption.RECENT -> books.sortedByDescending { it.lastPlayed ?: it.dateAdded }
+                            SortOption.TITLE -> books.sortedBy { it.title.lowercase() }
+                            SortOption.AUTHOR -> books.sortedBy { it.author.lowercase() }
+                            SortOption.PROGRESS -> books.sortedByDescending { it.progress }
+                            SortOption.DATE_ADDED -> books.sortedByDescending { it.dateAdded }
                         }
                     }
+
+                    BooksContent(
+                        books = allBooks,
+                        isGridView = isGridView,
+                        useCompactCovers = useCompactCovers,
+                        onBookClick = { onNavigateToPlayer(it.id) },
+                        onDeleteClick = { bookToDelete = it }
+                    )
                 } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(filteredBooks, key = { it.id }) { book ->
-                            BookListItem(
-                                book = book,
-                                onClick = { onNavigateToPlayer(book.id) },
-                                onDeleteClick = { bookToDelete = book }
-                            )
+                    // Swipeable pager for tabs
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        val filteredBooks = when (page) {
+                            0 -> uiState.books.filter { it.progress == 0f }
+                            1 -> uiState.books.filter { it.progress > 0f && !it.isCompleted }
+                            else -> uiState.books.filter { it.isCompleted }
+                        }.filter {
+                            searchQuery.isEmpty() ||
+                            it.title.contains(searchQuery, ignoreCase = true) ||
+                            it.author.contains(searchQuery, ignoreCase = true)
+                        }.let { books ->
+                            when (sortOption) {
+                                SortOption.RECENT -> books.sortedByDescending { it.lastPlayed ?: it.dateAdded }
+                                SortOption.TITLE -> books.sortedBy { it.title.lowercase() }
+                                SortOption.AUTHOR -> books.sortedBy { it.author.lowercase() }
+                                SortOption.PROGRESS -> books.sortedByDescending { it.progress }
+                                SortOption.DATE_ADDED -> books.sortedByDescending { it.dateAdded }
+                            }
                         }
+
+                        BooksContent(
+                            books = filteredBooks,
+                            isGridView = isGridView,
+                            useCompactCovers = useCompactCovers,
+                            onBookClick = { onNavigateToPlayer(it.id) },
+                            onDeleteClick = { bookToDelete = it }
+                        )
                     }
                 }
             }
@@ -344,24 +470,8 @@ private fun LibraryTopBar(
                 )
             }
 
-            // Logo
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "R",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Black,
-                    color = RezonPurple
-                )
-                Text(
-                    text = "EZON",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            // Modern Logo
+            RezonLogo(modifier = Modifier.weight(1f))
 
             // Search button
             IconButton(onClick = { onSearchActiveChange(true) }) {
@@ -450,23 +560,10 @@ private fun DrawerContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Logo in drawer
-        Row(
+        RezonLogo(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "R",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Black,
-                color = RezonPurple
-            )
-            Text(
-                text = "EZON",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+            size = LogoSize.LARGE
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -515,29 +612,78 @@ private fun DrawerContent(
 }
 
 /**
- * Book item in grid view
+ * Reusable content for displaying books in grid or list
+ */
+@Composable
+private fun BooksContent(
+    books: List<Book>,
+    isGridView: Boolean,
+    useCompactCovers: Boolean,
+    onBookClick: (Book) -> Unit,
+    onDeleteClick: (Book) -> Unit
+) {
+    if (books.isEmpty()) {
+        EmptyState()
+    } else if (isGridView) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(if (useCompactCovers) 3 else 2),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (useCompactCovers) 8.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (useCompactCovers) 12.dp else 16.dp)
+        ) {
+            items(books, key = { it.id }) { book ->
+                BookGridItem(
+                    book = book,
+                    isCompact = useCompactCovers,
+                    onClick = { onBookClick(book) },
+                    onDeleteClick = { onDeleteClick(book) }
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(books, key = { it.id }) { book ->
+                BookListItem(
+                    book = book,
+                    onClick = { onBookClick(book) },
+                    onDeleteClick = { onDeleteClick(book) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Book item in grid view with 3-dot menu
  */
 @Composable
 private fun BookGridItem(
     book: Book,
-    onClick: () -> Unit
+    isCompact: Boolean = false,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(if (isCompact) 12.dp else 16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            // Cover art
+            // Cover art with menu button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f)
+                    .aspectRatio(if (isCompact) 0.75f else 1f)
             ) {
                 AsyncImage(
                     model = book.coverUrl ?: book.localCoverPath,
@@ -545,7 +691,7 @@ private fun BookGridItem(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                        .clip(RoundedCornerShape(topStart = if (isCompact) 12.dp else 16.dp, topEnd = if (isCompact) 12.dp else 16.dp))
                 )
 
                 // Headphones icon if no cover
@@ -560,7 +706,58 @@ private fun BookGridItem(
                             imageVector = Icons.Default.Headphones,
                             contentDescription = null,
                             tint = RezonPurple.copy(alpha = 0.5f),
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(if (isCompact) 40.dp else 64.dp)
+                        )
+                    }
+                }
+
+                // 3-dot menu button
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                ) {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(
+                                Color.Black.copy(alpha = 0.5f),
+                                CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "Delete",
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                onDeleteClick()
+                            }
                         )
                     }
                 }
@@ -586,19 +783,19 @@ private fun BookGridItem(
 
             // Book info
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier.padding(if (isCompact) 8.dp else 12.dp)
             ) {
                 Text(
                     text = book.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = if (isCompact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 2,
+                    maxLines = if (isCompact) 1 else 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = book.author,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = if (isCompact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -824,5 +1021,110 @@ private fun EmptyState() {
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+/**
+ * Logo size enum
+ */
+enum class LogoSize {
+    SMALL, MEDIUM, LARGE
+}
+
+/**
+ * Modern REZON Logo - High-quality tech company style
+ * Inspired by Instagram/TikTok quality branding
+ */
+@Composable
+private fun RezonLogo(
+    modifier: Modifier = Modifier,
+    size: LogoSize = LogoSize.MEDIUM
+) {
+    val iconSize = when (size) {
+        LogoSize.SMALL -> 24.dp
+        LogoSize.MEDIUM -> 32.dp
+        LogoSize.LARGE -> 44.dp
+    }
+
+    val textSize = when (size) {
+        LogoSize.SMALL -> 20.sp
+        LogoSize.MEDIUM -> 26.sp
+        LogoSize.LARGE -> 34.sp
+    }
+
+    val letterSpacing = when (size) {
+        LogoSize.SMALL -> 1.sp
+        LogoSize.MEDIUM -> 2.sp
+        LogoSize.LARGE -> 3.sp
+    }
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Logo icon - Modern audio wave in gradient circle
+        Box(
+            modifier = Modifier
+                .size(iconSize)
+                .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(iconSize / 4),
+                    ambientColor = RezonPurple.copy(alpha = 0.3f),
+                    spotColor = RezonPurple.copy(alpha = 0.3f)
+                )
+                .clip(RoundedCornerShape(iconSize / 4))
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(RezonPurple, RezonCyan),
+                        start = Offset(0f, 0f),
+                        end = Offset(iconSize.value, iconSize.value)
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            // Audio wave bars
+            Canvas(
+                modifier = Modifier
+                    .size(iconSize * 0.6f)
+            ) {
+                val barWidth = size.width / 9
+                val maxHeight = size.height * 0.8f
+                val spacing = barWidth * 1.5f
+                val startX = (size.width - (5 * barWidth + 4 * (spacing - barWidth))) / 2
+
+                // Draw 5 bars with different heights
+                val heights = listOf(0.4f, 0.7f, 1f, 0.7f, 0.4f)
+                heights.forEachIndexed { index, heightFactor ->
+                    val barHeight = maxHeight * heightFactor
+                    val x = startX + index * spacing
+                    val y = (size.height - barHeight) / 2
+
+                    drawRoundRect(
+                        color = Color.White,
+                        topLeft = Offset(x, y),
+                        size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(if (size == LogoSize.SMALL) 6.dp else 10.dp))
+
+        // Logo text with gradient
+        Text(
+            text = "REZON",
+            fontSize = textSize,
+            fontWeight = FontWeight.Black,
+            letterSpacing = letterSpacing,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White,
+                        Color.White.copy(alpha = 0.85f)
+                    )
+                )
+            )
+        )
     }
 }
