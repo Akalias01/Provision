@@ -413,10 +413,11 @@ fun PlayerScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // Playback Controls
+            val sleepTimerRemaining = uiState.sleepTimerRemaining
             PlaybackControls(
                 isPlaying = uiState.isPlaying,
                 playbackSpeed = uiState.playbackSpeed,
-                sleepTimerActive = uiState.sleepTimerRemaining != null && uiState.sleepTimerRemaining > 0,
+                sleepTimerActive = sleepTimerRemaining != null && sleepTimerRemaining > 0,
                 onPlayPause = { viewModel.togglePlayPause() },
                 onSkipBackward = { viewModel.skipBackward() },
                 onSkipForward = { viewModel.skipForward() },

@@ -1038,21 +1038,21 @@ enum class LogoSize {
 @Composable
 private fun RezonLogo(
     modifier: Modifier = Modifier,
-    size: LogoSize = LogoSize.MEDIUM
+    logoSize: LogoSize = LogoSize.MEDIUM
 ) {
-    val iconSize = when (size) {
+    val iconSize = when (logoSize) {
         LogoSize.SMALL -> 24.dp
         LogoSize.MEDIUM -> 32.dp
         LogoSize.LARGE -> 44.dp
     }
 
-    val textSize = when (size) {
+    val textSize = when (logoSize) {
         LogoSize.SMALL -> 20.sp
         LogoSize.MEDIUM -> 26.sp
         LogoSize.LARGE -> 34.sp
     }
 
-    val letterSpacing = when (size) {
+    val letterSpacing = when (logoSize) {
         LogoSize.SMALL -> 1.sp
         LogoSize.MEDIUM -> 2.sp
         LogoSize.LARGE -> 3.sp
@@ -1109,7 +1109,7 @@ private fun RezonLogo(
             }
         }
 
-        Spacer(modifier = Modifier.width(if (size == LogoSize.SMALL) 6.dp else 10.dp))
+        Spacer(modifier = Modifier.width(if (logoSize == LogoSize.SMALL) 6.dp else 10.dp))
 
         // Logo text with gradient
         Text(
