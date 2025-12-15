@@ -5,11 +5,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,7 +22,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -32,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.rezon.ui.viewmodel.PlayerViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     onBack: () -> Unit,
@@ -40,40 +43,50 @@ fun PlayerScreen(
     onSkipForward: () -> Unit,
     onSkipBackward: () -> Unit,
     onCycleSpeed: () -> Unit,
-    onSleepTimerClick: () -> Unit,
+    onSleepTimerClick: () -> Unit, // Replaced by internal logic
     onEqualizerClick: () -> Unit,
-    onChapterClick: () -> Unit,
+    onChapterClick: () -> Unit,    // Replaced by internal logic
     onMoreOptionsClick: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
-    val book = viewModel.demoBook
+    val book by viewModel.currentBook.collectAsState()
+    val displayBook = book ?: viewModel.demoBook
+
     val isPlaying by viewModel.isPlaying.collectAsState()
     val speed by viewModel.playbackSpeed.collectAsState()
     val currentPos by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
 
+    // Sheet States
+    var showInfoSheet by remember { mutableStateOf(false) }
+    var showSleepSheet by remember { mutableStateOf(false) }
+    var showChaptersSheet by remember { mutableStateOf(false) }
+
     // Status Bar Styling
     val context = LocalContext.current
     LaunchedEffect(Unit) {
         val window = (context as Activity).window
-        window.statusBarColor = Color.Black.toArgb()
+        window.statusBarColor = android.graphics.Color.BLACK
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
     }
 
+    // --- MAIN LAYOUT ---
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         // Background Gradient Layer
-        AsyncImage(
-            model = book.coverUrl,
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize().alpha(0.3f),
-            contentScale = ContentScale.Crop
-        )
+        if (displayBook.coverUrl != null) {
+            AsyncImage(
+                 model = displayBook.coverUrl,
+                 contentDescription = null,
+                 modifier = Modifier.fillMaxSize().alpha(0.3f),
+                 contentScale = ContentScale.Crop
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Black)
+                        colors = listOf(Color.Black.copy(alpha=0.6f), Color.Black)
                     )
                 )
         )
@@ -91,22 +104,17 @@ fun PlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Back",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
                 Text("Now Playing", color = Color.Gray)
-                IconButton(onClick = onMoreOptionsClick) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Color.White)
+                IconButton(onClick = { showInfoSheet = true }) {
+                    Icon(Icons.Default.Info, contentDescription = "Info", tint = Color.White)
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Large Cover Art with Gestures
+            // Cover Art
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -124,7 +132,7 @@ fun PlayerScreen(
                     }
             ) {
                 AsyncImage(
-                    model = book.coverUrl,
+                    model = displayBook.coverUrl,
                     contentDescription = "Cover",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -135,14 +143,9 @@ fun PlayerScreen(
 
             // Title & Author
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    book.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(displayBook.title, style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(book.author, style = MaterialTheme.typography.bodyLarge, color = currentThemeColor)
+                Text(displayBook.author, style = MaterialTheme.typography.bodyLarge, color = currentThemeColor, maxLines = 1)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -150,7 +153,7 @@ fun PlayerScreen(
             // Seek Bar
             Slider(
                 value = if (duration > 0) currentPos.toFloat() / duration else 0f,
-                onValueChange = { /* TODO: Implement seekTo based on progress */ },
+                onValueChange = { /* Seek logic */ },
                 colors = SliderDefaults.colors(
                     thumbColor = currentThemeColor,
                     activeTrackColor = currentThemeColor,
@@ -174,15 +177,9 @@ fun PlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onSkipBackward, modifier = Modifier.size(56.dp)) {
-                    Icon(
-                        Icons.Default.Replay10,
-                        contentDescription = "-10",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Icon(Icons.Default.Replay10, contentDescription = "-10", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
 
-                // Play/Pause Button
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -200,38 +197,107 @@ fun PlayerScreen(
                 }
 
                 IconButton(onClick = onSkipForward, modifier = Modifier.size(56.dp)) {
-                    Icon(
-                        Icons.Default.Forward30,
-                        contentDescription = "+30",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Icon(Icons.Default.Forward30, contentDescription = "+30", tint = Color.White, modifier = Modifier.size(32.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Bottom Tools (Speed, Sleep, EQ, Chapters)
+            // Bottom Tools
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                BottomTool(Icons.Default.Speed, "${speed}x", currentThemeColor) { onCycleSpeed() }
-                BottomTool(Icons.Rounded.Timer, "Sleep", currentThemeColor) { onSleepTimerClick() }
+                BottomTool(Icons.Rounded.Speed, "${speed}x", currentThemeColor) { onCycleSpeed() }
+                BottomTool(Icons.Rounded.Timer, "Sleep", currentThemeColor) { showSleepSheet = true }
                 BottomTool(Icons.Rounded.Equalizer, "EQ", currentThemeColor) { onEqualizerClick() }
-                BottomTool(Icons.Default.List, "Chapters", currentThemeColor) { onChapterClick() }
+                BottomTool(Icons.Default.List, "Chapters", currentThemeColor) { showChaptersSheet = true }
             }
             Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // --- BOTTOM SHEETS ---
+
+        // 1. Info Sheet (Metadata)
+        if (showInfoSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showInfoSheet = false },
+                containerColor = Color(0xFF161618)
+            ) {
+                Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+                    Text(displayBook.title, style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Text(displayBook.author, style = MaterialTheme.typography.titleMedium, color = currentThemeColor)
+                    if (displayBook.seriesInfo.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(displayBook.seriesInfo, style = MaterialTheme.typography.labelLarge, color = Color.Gray)
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        if (displayBook.synopsis.isNotEmpty()) displayBook.synopsis else "Fetching synopsis...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.LightGray
+                    )
+                    Spacer(Modifier.height(48.dp))
+                }
+            }
+        }
+
+        // 2. Sleep Timer Sheet
+        if (showSleepSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showSleepSheet = false },
+                containerColor = Color(0xFF161618)
+            ) {
+                Column(Modifier.padding(24.dp)) {
+                    Text("Sleep Timer", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Spacer(Modifier.height(16.dp))
+                    val timers = listOf(15, 30, 45, 60)
+                    timers.forEach { min ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setSleepTimer(min)
+                                    showSleepSheet = false
+                                }
+                                .padding(vertical = 12.dp)
+                        ) {
+                            Text("$min Minutes", color = Color.White, fontSize = 18.sp)
+                        }
+                        HorizontalDivider(color = Color.DarkGray)
+                    }
+                    Spacer(Modifier.height(48.dp))
+                }
+            }
+        }
+
+        // 3. Chapters Sheet (Placeholder)
+        if (showChaptersSheet) {
+             ModalBottomSheet(
+                onDismissRequest = { showChaptersSheet = false },
+                containerColor = Color(0xFF161618)
+            ) {
+                Column(Modifier.padding(24.dp)) {
+                    Text("Chapters", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                    Spacer(Modifier.height(16.dp))
+                    // Mock chapters for now
+                    (1..5).forEach { i ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Chapter $i", color = Color.White)
+                            Text("15:00", color = Color.Gray)
+                        }
+                        HorizontalDivider(color = Color.DarkGray)
+                    }
+                    Spacer(Modifier.height(48.dp))
+                }
+             }
         }
     }
 }
 
 @Composable
-private fun BottomTool(icon: ImageVector, label: String, accentColor: Color, onClick: () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
-    ) {
+fun BottomTool(icon: ImageVector, label: String, accentColor: Color, onClick: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }) {
         Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.height(4.dp))
         Text(label, color = Color.Gray, fontSize = 12.sp)
