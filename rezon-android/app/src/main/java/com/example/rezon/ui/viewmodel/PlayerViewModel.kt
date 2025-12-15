@@ -18,6 +18,7 @@ class PlayerViewModel @Inject constructor(
     private val audioHandler: AudioServiceHandler
 ) : ViewModel() {
 
+    // Demo Data
     val demoBook = Book(
         id = "1",
         title = "The Martian",
@@ -33,6 +34,7 @@ class PlayerViewModel @Inject constructor(
         )
     )
 
+    val isServiceConnected = audioHandler.isServiceConnected
     val isPlaying = audioHandler.isPlaying
     val playbackSpeed = audioHandler.playbackSpeed
 
@@ -42,6 +44,7 @@ class PlayerViewModel @Inject constructor(
     private var lastPauseTime: Long = 0L
 
     init {
+        // This will now queue correctly if service isn't ready
         audioHandler.loadBook(demoBook)
         startPositionTracker()
     }
@@ -49,7 +52,10 @@ class PlayerViewModel @Inject constructor(
     private fun startPositionTracker() {
         viewModelScope.launch {
             while (isActive) {
-                _currentPosition.value = audioHandler.getCurrentPosition()
+                // Only poll if connected
+                if (isServiceConnected.value) {
+                    _currentPosition.value = audioHandler.getCurrentPosition()
+                }
                 delay(1000)
             }
         }
@@ -64,6 +70,7 @@ class PlayerViewModel @Inject constructor(
             val pauseDuration = now - lastPauseTime
             val currentPos = audioHandler.getCurrentPosition()
 
+            // Smart Resume Logic
             var seekPos = currentPos
             if (pauseDuration > 60 * 60 * 1000) {
                 seekPos = (currentPos - 30_000).coerceAtLeast(0)
@@ -79,16 +86,19 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun skipForward() {
+        if (!isServiceConnected.value) return
         val newPos = audioHandler.getCurrentPosition() + 30_000
         audioHandler.seekTo(newPos)
     }
 
     fun skipBackward() {
+        if (!isServiceConnected.value) return
         val newPos = (audioHandler.getCurrentPosition() - 10_000).coerceAtLeast(0)
         audioHandler.seekTo(newPos)
     }
 
     fun cyclePlaybackSpeed() {
+        if (!isServiceConnected.value) return
         val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
         val current = playbackSpeed.value
         val nextIndex = speeds.indexOfFirst { it > current }
