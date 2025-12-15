@@ -16,8 +16,8 @@ class MetadataRepository @Inject constructor(
             response.items?.firstOrNull()?.volumeInfo?.let { info ->
                 // We found a match! Update the local database.
                 val updatedBook = book.copy(
-                    description = info.description ?: "No synopsis available.",
-                    series = info.subtitle ?: info.categories?.joinToString() ?: "Unknown Series"
+                    synopsis = info.description ?: "No synopsis available.",
+                    seriesInfo = info.subtitle ?: info.categories?.joinToString() ?: ""
                 )
                 bookDao.updateBook(updatedBook)
             }

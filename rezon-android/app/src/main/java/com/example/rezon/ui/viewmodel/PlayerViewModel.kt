@@ -59,8 +59,8 @@ class PlayerViewModel @Inject constructor(
         audioHandler.play()
 
         // INTELLIGENCE UPGRADE:
-        // If the book has no description, try to fetch it from the internet in the background
-        if (book.description.isNullOrBlank() || book.description == "No synopsis available.") {
+        // If the book has no synopsis, try to fetch it from the internet in the background
+        if (book.synopsis.isBlank() || book.synopsis == "No synopsis available.") {
             viewModelScope.launch {
                 metadataRepository.fetchAndSaveMetadata(book)
                 // Reload book from DB to show new info
