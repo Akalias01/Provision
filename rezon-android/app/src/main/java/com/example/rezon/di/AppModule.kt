@@ -5,11 +5,14 @@ import androidx.room.Room
 import com.example.rezon.data.AppDatabase
 import com.example.rezon.data.AudioServiceHandler
 import com.example.rezon.data.BookDao
+import com.example.rezon.data.api.GoogleBooksApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -23,7 +26,9 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "rezon_db"
-        ).build()
+        )
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
     }
 
     @Provides
@@ -33,5 +38,20 @@ object AppModule {
     @Singleton
     fun provideAudioServiceHandler(@ApplicationContext context: Context): AudioServiceHandler {
         return AudioServiceHandler(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://www.googleapis.com/books/v1/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGoogleBooksApi(retrofit: Retrofit): GoogleBooksApi {
+        return retrofit.create(GoogleBooksApi::class.java)
     }
 }

@@ -20,7 +20,11 @@ data class Book(
     val progress: Long = 0,
     val lastPlayedTimestamp: Long = 0,
     val format: String = "AUDIO", // AUDIO, EPUB, PDF
-    val isFinished: Boolean = false
+    val isFinished: Boolean = false,
+    // Rich metadata from Google Books API
+    val description: String? = null,
+    val series: String? = null,
+    val categories: String? = null
 ) {
     // Helper for UI progress calculation
     fun progressPercent(): Float {
