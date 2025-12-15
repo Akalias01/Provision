@@ -139,4 +139,21 @@ class PlayerViewModel @Inject constructor(
             }
         }
     }
+
+    // EQ State
+    val eqEnabled = audioHandler.eqEnabled
+    val bandLevels = audioHandler.bandLevels
+
+    fun toggleEqualizer(enabled: Boolean) {
+        audioHandler.setEqEnabled(enabled)
+    }
+
+    fun updateEqBand(index: Int, value: Int) {
+        audioHandler.setBandLevel(index, value)
+    }
+
+    fun updateAmplifier(value: Float) {
+        // Convert 0.0-1.0 to gain
+        audioHandler.setAmplifierLevel((value * 1000).toInt())
+    }
 }
