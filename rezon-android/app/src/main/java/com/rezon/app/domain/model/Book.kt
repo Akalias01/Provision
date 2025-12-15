@@ -38,6 +38,30 @@ data class Book(
 
     val currentChapter: Chapter?
         get() = chapters.getOrNull(currentChapterIndex)
+
+    val formattedDuration: String
+        get() {
+            val totalSeconds = duration / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            return when {
+                hours > 0 -> "${hours}h ${minutes}m"
+                minutes > 0 -> "${minutes}m"
+                else -> "< 1m"
+            }
+        }
+
+    val formattedRemainingTime: String
+        get() {
+            val totalSeconds = remainingTime / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            return when {
+                hours > 0 -> "${hours}h ${minutes}m left"
+                minutes > 0 -> "${minutes}m left"
+                else -> "< 1m left"
+            }
+        }
 }
 
 /**
