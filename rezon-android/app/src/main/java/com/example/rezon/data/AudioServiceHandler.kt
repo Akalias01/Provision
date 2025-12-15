@@ -99,4 +99,5 @@ class AudioServiceHandler @Inject constructor(
     }
 
     fun getCurrentPosition(): Long = mediaController?.currentPosition ?: 0L
+    fun getDuration(): Long = mediaController?.duration ?: 0L
 }

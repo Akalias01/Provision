@@ -20,62 +20,59 @@ class PlayerViewModel @Inject constructor(
     private val bookDao: BookDao
 ) : ViewModel() {
 
-    // Current book being played
+    // Current Book State
     private val _currentBook = MutableStateFlow<Book?>(null)
     val currentBook = _currentBook.asStateFlow()
 
-    // Demo book for when no book is selected
+    // Use the demo book as a fallback only if DB is empty/null
     val demoBook = Book(
-        id = "demo",
-        title = "The Martian",
-        author = "Andy Weir",
-        coverUrl = "https://upload.wikimedia.org/wikipedia/en/2/21/The_Martian_%28Weir_novel%29.jpg",
-        filePath = "asset:///demo_audio.mp3",
-        duration = 0L
+        id = "demo", title = "No Book Selected", author = "Select from Library",
+        coverUrl = null, filePath = "", duration = 1000
     )
 
-    val isServiceConnected = audioHandler.isServiceConnected
     val isPlaying = audioHandler.isPlaying
     val playbackSpeed = audioHandler.playbackSpeed
-    val currentPosition = audioHandler.currentPosition
-    val duration = audioHandler.duration
 
-    private var lastPauseTime: Long = 0L
-    private var progressSaveJob: Job? = null
+    private val _currentPosition = MutableStateFlow(0L)
+    val currentPosition = _currentPosition.asStateFlow()
+
+    private val _duration = MutableStateFlow(1L)
+    val duration = _duration.asStateFlow()
+
+    // Sleep Timer
+    private var sleepTimerJob: Job? = null
+
+    init {
+        startPositionTracker()
+    }
 
     fun playBook(book: Book) {
         _currentBook.value = book
         audioHandler.loadBook(book)
 
-        // Seek to saved progress if available
+        // Resume from last saved position
         if (book.progress > 0) {
             audioHandler.seekTo(book.progress)
         }
-
         audioHandler.play()
-        startProgressSaving()
     }
 
-    private fun startProgressSaving() {
-        progressSaveJob?.cancel()
-        progressSaveJob = viewModelScope.launch {
+    private fun startPositionTracker() {
+        viewModelScope.launch {
             while (isActive) {
-                delay(5000) // Save every 5 seconds
-                saveCurrentProgress()
-            }
-        }
-    }
+                if (isPlaying.value) {
+                    val pos = audioHandler.getCurrentPosition()
+                    _currentPosition.value = pos
+                    _duration.value = audioHandler.getDuration()
 
-    private fun saveCurrentProgress() {
-        val book = _currentBook.value ?: return
-        val position = audioHandler.getCurrentPosition()
-        if (position > 0) {
-            viewModelScope.launch {
-                bookDao.updateProgress(
-                    id = book.id,
-                    pos = position,
-                    ts = System.currentTimeMillis()
-                )
+                    // Save to DB every 5 seconds
+                    _currentBook.value?.let { book ->
+                        if (pos > 0) {
+                            bookDao.updateProgress(book.id, pos, System.currentTimeMillis())
+                        }
+                    }
+                }
+                delay(1000)
             }
         }
     }
@@ -83,44 +80,34 @@ class PlayerViewModel @Inject constructor(
     fun togglePlayPause() {
         if (isPlaying.value) {
             audioHandler.pause()
-            lastPauseTime = System.currentTimeMillis()
-            saveCurrentProgress() // Save progress when pausing
-            progressSaveJob?.cancel()
+            // Immediate save on pause
+            saveCurrentProgress()
         } else {
-            val now = System.currentTimeMillis()
-            val pauseDuration = now - lastPauseTime
-            val currentPos = audioHandler.getCurrentPosition()
-
-            // Smart Resume Logic
-            var seekPos = currentPos
-            if (pauseDuration > 60 * 60 * 1000) {
-                seekPos = (currentPos - 30_000).coerceAtLeast(0)
-            } else if (pauseDuration > 5 * 60 * 1000) {
-                seekPos = (currentPos - 10_000).coerceAtLeast(0)
-            }
-
-            if (seekPos != currentPos) {
-                audioHandler.seekTo(seekPos)
-            }
             audioHandler.play()
-            startProgressSaving()
+        }
+    }
+
+    private fun saveCurrentProgress() {
+        viewModelScope.launch {
+            _currentBook.value?.let { book ->
+                bookDao.updateProgress(book.id, audioHandler.getCurrentPosition(), System.currentTimeMillis())
+            }
         }
     }
 
     fun skipForward() {
-        if (!isServiceConnected.value) return
         val newPos = audioHandler.getCurrentPosition() + 30_000
         audioHandler.seekTo(newPos)
+        saveCurrentProgress()
     }
 
     fun skipBackward() {
-        if (!isServiceConnected.value) return
         val newPos = (audioHandler.getCurrentPosition() - 10_000).coerceAtLeast(0)
         audioHandler.seekTo(newPos)
+        saveCurrentProgress()
     }
 
     fun cyclePlaybackSpeed() {
-        if (!isServiceConnected.value) return
         val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
         val current = playbackSpeed.value
         val nextIndex = speeds.indexOfFirst { it > current }
@@ -128,9 +115,16 @@ class PlayerViewModel @Inject constructor(
         audioHandler.setSpeed(newSpeed)
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        saveCurrentProgress() // Save progress when ViewModel is destroyed
-        progressSaveJob?.cancel()
+    // FEATURE: Sleep Timer
+    fun setSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        if (minutes > 0) {
+            sleepTimerJob = viewModelScope.launch {
+                delay(minutes * 60 * 1000L)
+                if (isPlaying.value) {
+                    togglePlayPause()
+                }
+            }
+        }
     }
 }
