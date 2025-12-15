@@ -1,5 +1,8 @@
 package com.rezon.app.presentation.viewmodel
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rezon.app.domain.model.Book
@@ -23,7 +26,9 @@ data class LibraryUiState(
     val inProgressCount: Int = 0,
     val finishedCount: Int = 0,
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val isGoogleDriveConnected: Boolean = false,
+    val isDropboxConnected: Boolean = false
 )
 
 /**
@@ -102,17 +107,79 @@ class LibraryViewModel @Inject constructor(
     }
 
     /**
-     * Scan folder for audiobooks
+     * Scan folder for audiobooks from URI
+     */
+    fun scanFolderFromUri(uri: Uri) {
+        viewModelScope.launch {
+            // TODO: Implement actual folder scanning
+            // For now, just log that we received the URI
+            android.util.Log.d("LibraryViewModel", "Scanning folder: $uri")
+            // TODO: Use DocumentFile to iterate through the folder
+            // and add audio files to the library
+        }
+    }
+
+    /**
+     * Add files from selected URIs
+     */
+    fun addFilesFromUris(uris: List<Uri>) {
+        viewModelScope.launch {
+            // TODO: Implement actual file import
+            android.util.Log.d("LibraryViewModel", "Adding ${uris.size} files")
+            // TODO: Parse audio metadata and add to library
+        }
+    }
+
+    /**
+     * Scan folder for audiobooks (legacy)
      */
     fun scanFolder() {
         // TODO: Open folder picker and scan
     }
 
     /**
-     * Add files via file picker
+     * Add files via file picker (legacy)
      */
     fun addFiles() {
         // TODO: Open file picker
+    }
+
+    /**
+     * Connect to Google Drive
+     */
+    fun connectGoogleDrive(context: Context) {
+        // Launch Google OAuth flow
+        // Using Google Sign-In API
+        val googleSignInIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://accounts.google.com/o/oauth2/v2/auth?" +
+                "client_id=YOUR_CLIENT_ID.apps.googleusercontent.com" +
+                "&redirect_uri=com.rezon.app:/oauth2callback" +
+                "&response_type=code" +
+                "&scope=https://www.googleapis.com/auth/drive.readonly")
+        }
+        try {
+            context.startActivity(googleSignInIntent)
+        } catch (e: Exception) {
+            android.util.Log.e("LibraryViewModel", "Failed to launch Google OAuth: ${e.message}")
+        }
+    }
+
+    /**
+     * Connect to Dropbox
+     */
+    fun connectDropbox(context: Context) {
+        // Launch Dropbox OAuth flow
+        val dropboxAuthIntent = Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://www.dropbox.com/oauth2/authorize?" +
+                "client_id=YOUR_DROPBOX_APP_KEY" +
+                "&redirect_uri=com.rezon.app://dropbox-auth" +
+                "&response_type=token")
+        }
+        try {
+            context.startActivity(dropboxAuthIntent)
+        } catch (e: Exception) {
+            android.util.Log.e("LibraryViewModel", "Failed to launch Dropbox OAuth: ${e.message}")
+        }
     }
 
     /**

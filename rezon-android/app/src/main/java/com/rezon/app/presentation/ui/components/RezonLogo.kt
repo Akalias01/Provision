@@ -50,33 +50,33 @@ enum class LogoSize {
 @Composable
 fun RezonLogo(
     modifier: Modifier = Modifier,
-    size: LogoSize = LogoSize.MEDIUM,
+    logoSize: LogoSize = LogoSize.MEDIUM,
     style: LogoStyle = LogoStyle.WAVEFORM,
     animated: Boolean = false,
     showText: Boolean = true
 ) {
-    val iconSize = when (size) {
+    val iconSize = when (logoSize) {
         LogoSize.SMALL -> 28.dp
         LogoSize.MEDIUM -> 36.dp
         LogoSize.LARGE -> 48.dp
         LogoSize.XLARGE -> 72.dp
     }
 
-    val textSize = when (size) {
+    val textSize = when (logoSize) {
         LogoSize.SMALL -> 18.sp
         LogoSize.MEDIUM -> 24.sp
         LogoSize.LARGE -> 32.sp
         LogoSize.XLARGE -> 48.sp
     }
 
-    val letterSpacing = when (size) {
+    val letterSpacing = when (logoSize) {
         LogoSize.SMALL -> 1.sp
         LogoSize.MEDIUM -> 2.sp
         LogoSize.LARGE -> 3.sp
         LogoSize.XLARGE -> 4.sp
     }
 
-    val spacing = when (size) {
+    val spacing = when (logoSize) {
         LogoSize.SMALL -> 4.dp
         LogoSize.MEDIUM -> 5.dp
         LogoSize.LARGE -> 6.dp
@@ -87,8 +87,8 @@ fun RezonLogo(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Logo Icon
-        LogoIcon(
+        // Logo Icon - Black background with cyan soundwave
+        BlackLogoIcon(
             size = iconSize,
             style = style,
             animated = animated
@@ -105,6 +105,115 @@ fun RezonLogo(
                 letterSpacing = letterSpacing,
                 color = RezonCyan
             )
+        }
+    }
+}
+
+/**
+ * Black themed logo icon with cyan soundwave - Modern and cool
+ */
+@Composable
+private fun BlackLogoIcon(
+    size: Dp,
+    style: LogoStyle,
+    animated: Boolean
+) {
+    val cornerRadius = size / 5
+
+    val infiniteTransition = rememberInfiniteTransition(label = "soundwave")
+
+    // Animated soundwave bars
+    val waveHeights = if (animated) {
+        List(5) { index ->
+            infiniteTransition.animateFloat(
+                initialValue = 0.3f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(400 + index * 80, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "wave$index"
+            )
+        }
+    } else null
+
+    Box(
+        modifier = Modifier
+            .size(size)
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = RezonCyan.copy(alpha = 0.4f),
+                spotColor = RezonCyan.copy(alpha = 0.4f)
+            )
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(size * 0.75f)) {
+            val canvasWidth = this.size.width
+            val canvasHeight = this.size.height
+
+            // Draw R letter in cyan
+            val rPath = Path().apply {
+                // Vertical stem
+                moveTo(canvasWidth * 0.15f, canvasHeight * 0.85f)
+                lineTo(canvasWidth * 0.15f, canvasHeight * 0.15f)
+
+                // Top curve
+                lineTo(canvasWidth * 0.45f, canvasHeight * 0.15f)
+                quadraticBezierTo(
+                    canvasWidth * 0.7f, canvasHeight * 0.15f,
+                    canvasWidth * 0.7f, canvasHeight * 0.32f
+                )
+                quadraticBezierTo(
+                    canvasWidth * 0.7f, canvasHeight * 0.48f,
+                    canvasWidth * 0.45f, canvasHeight * 0.48f
+                )
+
+                // Diagonal leg
+                lineTo(canvasWidth * 0.3f, canvasHeight * 0.48f)
+                lineTo(canvasWidth * 0.7f, canvasHeight * 0.85f)
+            }
+
+            drawPath(
+                path = rPath,
+                color = RezonCyan,
+                style = Stroke(width = canvasWidth * 0.1f, cap = StrokeCap.Round)
+            )
+
+            // Draw soundwave bars coming out of R
+            val barWidth = canvasWidth * 0.045f
+            val maxBarHeight = canvasHeight * 0.35f
+            val startX = canvasWidth * 0.72f
+            val centerY = canvasHeight * 0.5f
+
+            val heights = if (animated && waveHeights != null) {
+                waveHeights.map { it.value }
+            } else {
+                listOf(0.4f, 0.7f, 1f, 0.8f, 0.5f)
+            }
+
+            heights.forEachIndexed { index, heightFactor ->
+                val x = startX + index * (barWidth * 1.5f)
+                val barHeight = maxBarHeight * heightFactor
+
+                // Glow effect
+                drawRoundRect(
+                    color = RezonCyan.copy(alpha = 0.3f),
+                    topLeft = Offset(x - barWidth * 0.3f, centerY - barHeight / 2 - barWidth * 0.3f),
+                    size = Size(barWidth * 1.6f, barHeight + barWidth * 0.6f),
+                    cornerRadius = CornerRadius(barWidth)
+                )
+
+                // Main bar
+                drawRoundRect(
+                    color = RezonCyan,
+                    topLeft = Offset(x, centerY - barHeight / 2),
+                    size = Size(barWidth, barHeight),
+                    cornerRadius = CornerRadius(barWidth / 2)
+                )
+            }
         }
     }
 }

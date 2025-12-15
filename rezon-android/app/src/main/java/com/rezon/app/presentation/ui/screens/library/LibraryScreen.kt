@@ -1,7 +1,11 @@
 package com.rezon.app.presentation.ui.screens.library
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -36,26 +40,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Headphones
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.outlined.CloudUpload
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Headphones
 import androidx.compose.material.icons.outlined.LibraryBooks
@@ -63,13 +59,10 @@ import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -77,17 +70,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -101,11 +89,11 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -123,8 +111,8 @@ import kotlinx.coroutines.launch
  * REZON Library Screen
  *
  * Features:
- * - Welcome screen for empty library
- * - Grid and List view modes with size options
+ * - Integrated top menu with logo
+ * - Grid and List view modes
  * - Progress filter tabs with swipe navigation
  * - Modern popup dialogs
  * - Mini player at bottom
@@ -140,8 +128,8 @@ fun LibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
@@ -151,7 +139,6 @@ fun LibraryScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var sortOption by remember { mutableStateOf(SortOption.RECENT) }
     var bookToDelete by remember { mutableStateOf<Book?>(null) }
-    var showAllBooks by remember { mutableStateOf(false) }
 
     // Dialog states
     var showAddBooksDialog by remember { mutableStateOf(false) }
@@ -161,12 +148,30 @@ fun LibraryScreen(
     var magnetInput by remember { mutableStateOf("") }
 
     // Theme state
-    var currentTheme by remember { mutableStateOf("modern") }
+    var currentTheme by remember { mutableStateOf("cyber_cyan") }
     var currentLogoStyle by remember { mutableStateOf(LogoStyle.WAVEFORM) }
     var currentSplashAnimation by remember { mutableStateOf("glitch_cyber") }
 
     val tabs = listOf("Not Started", "In Progress", "Finished")
     val pagerState = rememberPagerState(initialPage = 1, pageCount = { tabs.size })
+
+    // File picker launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            viewModel.addFilesFromUris(uris)
+        }
+    }
+
+    // Folder picker launcher
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.scanFolderFromUri(it)
+        }
+    }
 
     // Sync tab selection with pager
     LaunchedEffect(pagerState) {
@@ -184,184 +189,106 @@ fun LibraryScreen(
     // Check if library is empty
     val isLibraryEmpty = uiState.books.isEmpty()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            DrawerContent(
-                currentLogoStyle = currentLogoStyle,
-                bookCount = uiState.books.size,
-                onClose = { scope.launch { drawerState.close() } },
-                onAddFiles = {
-                    scope.launch { drawerState.close() }
-                    showAddBooksDialog = true
-                },
-                onTorrentDownloads = {
-                    scope.launch { drawerState.close() }
-                    showTorrentDialog = true
-                },
-                onCloudStorage = {
-                    scope.launch { drawerState.close() }
-                    showCloudDialog = true
-                },
-                onAppearance = {
-                    scope.launch { drawerState.close() }
-                    showAppearanceDialog = true
-                },
-                onLibrary = {
-                    scope.launch { drawerState.close() }
-                }
-            )
-        }
-    ) {
-        Scaffold(
-            topBar = {
-                LibraryTopBar(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { searchQuery = it },
-                    isSearchActive = isSearchActive,
-                    onSearchActiveChange = { isSearchActive = it },
-                    onMenuClick = { scope.launch { drawerState.open() } },
-                    isGridView = isGridView,
-                    onToggleViewMode = { isGridView = !isGridView },
-                    showSortMenu = showSortMenu,
-                    onSortMenuToggle = { showSortMenu = it },
-                    currentSortOption = sortOption,
-                    onSortOptionChange = { sortOption = it }
-                )
-            },
-            floatingActionButton = {
-                if (!isLibraryEmpty) {
-                    Box(
-                        modifier = Modifier.padding(bottom = if (uiState.currentlyPlaying != null) 72.dp else 0.dp)
-                    ) {
-                        FloatingActionButton(
-                            onClick = { showAddBooksDialog = true },
-                            containerColor = RezonCyan,
-                            contentColor = Color.Black,
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Add",
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                }
-            },
-            bottomBar = {
-                AnimatedVisibility(
-                    visible = uiState.currentlyPlaying != null,
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+    Scaffold(
+        floatingActionButton = {
+            if (!isLibraryEmpty) {
+                Box(
+                    modifier = Modifier.padding(bottom = if (uiState.currentlyPlaying != null) 72.dp else 0.dp)
                 ) {
-                    uiState.currentlyPlaying?.let { book ->
-                        MiniPlayer(
-                            book = book,
-                            isPlaying = uiState.isPlaying,
-                            onPlayPause = { viewModel.togglePlayPause() },
-                            onClick = { onNavigateToPlayer(book.id) }
+                    FloatingActionButton(
+                        onClick = { showAddBooksDialog = true },
+                        containerColor = RezonCyan,
+                        contentColor = Color.Black,
+                        modifier = Modifier.size(56.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add",
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
             }
-        ) { paddingValues ->
+        },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = uiState.currentlyPlaying != null,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
+                uiState.currentlyPlaying?.let { book ->
+                    MiniPlayer(
+                        book = book,
+                        isPlaying = uiState.isPlaying,
+                        onPlayPause = { viewModel.togglePlayPause() },
+                        onClick = { onNavigateToPlayer(book.id) }
+                    )
+                }
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Top header with logo and menu
+            IntegratedHeader(
+                logoStyle = currentLogoStyle,
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                isSearchActive = isSearchActive,
+                onSearchActiveChange = { isSearchActive = it },
+                isGridView = isGridView,
+                onToggleViewMode = { isGridView = !isGridView },
+                showSortMenu = showSortMenu,
+                onSortMenuToggle = { showSortMenu = it },
+                currentSortOption = sortOption,
+                onSortOptionChange = { sortOption = it },
+                onAddFiles = { showAddBooksDialog = true },
+                onTorrentDownloads = { showTorrentDialog = true },
+                onCloudStorage = { showCloudDialog = true },
+                onAppearance = { showAppearanceDialog = true }
+            )
+
             if (isLibraryEmpty) {
                 // Welcome/Empty state screen
                 WelcomeScreen(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     logoStyle = currentLogoStyle,
                     onImportBooks = { showAddBooksDialog = true },
                     onDownloadFromTorrent = { showTorrentDialog = true }
                 )
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                ) {
-                    // Progress filter tabs
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TabRow(
-                            selectedTabIndex = if (showAllBooks) -1 else selectedTabIndex,
-                            containerColor = Color.Transparent,
-                            contentColor = MaterialTheme.colorScheme.onBackground,
-                            divider = {},
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            tabs.forEachIndexed { index, title ->
-                                val count = when (index) {
-                                    0 -> uiState.notStartedCount
-                                    1 -> uiState.inProgressCount
-                                    else -> uiState.finishedCount
-                                }
-                                Tab(
-                                    selected = selectedTabIndex == index && !showAllBooks,
-                                    onClick = {
-                                        showAllBooks = false
-                                        selectedTabIndex = index
-                                    },
-                                    text = {
-                                        Text(
-                                            text = "$title ($count)",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = if (selectedTabIndex == index && !showAllBooks) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    },
-                                    selectedContentColor = RezonCyan,
-                                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                // Progress filter tabs - compact
+                LibraryTabs(
+                    tabs = tabs,
+                    selectedTabIndex = selectedTabIndex,
+                    notStartedCount = uiState.notStartedCount,
+                    inProgressCount = uiState.inProgressCount,
+                    finishedCount = uiState.finishedCount,
+                    onTabSelected = { selectedTabIndex = it }
+                )
 
-                        IconButton(onClick = { showAllBooks = !showAllBooks }) {
-                            Icon(
-                                imageVector = Icons.Default.SelectAll,
-                                contentDescription = "View All",
-                                tint = if (showAllBooks) RezonCyan else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                // Book content - directly below tabs
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    val filteredBooks = when (page) {
+                        0 -> uiState.books.filter { it.progress == 0f }
+                        1 -> uiState.books.filter { it.progress > 0f && !it.isCompleted }
+                        else -> uiState.books.filter { it.isCompleted }
                     }
+                    val sortedBooks = filterAndSortBooks(filteredBooks, searchQuery, sortOption)
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Book content
-                    if (showAllBooks) {
-                        val allBooks = filterAndSortBooks(uiState.books, searchQuery, sortOption)
-                        BooksContent(
-                            books = allBooks,
-                            isGridView = isGridView,
-                            useCompactCovers = useCompactCovers,
-                            onBookClick = { onNavigateToPlayer(it.id) },
-                            onDeleteClick = { bookToDelete = it }
-                        )
-                    } else {
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize()
-                        ) { page ->
-                            val filteredBooks = when (page) {
-                                0 -> uiState.books.filter { it.progress == 0f }
-                                1 -> uiState.books.filter { it.progress > 0f && !it.isCompleted }
-                                else -> uiState.books.filter { it.isCompleted }
-                            }
-                            val sortedBooks = filterAndSortBooks(filteredBooks, searchQuery, sortOption)
-
-                            BooksContent(
-                                books = sortedBooks,
-                                isGridView = isGridView,
-                                useCompactCovers = useCompactCovers,
-                                onBookClick = { onNavigateToPlayer(it.id) },
-                                onDeleteClick = { bookToDelete = it }
-                            )
-                        }
-                    }
+                    BooksContent(
+                        books = sortedBooks,
+                        isGridView = isGridView,
+                        useCompactCovers = useCompactCovers,
+                        onBookClick = { onNavigateToPlayer(it.id) },
+                        onDeleteClick = { bookToDelete = it }
+                    )
                 }
             }
         }
@@ -377,11 +304,15 @@ fun LibraryScreen(
             },
             onScanFolder = {
                 showAddBooksDialog = false
-                viewModel.scanFolder()
+                folderPickerLauncher.launch(null)
             },
             onImportFromCloud = {
                 showAddBooksDialog = false
                 showCloudDialog = true
+            },
+            onSelectFile = {
+                showAddBooksDialog = false
+                filePickerLauncher.launch(arrayOf("audio/*", "application/epub+zip"))
             }
         )
     }
@@ -409,10 +340,12 @@ fun LibraryScreen(
             isDropboxConnected = false,
             onDismiss = { showCloudDialog = false },
             onConnectGoogleDrive = {
-                // TODO: Implement Google Drive OAuth
+                // Launch Google OAuth
+                viewModel.connectGoogleDrive(context)
             },
             onConnectDropbox = {
-                // TODO: Implement Dropbox OAuth
+                // Launch Dropbox OAuth
+                viewModel.connectDropbox(context)
             },
             onDisconnectGoogleDrive = {},
             onDisconnectDropbox = {}
@@ -444,6 +377,250 @@ fun LibraryScreen(
             },
             onDismiss = { bookToDelete = null }
         )
+    }
+}
+
+/**
+ * Integrated header with logo and menu items
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun IntegratedHeader(
+    logoStyle: LogoStyle,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    isSearchActive: Boolean,
+    onSearchActiveChange: (Boolean) -> Unit,
+    isGridView: Boolean,
+    onToggleViewMode: () -> Unit,
+    showSortMenu: Boolean,
+    onSortMenuToggle: (Boolean) -> Unit,
+    currentSortOption: SortOption,
+    onSortOptionChange: (SortOption) -> Unit,
+    onAddFiles: () -> Unit,
+    onTorrentDownloads: () -> Unit,
+    onCloudStorage: () -> Unit,
+    onAppearance: () -> Unit
+) {
+    val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(RezonBackground)
+            .padding(top = statusBarPadding.calculateTopPadding())
+    ) {
+        // Logo at top center
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            RezonLogo(
+                logoSize = LogoSize.MEDIUM,
+                style = logoStyle,
+                showText = true
+            )
+        }
+
+        // Menu row with icons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Add Files
+            MenuIconButton(
+                icon = Icons.Outlined.FolderOpen,
+                label = "Add",
+                onClick = onAddFiles
+            )
+
+            // Torrent
+            MenuIconButton(
+                icon = Icons.Default.Download,
+                label = "Torrent",
+                onClick = onTorrentDownloads
+            )
+
+            // Cloud
+            MenuIconButton(
+                icon = Icons.Default.Cloud,
+                label = "Cloud",
+                onClick = onCloudStorage
+            )
+
+            // Appearance
+            MenuIconButton(
+                icon = Icons.Default.Palette,
+                label = "Theme",
+                onClick = onAppearance
+            )
+
+            // Search
+            MenuIconButton(
+                icon = Icons.Default.Search,
+                label = "Search",
+                onClick = { onSearchActiveChange(true) }
+            )
+
+            // Sort
+            Box {
+                MenuIconButton(
+                    icon = Icons.Default.Sort,
+                    label = "Sort",
+                    onClick = { onSortMenuToggle(true) }
+                )
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { onSortMenuToggle(false) }
+                ) {
+                    SortOption.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = option.displayName,
+                                    fontWeight = if (option == currentSortOption) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (option == currentSortOption) RezonCyan else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = {
+                                onSortOptionChange(option)
+                                onSortMenuToggle(false)
+                            }
+                        )
+                    }
+                }
+            }
+
+            // View toggle
+            MenuIconButton(
+                icon = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                label = "View",
+                onClick = onToggleViewMode
+            )
+        }
+
+        // Search bar (when active)
+        AnimatedVisibility(visible = isSearchActive) {
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+                onSearch = { onSearchActiveChange(false) },
+                active = false,
+                onActiveChange = { },
+                placeholder = { Text("Search books...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        onSearchQueryChange("")
+                        onSearchActiveChange(false)
+                    }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close search")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) { }
+        }
+
+        HorizontalDivider(color = RezonSurfaceVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
+    }
+}
+
+/**
+ * Menu icon button with label
+ */
+@Composable
+private fun MenuIconButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = RezonCyan,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = RezonOnSurfaceVariant,
+            fontSize = 10.sp
+        )
+    }
+}
+
+/**
+ * Library tabs - compact with centered counts
+ */
+@Composable
+private fun LibraryTabs(
+    tabs: List<String>,
+    selectedTabIndex: Int,
+    notStartedCount: Int,
+    inProgressCount: Int,
+    finishedCount: Int,
+    onTabSelected: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        tabs.forEachIndexed { index, title ->
+            val count = when (index) {
+                0 -> notStartedCount
+                1 -> inProgressCount
+                else -> finishedCount
+            }
+            val isSelected = selectedTabIndex == index
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onTabSelected(index) }
+                    .padding(vertical = 8.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isSelected) RezonCyan else RezonOnSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "($count)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSelected) RezonCyan else RezonOnSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+                if (isSelected) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(2.dp)
+                            .background(RezonCyan, RoundedCornerShape(1.dp))
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -498,26 +675,17 @@ private fun WelcomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo
-        RezonFullLogo(
-            size = LogoSize.LARGE,
-            style = logoStyle,
-            animated = true
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
         Text(
-            text = "Welcome to Rezon",
+            text = "Welcome to REZON",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = RezonCyan
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Audiobooks Reimagined. Resonate With Every Word.",
+            text = "Audiobooks Reimagined.\nEvery Word Resonates.",
             style = MaterialTheme.typography.bodyLarge,
             color = RezonOnSurfaceVariant,
             textAlign = TextAlign.Center
@@ -647,259 +815,6 @@ private fun CategoryCard(
 }
 
 /**
- * Top bar
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LibraryTopBar(
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    isSearchActive: Boolean,
-    onSearchActiveChange: (Boolean) -> Unit,
-    onMenuClick: () -> Unit,
-    isGridView: Boolean,
-    onToggleViewMode: () -> Unit,
-    showSortMenu: Boolean,
-    onSortMenuToggle: (Boolean) -> Unit,
-    currentSortOption: SortOption,
-    onSortOptionChange: (SortOption) -> Unit
-) {
-    val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = statusBarPadding.calculateTopPadding())
-            .padding(horizontal = 8.dp, vertical = 8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-
-            Text(
-                text = "Library",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            IconButton(onClick = { onSearchActiveChange(true) }) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-
-            Box {
-                IconButton(onClick = { onSortMenuToggle(true) }) {
-                    Icon(
-                        imageVector = Icons.Default.Sort,
-                        contentDescription = "Sort",
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showSortMenu,
-                    onDismissRequest = { onSortMenuToggle(false) }
-                ) {
-                    SortOption.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = option.displayName,
-                                    fontWeight = if (option == currentSortOption) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (option == currentSortOption) RezonCyan else MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            onClick = {
-                                onSortOptionChange(option)
-                                onSortMenuToggle(false)
-                            }
-                        )
-                    }
-                }
-            }
-
-            IconButton(onClick = onToggleViewMode) {
-                Icon(
-                    imageVector = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
-                    contentDescription = "Toggle View",
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-        }
-
-        AnimatedVisibility(visible = isSearchActive) {
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange,
-                onSearch = { onSearchActiveChange(false) },
-                active = false,
-                onActiveChange = { },
-                placeholder = { Text("Search books...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    IconButton(onClick = {
-                        onSearchQueryChange("")
-                        onSearchActiveChange(false)
-                    }) {
-                        Icon(Icons.Default.Close, contentDescription = "Close search")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            ) { }
-        }
-    }
-}
-
-/**
- * Navigation drawer
- */
-@Composable
-private fun DrawerContent(
-    currentLogoStyle: LogoStyle,
-    bookCount: Int,
-    onClose: () -> Unit,
-    onAddFiles: () -> Unit,
-    onTorrentDownloads: () -> Unit,
-    onCloudStorage: () -> Unit,
-    onAppearance: () -> Unit,
-    onLibrary: () -> Unit
-) {
-    ModalDrawerSheet(
-        drawerContainerColor = RezonBackground
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Header with logo and close button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                RezonLogo(
-                    size = LogoSize.MEDIUM,
-                    style = currentLogoStyle,
-                    showText = true
-                )
-                IconButton(onClick = onClose) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = RezonOnSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Menu items
-            DrawerMenuItem(
-                icon = Icons.Outlined.FolderOpen,
-                title = "Add Files",
-                subtitle = "Import audiobooks from device",
-                onClick = onAddFiles
-            )
-
-            DrawerMenuItem(
-                icon = Icons.Default.Download,
-                title = "Torrent Downloads",
-                subtitle = "Download from torrents",
-                onClick = onTorrentDownloads
-            )
-
-            DrawerMenuItem(
-                icon = Icons.Outlined.CloudUpload,
-                title = "Cloud Storage",
-                subtitle = "Google Drive & Dropbox",
-                onClick = onCloudStorage
-            )
-
-            DrawerMenuItem(
-                icon = Icons.Default.Palette,
-                title = "Appearance",
-                subtitle = "Theme & colors",
-                onClick = onAppearance
-            )
-
-            DrawerMenuItem(
-                icon = Icons.Outlined.LibraryBooks,
-                title = "Library",
-                subtitle = "$bookCount books",
-                onClick = onLibrary
-            )
-        }
-    }
-}
-
-@Composable
-private fun DrawerMenuItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        color = Color.Transparent
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = RezonCyan,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = RezonOnSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                Icons.Default.MoreVert,
-                contentDescription = null,
-                tint = RezonOnSurfaceVariant,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-    }
-}
-
-/**
  * Books content grid/list
  */
 @Composable
@@ -915,7 +830,7 @@ private fun BooksContent(
     } else if (isGridView) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(if (useCompactCovers) 3 else 2),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(if (useCompactCovers) 8.dp else 12.dp),
             verticalArrangement = Arrangement.spacedBy(if (useCompactCovers) 10.dp else 14.dp)
         ) {
@@ -930,7 +845,7 @@ private fun BooksContent(
         }
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(books, key = { it.id }) { book ->
@@ -997,7 +912,7 @@ private fun BookGridItem(
                     }
                 }
 
-                // 3-dot menu - positioned better, more transparent
+                // 3-dot menu - more transparent
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
