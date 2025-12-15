@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.rezon.ui.MainLayout
 import com.example.rezon.ui.screens.SplashScreen
@@ -20,22 +21,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val themeViewModel: ThemeViewModel = hiltViewModel()
-            val currentTheme by themeViewModel.currentTheme
+            val currentThemeOption by themeViewModel.currentTheme
 
-            var showSplash by remember { mutableStateOf(true) }
-
-            // Dynamic Theme Application
+            // Apply the selected theme to the MaterialTheme
             MaterialTheme(
                 colorScheme = darkColorScheme(
-                    primary = currentTheme.primary,
+                    primary = currentThemeOption.primary,
+                    secondary = Color.Gray,
                     background = RezonBlack,
-                    surface = RezonSurface
+                    surface = RezonSurface,
+                    onBackground = Color.White,
+                    onSurface = Color.White
                 )
             ) {
+                var showSplash by remember { mutableStateOf(true) }
+
                 if (showSplash) {
                     SplashScreen(onAnimationFinished = { showSplash = false })
                 } else {
-                    MainLayout()
+                    MainLayout(themeViewModel = themeViewModel)
                 }
             }
         }
