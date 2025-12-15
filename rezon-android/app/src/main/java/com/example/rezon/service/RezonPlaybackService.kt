@@ -52,7 +52,7 @@ class RezonPlaybackService : MediaSessionService() {
                 customCommand: SessionCommand,
                 args: Bundle
             ): ListenableFuture<SessionResult> {
-                if (customCommand.commandCode == CUSTOM_COMMAND_SKIP_30) {
+                if (customCommand.customAction == CUSTOM_COMMAND_SKIP_30) {
                     player.seekTo(player.currentPosition + 30_000)
                     return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
