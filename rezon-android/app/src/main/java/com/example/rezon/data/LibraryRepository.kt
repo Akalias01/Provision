@@ -2,12 +2,12 @@ package com.example.rezon.data
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
-import android.os.Environment
 import android.provider.MediaStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 
 class LibraryRepository @Inject constructor(
@@ -48,17 +48,46 @@ class LibraryRepository @Inject constructor(
 
                 // Simple filter to ignore short notification sounds (< 1 min)
                 if (duration > 60_000) {
+                    // Extract cover art from embedded metadata
+                    val coverPath = extractCoverArt(path)
+
                     val book = Book(
                         id = path,
                         title = title,
                         author = artist,
-                        coverUrl = null, // In real app, extract embedded art
+                        coverUrl = coverPath,
                         filePath = path,
                         duration = duration
                     )
                     bookDao.insertBook(book)
                 }
             }
+        }
+    }
+
+    /**
+     * Extracts embedded cover art from an audio file and caches it to internal storage.
+     * Returns the file path to the cached image, or null if no art is found.
+     */
+    private fun extractCoverArt(audioPath: String): String? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(audioPath)
+            val artBytes = retriever.embeddedPicture ?: return null
+
+            // Cache cover art to app's internal storage
+            val fileName = "cover_${audioPath.hashCode()}.jpg"
+            val file = File(context.filesDir, fileName)
+
+            // Only write if not already cached
+            if (!file.exists()) {
+                FileOutputStream(file).use { it.write(artBytes) }
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            null
+        } finally {
+            retriever.release()
         }
     }
 }
