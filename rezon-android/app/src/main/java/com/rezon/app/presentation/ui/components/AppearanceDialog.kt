@@ -41,25 +41,60 @@ data class SplashAnimation(
 )
 
 val themePresets = listOf(
+    // Row 1 - Classic themes
     ThemePreset(
-        name = "Classic",
-        colors = listOf(Color(0xFF7F00FF), Color(0xFFEC4899)),
-        id = "classic"
-    ),
-    ThemePreset(
-        name = "Modern",
+        name = "Cyber Cyan",
         colors = listOf(Color(0xFF00E5FF), Color(0xFF0066FF)),
-        id = "modern"
+        id = "cyber_cyan"
     ),
     ThemePreset(
-        name = "Basic",
-        colors = listOf(Color(0xFF64748B), Color(0xFF475569)),
-        id = "basic"
+        name = "Neon Purple",
+        colors = listOf(Color(0xFF7F00FF), Color(0xFFEC4899)),
+        id = "neon_purple"
     ),
+    // Row 2 - Neon themes
+    ThemePreset(
+        name = "Hot Pink",
+        colors = listOf(Color(0xFFFF1493), Color(0xFFFF69B4)),
+        id = "hot_pink"
+    ),
+    ThemePreset(
+        name = "Electric Lime",
+        colors = listOf(Color(0xFF00FF41), Color(0xFF39FF14)),
+        id = "electric_lime"
+    ),
+    // Row 3 - Cyberpunk themes
+    ThemePreset(
+        name = "Synthwave",
+        colors = listOf(Color(0xFFFF00FF), Color(0xFF00FFFF)),
+        id = "synthwave"
+    ),
+    ThemePreset(
+        name = "Matrix",
+        colors = listOf(Color(0xFF00FF00), Color(0xFF003300)),
+        id = "matrix"
+    ),
+    // Row 4 - Traditional themes
+    ThemePreset(
+        name = "Ocean Blue",
+        colors = listOf(Color(0xFF0077B6), Color(0xFF023E8A)),
+        id = "ocean_blue"
+    ),
+    ThemePreset(
+        name = "Sunset",
+        colors = listOf(Color(0xFFFF6B35), Color(0xFFF7C59F)),
+        id = "sunset"
+    ),
+    // Row 5 - Dark themes
     ThemePreset(
         name = "Steampunk",
         colors = listOf(Color(0xFFF59E0B), Color(0xFF92400E)),
         id = "steampunk"
+    ),
+    ThemePreset(
+        name = "Minimal",
+        colors = listOf(Color(0xFF64748B), Color(0xFF475569)),
+        id = "minimal"
     )
 )
 
@@ -148,33 +183,28 @@ fun AppearanceDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                // Display all themes in a scrollable 2-column grid
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    themePresets.take(2).forEach { preset ->
-                        ThemePresetCard(
-                            preset = preset,
-                            isSelected = currentTheme == preset.id,
-                            onClick = { onThemeSelected(preset.id) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    themePresets.drop(2).forEach { preset ->
-                        ThemePresetCard(
-                            preset = preset,
-                            isSelected = currentTheme == preset.id,
-                            onClick = { onThemeSelected(preset.id) },
-                            modifier = Modifier.weight(1f)
-                        )
+                    themePresets.chunked(2).forEach { rowPresets ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowPresets.forEach { preset ->
+                                ThemePresetCard(
+                                    preset = preset,
+                                    isSelected = currentTheme == preset.id,
+                                    onClick = { onThemeSelected(preset.id) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            // Fill empty space if odd number
+                            if (rowPresets.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
 

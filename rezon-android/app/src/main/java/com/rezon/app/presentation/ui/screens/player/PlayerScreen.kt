@@ -103,6 +103,7 @@ import com.rezon.app.presentation.ui.components.PlaybackSpeedDialog
 import com.rezon.app.presentation.ui.components.SleepTimerDialog as NewSleepTimerDialog
 import com.rezon.app.presentation.ui.theme.*
 import com.rezon.app.presentation.viewmodel.PlayerViewModel
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.material3.LinearProgressIndicator
@@ -330,7 +331,17 @@ fun PlayerScreen(
                 onEqualizer = onNavigateToEqualizer,
                 onSleepTimer = { showSleepTimerDialog = true },
                 onPlaybackSpeed = { showSpeedDialog = true },
-                onShare = { /* TODO: Share functionality */ },
+                onShare = {
+                    val book = uiState.book
+                    if (book != null) {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "Check out this audiobook!")
+                            putExtra(Intent.EXTRA_TEXT, "I'm listening to \"${book.title}\" by ${book.author} on REZON - Audiobooks Reimagined!")
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share via"))
+                    }
+                },
                 onBookInfo = { /* TODO: Book info dialog */ }
             )
 

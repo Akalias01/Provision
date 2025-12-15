@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,7 +43,8 @@ fun AddBooksDialog(
     onDismiss: () -> Unit,
     onAddFromDevice: () -> Unit,
     onScanFolder: () -> Unit,
-    onImportFromCloud: () -> Unit
+    onImportFromCloud: () -> Unit,
+    onSelectFile: () -> Unit = onAddFromDevice
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -82,46 +84,40 @@ fun AddBooksDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Drag and drop area
-                Box(
+                // Select File Button
+                Button(
+                    onClick = onSelectFile,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp)
-                        .border(
-                            width = 2.dp,
-                            color = RezonSurfaceVariant,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .clip(RoundedCornerShape(16.dp))
-                        .clickable { onAddFromDevice() },
-                    contentAlignment = Alignment.Center
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = RezonCyan
+                    )
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Outlined.Upload,
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp),
-                            tint = RezonOnSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Drag and drop files or click to browse",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = RezonOnSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Supported formats: MP3, M4B, AAC, OGG,\nFLAC, WAV, EPUB, PDF",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = RezonOnSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    Icon(
+                        Icons.Outlined.FileOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Select File",
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Browse and select individual audiobook files",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = RezonOnSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Scan Folder Button
                 Button(
@@ -308,43 +304,48 @@ fun TorrentDownloadsDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Browse for Torrent Files section
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                // Browse for Torrent Files section - centered
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        Icons.Outlined.FolderOpen,
-                        contentDescription = null,
-                        tint = RezonCyan,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    // Large centered + button
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(RezonCyan)
+                            .clickable { onBrowseTorrentFiles() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add Torrent",
+                            tint = Color.Black,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     Text(
                         text = "Browse for Torrent Files",
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White
                     )
-                }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                OutlinedButton(
-                    onClick = onBrowseTorrentFiles,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    ),
-                    border = BorderStroke(1.dp, RezonSurfaceVariant)
-                ) {
-                    Icon(
-                        Icons.Outlined.FileOpen,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                    Text(
+                        text = "Select .torrent files from your device",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = RezonOnSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select .torrent Files")
                 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                HorizontalDivider(color = RezonSurfaceVariant)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -621,14 +622,14 @@ fun PlaybackSpeedDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.85f)
+                .fillMaxWidth(0.65f)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(20.dp),
             color = RezonSurface,
             tonalElevation = 8.dp
         ) {
             Column(
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier.padding(16.dp)
             ) {
                 // Header
                 Row(
@@ -637,60 +638,43 @@ fun PlaybackSpeedDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Playback Speed",
-                        style = MaterialTheme.typography.headlineSmall,
+                        text = "Speed",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = RezonOnSurfaceVariant
+                            tint = RezonOnSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Speed options grid
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Speed options - vertical scrollable list
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.heightIn(max = 280.dp)
                 ) {
-                    speeds.chunked(3).forEach { row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            row.forEach { speed ->
-                                SpeedChip(
-                                    speed = speed,
-                                    isSelected = currentSpeed == speed,
-                                    onClick = {
-                                        onSpeedSelected(speed)
-                                        onDismiss()
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                            // Fill remaining space if row has less than 3 items
-                            repeat(3 - row.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
+                    items(speeds) { speed ->
+                        SpeedChip(
+                            speed = speed,
+                            isSelected = currentSpeed == speed,
+                            onClick = {
+                                onSpeedSelected(speed)
+                                onDismiss()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Current speed display
-                Text(
-                    text = "Current: ${formatSpeed(currentSpeed)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = RezonOnSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
             }
         }
     }
@@ -898,14 +882,14 @@ fun SleepTimerDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.85f)
+                .fillMaxWidth(0.65f)
                 .wrapContentHeight(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(20.dp),
             color = RezonSurface,
             tonalElevation = 8.dp
         ) {
             Column(
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier.padding(16.dp)
             ) {
                 // Header
                 Row(
@@ -915,42 +899,46 @@ fun SleepTimerDialog(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         SleepTimerIcon(
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(22.dp),
                             tint = RezonCyan,
                             isActive = currentTimer != null
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Sleep Timer",
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     }
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = RezonOnSurfaceVariant
+                            tint = RezonOnSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
 
                 if (currentTimer != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "Timer active: ${currentTimer / 60} min remaining",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "Active: ${currentTimer / 60000} min left",
+                        style = MaterialTheme.typography.bodySmall,
                         color = RezonCyan
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Timer options
+                // Timer options - scrollable list
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 300.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.heightIn(max = 260.dp)
                 ) {
                     items(timerOptions) { (minutes, label) ->
                         TimerOptionItem(
@@ -978,26 +966,27 @@ fun SleepTimerDialog(
                     // Cancel timer option
                     if (currentTimer != null) {
                         item {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             OutlinedButton(
                                 onClick = {
                                     onTimerSelected(null)
                                     onDismiss()
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = RezonAccentRed
                                 ),
-                                border = BorderStroke(1.dp, RezonAccentRed)
+                                border = BorderStroke(1.dp, RezonAccentRed),
+                                contentPadding = PaddingValues(vertical = 10.dp)
                             ) {
                                 Icon(
                                     Icons.Default.Cancel,
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Cancel Timer")
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Cancel", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
@@ -1016,20 +1005,20 @@ private fun TimerOptionItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         color = if (isSelected) RezonCyan else RezonSurfaceVariant
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = if (isSelected) Color.Black else Color.White,
                 modifier = Modifier.weight(1f)
             )
@@ -1037,7 +1026,8 @@ private fun TimerOptionItem(
                 Icon(
                     Icons.Default.Check,
                     contentDescription = null,
-                    tint = Color.Black
+                    tint = Color.Black,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

@@ -226,9 +226,7 @@ fun LibraryScreen(
                     showSortMenu = showSortMenu,
                     onSortMenuToggle = { showSortMenu = it },
                     currentSortOption = sortOption,
-                    onSortOptionChange = { sortOption = it },
-                    onAddClick = { showAddBooksDialog = true },
-                    logoStyle = currentLogoStyle
+                    onSortOptionChange = { sortOption = it }
                 )
             },
             floatingActionButton = {
@@ -664,9 +662,7 @@ private fun LibraryTopBar(
     showSortMenu: Boolean,
     onSortMenuToggle: (Boolean) -> Unit,
     currentSortOption: SortOption,
-    onSortOptionChange: (SortOption) -> Unit,
-    onAddClick: () -> Unit,
-    logoStyle: LogoStyle
+    onSortOptionChange: (SortOption) -> Unit
 ) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
 
@@ -688,10 +684,11 @@ private fun LibraryTopBar(
                 )
             }
 
-            RezonLogo(
-                size = LogoSize.SMALL,
-                style = logoStyle,
-                showText = true
+            Text(
+                text = "Library",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -739,15 +736,6 @@ private fun LibraryTopBar(
                 Icon(
                     imageVector = if (isGridView) Icons.Default.ViewList else Icons.Default.GridView,
                     contentDescription = "Toggle View",
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-
-            IconButton(onClick = onAddClick) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add",
-                    tint = RezonCyan,
                     modifier = Modifier.size(26.dp)
                 )
             }
@@ -1009,7 +997,7 @@ private fun BookGridItem(
                     }
                 }
 
-                // 3-dot menu - positioned better
+                // 3-dot menu - positioned better, more transparent
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -1020,7 +1008,7 @@ private fun BookGridItem(
                         modifier = Modifier
                             .size(28.dp)
                             .background(
-                                Color.Black.copy(alpha = 0.6f),
+                                Color.Black.copy(alpha = 0.35f),
                                 CircleShape
                             )
                     ) {

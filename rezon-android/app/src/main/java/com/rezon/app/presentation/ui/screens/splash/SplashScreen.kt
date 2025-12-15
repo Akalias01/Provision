@@ -158,66 +158,64 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 3D Logo "R" integrated with "EZON"
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            // REZON Logo with neon glow effect
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .scale(logoScale.value)
                     .alpha(logoAlpha.value)
             ) {
-                // Stylized "R" with neon glow
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(80.dp)
-                ) {
-                    // Glow effect
-                    Text(
-                        text = "R",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 72.sp,
-                            fontWeight = FontWeight.Black
-                        ),
-                        color = RezonPurple.copy(alpha = 0.5f),
-                        modifier = Modifier
-                            .blur(16.dp)
-                            .offset(x = 2.dp, y = 2.dp)
-                    )
-                    // Main R
-                    Text(
-                        text = "R",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = 72.sp,
-                            fontWeight = FontWeight.Black
-                        ),
-                        color = RezonPurple
-                    )
-                }
-
-                // "EZON" text
+                // Glow effect behind text
                 Text(
-                    text = "EZON",
+                    text = "REZON",
                     style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 56.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 4.sp
+                        fontSize = 64.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.sp
                     ),
-                    color = Color.White,
+                    color = RezonCyan.copy(alpha = 0.4f),
+                    modifier = Modifier
+                        .blur(20.dp)
+                        .offset(x = 2.dp, y = 2.dp)
+                )
+                // Main REZON text
+                Text(
+                    text = "REZON",
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 64.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 6.sp
+                    ),
+                    color = RezonCyan,
                     modifier = Modifier.alpha(textAlpha.value)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tagline
-            Text(
-                text = "AUDIOBOOKS REIMAGINED",
-                style = MaterialTheme.typography.labelLarge.copy(
-                    letterSpacing = 6.sp,
-                    fontWeight = FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Tagline - Two lines
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.alpha(taglineAlpha.value)
-            )
+            ) {
+                Text(
+                    text = "AUDIOBOOKS REIMAGINED",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        letterSpacing = 4.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Every Word Resonates",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        letterSpacing = 2.sp,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    color = RezonCyan
+                )
+            }
         }
     }
 }

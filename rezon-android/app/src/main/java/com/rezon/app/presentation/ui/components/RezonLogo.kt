@@ -77,10 +77,10 @@ fun RezonLogo(
     }
 
     val spacing = when (size) {
-        LogoSize.SMALL -> 6.dp
-        LogoSize.MEDIUM -> 8.dp
-        LogoSize.LARGE -> 10.dp
-        LogoSize.XLARGE -> 14.dp
+        LogoSize.SMALL -> 4.dp
+        LogoSize.MEDIUM -> 5.dp
+        LogoSize.LARGE -> 6.dp
+        LogoSize.XLARGE -> 8.dp
     }
 
     Row(
@@ -97,13 +97,13 @@ fun RezonLogo(
         if (showText) {
             Spacer(modifier = Modifier.width(spacing))
 
-            // "EZON" text (R is in the icon, so just EZON)
+            // "REZON" text - themed with cyan to match logo
             Text(
-                text = "EZON",
+                text = "REZON",
                 fontSize = textSize,
                 fontWeight = FontWeight.Black,
                 letterSpacing = letterSpacing,
-                color = Color.White
+                color = RezonCyan
             )
         }
     }
@@ -444,14 +444,14 @@ fun RezonFullLogo(
             animated = animated
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
         Text(
             text = "REZON",
             fontSize = textSize,
             fontWeight = FontWeight.Black,
             letterSpacing = 3.sp,
-            color = Color.White
+            color = RezonCyan
         )
     }
 }
