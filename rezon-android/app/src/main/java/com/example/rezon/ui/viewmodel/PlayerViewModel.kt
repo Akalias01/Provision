@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.rezon.data.AudioServiceHandler
 import com.example.rezon.data.Book
 import com.example.rezon.data.BookDao
+import com.example.rezon.data.MetadataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val audioHandler: AudioServiceHandler,
-    private val bookDao: BookDao
+    private val bookDao: BookDao,
+    private val metadataRepository: MetadataRepository
 ) : ViewModel() {
 
     // Current Book State
@@ -55,6 +57,16 @@ class PlayerViewModel @Inject constructor(
             audioHandler.seekTo(book.progress)
         }
         audioHandler.play()
+
+        // INTELLIGENCE UPGRADE:
+        // If the book has no description, try to fetch it from the internet in the background
+        if (book.description.isNullOrBlank() || book.description == "No synopsis available.") {
+            viewModelScope.launch {
+                metadataRepository.fetchAndSaveMetadata(book)
+                // Reload book from DB to show new info
+                // (In a real app, we'd observe the Flow from DB, but this works for now)
+            }
+        }
     }
 
     private fun startPositionTracker() {
