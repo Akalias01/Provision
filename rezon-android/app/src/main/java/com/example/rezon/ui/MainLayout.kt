@@ -86,6 +86,21 @@ fun MainLayout(
                         currentThemeColor = currentThemeOption.primary
                     )
                 }
+                composable("player") {
+                    // Optional: Player can also be accessed via navigation route
+                    PlayerScreen(
+                        onBack = { navController.popBackStack() },
+                        currentThemeColor = currentThemeOption.primary,
+                        onTogglePlayPause = { playerViewModel.togglePlayPause() },
+                        onSkipForward = { playerViewModel.skipForward() },
+                        onSkipBackward = { playerViewModel.skipBackward() },
+                        onCycleSpeed = { playerViewModel.cyclePlaybackSpeed() },
+                        onSleepTimerClick = { /* TODO */ },
+                        onEqualizerClick = { /* TODO */ },
+                        onChapterClick = { /* TODO */ },
+                        onMoreOptionsClick = { /* TODO */ }
+                    )
+                }
                 composable("settings") {
                     SettingsScreen(onBack = { navController.popBackStack() })
                 }
