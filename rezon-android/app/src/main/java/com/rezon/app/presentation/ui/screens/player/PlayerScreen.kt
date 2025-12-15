@@ -125,6 +125,12 @@ fun PlayerScreen(
     var isSeeking by remember { mutableStateOf(false) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
+    // Horizontal swipe seek state
+    var isHorizontalSeeking by remember { mutableStateOf(false) }
+    var seekPreviewPosition by remember { mutableStateOf(0L) }
+    var seekStartPosition by remember { mutableStateOf(0L) }
+    var horizontalDragStartX by remember { mutableFloatStateOf(0f) }
+
     // Animation for play/pause ripple
     val rippleScale = remember { Animatable(0f) }
 
@@ -198,36 +204,63 @@ fun PlayerScreen(
                 )
             }
             .pointerInput(Unit) {
-                // Edge swipe gestures for brightness/volume
+                // Edge swipe gestures for brightness/volume AND horizontal seek
                 detectDragGestures(
                     onDragStart = { offset ->
                         when {
+                            // Left edge - brightness
                             offset.x < edgeZoneWidth -> showBrightnessIndicator = true
+                            // Right edge - volume
                             offset.x > containerSize.width - edgeZoneWidth -> showVolumeIndicator = true
+                            // Center area - horizontal seek
+                            else -> {
+                                isHorizontalSeeking = true
+                                seekStartPosition = uiState.currentPosition
+                                seekPreviewPosition = uiState.currentPosition
+                                horizontalDragStartX = offset.x
+                            }
                         }
                     },
                     onDragEnd = {
+                        if (isHorizontalSeeking) {
+                            // Commit the seek
+                            viewModel.seekTo(seekPreviewPosition)
+                        }
                         showBrightnessIndicator = false
                         showVolumeIndicator = false
+                        isHorizontalSeeking = false
                     },
                     onDragCancel = {
                         showBrightnessIndicator = false
                         showVolumeIndicator = false
+                        isHorizontalSeeking = false
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
-                        val changeAmount = -dragAmount.y / containerSize.height * 2
 
                         when {
                             // Left edge - Brightness control
                             showBrightnessIndicator -> {
+                                val changeAmount = -dragAmount.y / containerSize.height * 2
                                 brightnessLevel = (brightnessLevel + changeAmount).coerceIn(0f, 1f)
                                 viewModel.setBrightness(brightnessLevel)
                             }
                             // Right edge - Volume control
                             showVolumeIndicator -> {
+                                val changeAmount = -dragAmount.y / containerSize.height * 2
                                 volumeLevel = (volumeLevel + changeAmount).coerceIn(0f, 1f)
                                 viewModel.setVolume(volumeLevel)
+                            }
+                            // Horizontal swipe - Timeline seek
+                            isHorizontalSeeking && dragAmount.x.absoluteValue > dragAmount.y.absoluteValue -> {
+                                val duration = uiState.duration
+                                if (duration > 0) {
+                                    // 1 full swipe across screen = 2 minutes of seeking
+                                    val seekSensitivity = 120_000L // 2 minutes per screen width
+                                    val seekDelta = (dragAmount.x / containerSize.width) * seekSensitivity
+                                    seekPreviewPosition = (seekPreviewPosition + seekDelta.toLong())
+                                        .coerceIn(0L, duration)
+                                }
                             }
                         }
                     }
@@ -375,6 +408,109 @@ fun PlayerScreen(
                 .align(Alignment.CenterEnd)
                 .padding(end = 16.dp)
         )
+
+        // Seek Preview Overlay (horizontal swipe)
+        SeekPreviewOverlay(
+            visible = isHorizontalSeeking,
+            currentPosition = uiState.currentPosition,
+            seekPosition = seekPreviewPosition,
+            duration = uiState.duration,
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
+}
+
+/**
+ * Seek preview overlay for horizontal swipe
+ */
+@Composable
+private fun SeekPreviewOverlay(
+    visible: Boolean,
+    currentPosition: Long,
+    seekPosition: Long,
+    duration: Long,
+    modifier: Modifier = Modifier
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+        modifier = modifier
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .background(
+                    Color.Black.copy(alpha = 0.85f),
+                    RoundedCornerShape(16.dp)
+                )
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            // Preview time
+            Text(
+                text = formatTime(seekPosition),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Time difference
+            val diff = seekPosition - currentPosition
+            val diffText = if (diff >= 0) "+${formatTime(diff)}" else "-${formatTime(-diff)}"
+            val diffColor = if (diff >= 0) RezonPurple else RezonAccentPink
+            Text(
+                text = diffText,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = diffColor
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Progress bar preview
+            Box(
+                modifier = Modifier
+                    .width(200.dp)
+                    .height(4.dp)
+                    .background(ProgressTrack, RoundedCornerShape(2.dp))
+            ) {
+                if (duration > 0) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth((seekPosition.toFloat() / duration).coerceIn(0f, 1f))
+                            .height(4.dp)
+                            .background(ProgressFill, RoundedCornerShape(2.dp))
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Total duration
+            Text(
+                text = "/ ${formatTime(duration)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+/**
+ * Format milliseconds to HH:MM:SS or MM:SS
+ */
+private fun formatTime(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%d:%02d", minutes, seconds)
     }
 }
 

@@ -28,6 +28,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.rezon.app.presentation.ui.screens.equalizer.EqualizerScreen
 import com.rezon.app.presentation.ui.screens.library.LibraryScreen
 import com.rezon.app.presentation.ui.screens.player.PlayerScreen
 import com.rezon.app.presentation.ui.screens.settings.SettingsScreen
@@ -104,6 +105,14 @@ fun AppNavigation(
         // Settings Screen - App configuration
         composable(Route.Settings.route) {
             SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEqualizer = { navController.navigate(Route.Equalizer.route) }
+            )
+        }
+
+        // Equalizer Screen - Audio equalizer
+        composable(Route.Equalizer.route) {
+            EqualizerScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

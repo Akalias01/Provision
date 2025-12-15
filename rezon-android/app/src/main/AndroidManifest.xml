@@ -107,7 +107,7 @@
 
         <!-- Media Playback Service -->
         <service
-            android:name=".data.service.RezonPlaybackService"
+            android:name=".service.PlaybackService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback"
             tools:ignore="ExportedService">

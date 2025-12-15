@@ -78,6 +78,7 @@ import com.rezon.app.presentation.viewmodel.SettingsViewModel
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToEqualizer: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -194,7 +195,7 @@ fun SettingsScreen(
                         icon = Icons.Default.Equalizer,
                         title = "Equalizer",
                         subtitle = "5-band audio equalizer",
-                        onClick = { /* TODO: Open equalizer */ }
+                        onClick = onNavigateToEqualizer
                     )
                     SwitchSettingItem(
                         icon = Icons.Default.Headphones,

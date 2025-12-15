@@ -53,6 +53,25 @@ sealed class Route(val route: String, val title: String) {
     )
 
     /**
+     * Equalizer - Audio equalizer settings
+     */
+    data object Equalizer : Route(
+        route = "equalizer",
+        title = "Equalizer"
+    )
+
+    /**
+     * Bookmarks - Bookmark management for a book
+     */
+    data object Bookmarks : Route(
+        route = "bookmarks/{bookId}",
+        title = "Bookmarks"
+    ) {
+        fun createRoute(bookId: String) = "bookmarks/$bookId"
+        const val ARG_BOOK_ID = "bookId"
+    }
+
+    /**
      * Folders - Manage folders to scan
      */
     data object Folders : Route(
@@ -72,6 +91,8 @@ sealed class Route(val route: String, val title: String) {
                 route == Torrents.route -> Torrents
                 route == Cloud.route -> Cloud
                 route == Settings.route -> Settings
+                route == Equalizer.route -> Equalizer
+                route.startsWith("bookmarks/") -> Bookmarks
                 route == Folders.route -> Folders
                 else -> Library
             }
