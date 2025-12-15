@@ -1,65 +1,29 @@
 package com.example.rezon.data
 
 import com.example.rezon.data.remote.GoogleBooksApi
-import com.example.rezon.data.remote.VolumeInfo
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-/**
- * Repository for fetching rich metadata from Google Books API
- */
 class MetadataRepository @Inject constructor(
-    private val googleBooksApi: GoogleBooksApi,
+    private val api: GoogleBooksApi,
     private val bookDao: BookDao
 ) {
-
-    /**
-     * Fetches metadata for a book from Google Books API and updates the database
-     */
-    suspend fun fetchAndUpdateMetadata(book: Book): Book? = withContext(Dispatchers.IO) {
+    suspend fun fetchAndSaveMetadata(book: Book) {
         try {
-            // Search by title and author for best results
-            val query = buildSearchQuery(book.title, book.author)
-            val response = googleBooksApi.searchBooks(query)
+            // Search by Title + Author for accuracy
+            val query = "intitle:${book.title}+inauthor:${book.author}"
+            val response = api.searchBooks(query)
 
-            val bestMatch = response.items?.firstOrNull()?.volumeInfo
-            if (bestMatch != null) {
+            response.items?.firstOrNull()?.volumeInfo?.let { info ->
+                // We found a match! Update the local database.
                 val updatedBook = book.copy(
-                    description = bestMatch.description,
-                    series = bestMatch.subtitle, // Subtitle often contains series info
-                    categories = bestMatch.categories?.joinToString(", ")
+                    description = info.description ?: "No synopsis available.",
+                    series = info.subtitle ?: info.categories?.joinToString() ?: "Unknown Series"
                 )
                 bookDao.updateBook(updatedBook)
-                return@withContext updatedBook
             }
-            null
         } catch (e: Exception) {
             e.printStackTrace()
-            null
-        }
-    }
-
-    /**
-     * Fetches metadata for all books that don't have descriptions yet
-     */
-    suspend fun fetchMetadataForLibrary(books: List<Book>) = withContext(Dispatchers.IO) {
-        books.filter { it.description.isNullOrBlank() }
-            .forEach { book ->
-                fetchAndUpdateMetadata(book)
-            }
-    }
-
-    private fun buildSearchQuery(title: String, author: String): String {
-        val cleanTitle = title
-            .replace(Regex("\\[.*?]"), "") // Remove brackets content
-            .replace(Regex("\\(.*?\\)"), "") // Remove parentheses content
-            .trim()
-
-        return if (author.isNotBlank() && author != "Unknown Author") {
-            "intitle:$cleanTitle+inauthor:$author"
-        } else {
-            "intitle:$cleanTitle"
+            // Fail silently, keep existing data
         }
     }
 }
