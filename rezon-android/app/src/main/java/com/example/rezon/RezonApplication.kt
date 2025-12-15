@@ -1,4 +1,4 @@
-package com.rezon.app
+package com.example.rezon
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
