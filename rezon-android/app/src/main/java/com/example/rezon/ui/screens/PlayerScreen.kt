@@ -1,70 +1,90 @@
 package com.example.rezon.ui.screens
 
+import android.app.Activity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.rezon.ui.viewmodel.PlayerViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
-    onBack: () -> Unit = {},
-    currentThemeColor: Color = MaterialTheme.colorScheme.primary,
-    onTogglePlayPause: () -> Unit = {},
-    onSkipForward: () -> Unit = {},
-    onSkipBackward: () -> Unit = {},
-    onCycleSpeed: () -> Unit = {},
-    onSleepTimerClick: () -> Unit = {},
-    onEqualizerClick: () -> Unit = {},
-    onChapterClick: () -> Unit = {},
-    onMoreOptionsClick: () -> Unit = {},
+    onBack: () -> Unit,
+    currentThemeColor: Color,
+    onTogglePlayPause: () -> Unit,
+    onSkipForward: () -> Unit,
+    onSkipBackward: () -> Unit,
+    onCycleSpeed: () -> Unit,
+    onSleepTimerClick: () -> Unit,
+    onEqualizerClick: () -> Unit,
+    onChapterClick: () -> Unit,
+    onMoreOptionsClick: () -> Unit,
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val book = viewModel.demoBook
     val isPlaying by viewModel.isPlaying.collectAsState()
     val speed by viewModel.playbackSpeed.collectAsState()
-    val isServiceConnected by viewModel.isServiceConnected.collectAsState()
+    val currentPos by viewModel.currentPosition.collectAsState()
+    val duration by viewModel.duration.collectAsState()
 
-    var showMetadataSheet by remember { mutableStateOf(false) }
-
-    if (showMetadataSheet) {
-        ModalBottomSheet(onDismissRequest = { showMetadataSheet = false }) {
-            Column(Modifier.padding(16.dp)) {
-                Text(text = "Synopsis", style = MaterialTheme.typography.titleMedium)
-                Text(text = book.synopsis, style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(16.dp))
-                Text(text = "Series Info", style = MaterialTheme.typography.titleMedium)
-                Text(text = book.seriesInfo, style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(32.dp))
-            }
-        }
+    // Status Bar Styling
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        val window = (context as Activity).window
+        window.statusBarColor = Color.Black.toArgb()
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        // Background Gradient Layer
+        AsyncImage(
+            model = book.coverUrl,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize().alpha(0.3f),
+            contentScale = ContentScale.Crop
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Black)
+                    )
+                )
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp),
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Row with Back, Speed, and More Options
+            // Top Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -72,157 +92,161 @@ fun PlayerScreen(
             ) {
                 IconButton(onClick = onBack) {
                     Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Minimize",
-                        tint = Color.White
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Back",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
-
-                TextButton(onClick = { onCycleSpeed(); viewModel.cyclePlaybackSpeed() }, enabled = isServiceConnected) {
-                    Text(text = "${speed}x", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = currentThemeColor)
-                }
-
-                IconButton(onClick = { showMetadataSheet = true }) {
-                    Icon(imageVector = Icons.Default.Info, contentDescription = "Info", tint = Color.White)
+                Text("Now Playing", color = Color.Gray)
+                IconButton(onClick = onMoreOptionsClick) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Color.White)
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Cover Art with Gesture Detection
+            // Large Cover Art with Gestures
             Box(
                 modifier = Modifier
-                    .size(300.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.LightGray)
-                    .pointerInput(isServiceConnected) {
-                        if (isServiceConnected) {
-                            detectTapGestures(
-                                onTap = {
-                                    onTogglePlayPause()
-                                    viewModel.togglePlayPause()
-                                },
-                                onDoubleTap = { offset ->
-                                    if (offset.x < size.width / 2) {
-                                        onSkipBackward()
-                                        viewModel.skipBackward()
-                                    } else {
-                                        onSkipForward()
-                                        viewModel.skipForward()
-                                    }
-                                }
-                            )
-                        }
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.DarkGray)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onDoubleTap = { offset ->
+                                val width = size.width
+                                if (offset.x < width / 2) onSkipBackward() else onSkipForward()
+                            },
+                            onTap = { onTogglePlayPause() }
+                        )
                     }
             ) {
                 AsyncImage(
                     model = book.coverUrl,
-                    contentDescription = "Cover Art",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    contentDescription = "Cover",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Book Info
-            Text(text = book.title, style = MaterialTheme.typography.headlineMedium, color = Color.White)
-            Text(text = book.author, style = MaterialTheme.typography.bodyLarge, color = currentThemeColor)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Chapter Info (clickable)
-            TextButton(onClick = onChapterClick) {
+            // Title & Author
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Chapter 1 of ${book.chapterMarkers.size}",
-                    color = Color.Gray,
-                    fontSize = 14.sp
+                    book.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
                 )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(book.author, style = MaterialTheme.typography.bodyLarge, color = currentThemeColor)
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // Quick Actions Row
+            // Seek Bar
+            Slider(
+                value = if (duration > 0) currentPos.toFloat() / duration else 0f,
+                onValueChange = { /* TODO: Implement seekTo based on progress */ },
+                colors = SliderDefaults.colors(
+                    thumbColor = currentThemeColor,
+                    activeTrackColor = currentThemeColor,
+                    inactiveTrackColor = Color.DarkGray
+                )
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = onSleepTimerClick) {
-                    Icon(Icons.Default.Timer, contentDescription = "Sleep Timer", tint = Color.Gray)
-                }
-                IconButton(onClick = onEqualizerClick) {
-                    Icon(Icons.Default.Equalizer, contentDescription = "Equalizer", tint = Color.Gray)
-                }
-                IconButton(onClick = onMoreOptionsClick) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More Options", tint = Color.Gray)
-                }
+                Text(formatTime(currentPos), color = Color.Gray, fontSize = 12.sp)
+                Text(formatTime(duration), color = Color.Gray, fontSize = 12.sp)
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Main Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = { onSkipBackward(); viewModel.skipBackward() },
-                    modifier = Modifier.size(64.dp),
-                    enabled = isServiceConnected
-                ) {
+                IconButton(onClick = onSkipBackward, modifier = Modifier.size(56.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Replay10,
-                        contentDescription = "-10s",
-                        modifier = Modifier.size(36.dp),
-                        tint = if (isServiceConnected) Color.White else Color.Gray
+                        Icons.Default.Replay10,
+                        contentDescription = "-10",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                IconButton(
-                    onClick = { onTogglePlayPause(); viewModel.togglePlayPause() },
-                    modifier = Modifier.size(96.dp),
-                    enabled = isServiceConnected
+                // Play/Pause Button
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(if (isPlaying) Color(0xFFFF2020) else currentThemeColor)
+                        .clickable { onTogglePlayPause() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Default.PauseCircleFilled else Icons.Default.PlayCircleFilled,
-                        contentDescription = "Play/Pause",
-                        modifier = Modifier.size(80.dp),
-                        tint = if (isServiceConnected) currentThemeColor else Color.Gray
+                        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = "Toggle",
+                        tint = Color.Black,
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
-
-                IconButton(
-                    onClick = { onSkipForward(); viewModel.skipForward() },
-                    modifier = Modifier.size(64.dp),
-                    enabled = isServiceConnected
-                ) {
+                IconButton(onClick = onSkipForward, modifier = Modifier.size(56.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Forward30,
-                        contentDescription = "+30s",
-                        modifier = Modifier.size(36.dp),
-                        tint = if (isServiceConnected) Color.White else Color.Gray
+                        Icons.Default.Forward30,
+                        contentDescription = "+30",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
-        }
+            Spacer(modifier = Modifier.height(40.dp))
 
-        // Loading Overlay
-        if (!isServiceConnected) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
+            // Bottom Tools (Speed, Sleep, EQ, Chapters)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                CircularProgressIndicator(color = currentThemeColor)
+                BottomTool(Icons.Default.Speed, "${speed}x", currentThemeColor) { onCycleSpeed() }
+                BottomTool(Icons.Rounded.Timer, "Sleep", currentThemeColor) { onSleepTimerClick() }
+                BottomTool(Icons.Rounded.Equalizer, "EQ", currentThemeColor) { onEqualizerClick() }
+                BottomTool(Icons.Default.List, "Chapters", currentThemeColor) { onChapterClick() }
             }
+            Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+private fun BottomTool(icon: ImageVector, label: String, accentColor: Color, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(label, color = Color.Gray, fontSize = 12.sp)
+    }
+}
+
+private fun formatTime(ms: Long): String {
+    if (ms < 0) return "00:00"
+    val totalSeconds = ms / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        "%d:%02d:%02d".format(hours, minutes, seconds)
+    } else {
+        "%02d:%02d".format(minutes, seconds)
     }
 }

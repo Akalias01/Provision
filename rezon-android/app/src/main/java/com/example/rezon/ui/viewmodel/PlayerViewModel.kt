@@ -1,16 +1,10 @@
 package com.example.rezon.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.rezon.data.AudioServiceHandler
 import com.example.rezon.data.Book
 import com.example.rezon.data.ChapterMarker
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,28 +31,14 @@ class PlayerViewModel @Inject constructor(
     val isServiceConnected = audioHandler.isServiceConnected
     val isPlaying = audioHandler.isPlaying
     val playbackSpeed = audioHandler.playbackSpeed
-
-    private val _currentPosition = MutableStateFlow(0L)
-    val currentPosition = _currentPosition.asStateFlow()
+    val currentPosition = audioHandler.currentPosition
+    val duration = audioHandler.duration
 
     private var lastPauseTime: Long = 0L
 
     init {
         // This will now queue correctly if service isn't ready
         audioHandler.loadBook(demoBook)
-        startPositionTracker()
-    }
-
-    private fun startPositionTracker() {
-        viewModelScope.launch {
-            while (isActive) {
-                // Only poll if connected
-                if (isServiceConnected.value) {
-                    _currentPosition.value = audioHandler.getCurrentPosition()
-                }
-                delay(1000)
-            }
-        }
     }
 
     fun togglePlayPause() {
