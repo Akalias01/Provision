@@ -32,6 +32,7 @@ import com.rezon.app.presentation.ui.screens.equalizer.EqualizerScreen
 import com.rezon.app.presentation.ui.screens.library.LibraryScreen
 import com.rezon.app.presentation.ui.screens.player.PlayerScreen
 import com.rezon.app.presentation.ui.screens.settings.SettingsScreen
+import com.rezon.app.presentation.ui.screens.torrent.TorrentScreen
 import com.rezon.app.presentation.ui.theme.RezonPurple
 
 /**
@@ -117,12 +118,10 @@ fun AppNavigation(
             )
         }
 
-        // Torrents Screen - Download manager (placeholder)
+        // Torrents Screen - Download manager with circular progress
         composable(Route.Torrents.route) {
-            PlaceholderScreen(
-                title = "Downloads",
-                subtitle = "Torrent Manager - Coming Soon",
-                icon = Icons.Default.Download
+            TorrentScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

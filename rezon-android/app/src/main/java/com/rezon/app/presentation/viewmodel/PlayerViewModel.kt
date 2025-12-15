@@ -3,6 +3,7 @@ package com.rezon.app.presentation.viewmodel
 import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rezon.app.data.repository.BookmarkRepository
 import com.rezon.app.domain.model.Book
 import com.rezon.app.domain.model.Bookmark
 import com.rezon.app.domain.model.BookFormat
@@ -52,11 +53,15 @@ data class PlayerUiState(
  */
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    private val playbackController: PlaybackController
+    private val playbackController: PlaybackController,
+    private val bookmarkRepository: BookmarkRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
+
+    // Current book ID for bookmark operations
+    private var currentBookId: String? = null
 
     // Timestamp of last pause for Smart Resume
     private var lastPauseTime: Long? = null
@@ -73,6 +78,9 @@ class PlayerViewModel @Inject constructor(
 
     // Sleep timer job
     private var sleepTimerJob: Job? = null
+
+    // Bookmark collection job
+    private var bookmarkCollectionJob: Job? = null
 
     init {
         // Connect to playback service
@@ -136,6 +144,11 @@ class PlayerViewModel @Inject constructor(
      * Load book data and prepare for playback
      */
     fun loadBook(bookId: String) {
+        currentBookId = bookId
+
+        // Start collecting bookmarks for this book
+        startBookmarkCollection(bookId)
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -186,6 +199,18 @@ class PlayerViewModel @Inject constructor(
                 author = mockBook.author,
                 startPosition = mockBook.currentPosition
             )
+        }
+    }
+
+    /**
+     * Start collecting bookmarks from database
+     */
+    private fun startBookmarkCollection(bookId: String) {
+        bookmarkCollectionJob?.cancel()
+        bookmarkCollectionJob = viewModelScope.launch {
+            bookmarkRepository.getBookmarksForBook(bookId).collect { bookmarks ->
+                _uiState.update { it.copy(bookmarks = bookmarks) }
+            }
         }
     }
 
@@ -363,6 +388,7 @@ class PlayerViewModel @Inject constructor(
      * Add bookmark at current position
      */
     fun addBookmark(note: String? = null) {
+        val bookId = currentBookId ?: return
         val currentPosition = _uiState.value.currentPosition
         val chapterIndex = _uiState.value.currentChapterIndex
         val newBookmark = Bookmark(
@@ -370,20 +396,30 @@ class PlayerViewModel @Inject constructor(
             note = note,
             chapterIndex = chapterIndex
         )
-        _uiState.update {
-            it.copy(bookmarks = it.bookmarks + newBookmark)
+        viewModelScope.launch {
+            bookmarkRepository.addBookmark(bookId, newBookmark)
         }
-        // TODO: Persist to database
+    }
+
+    /**
+     * Update bookmark note
+     */
+    fun updateBookmarkNote(bookmarkId: String, newNote: String) {
+        val bookId = currentBookId ?: return
+        val bookmark = _uiState.value.bookmarks.find { it.id == bookmarkId } ?: return
+        val updatedBookmark = bookmark.copy(note = newNote)
+        viewModelScope.launch {
+            bookmarkRepository.updateBookmark(bookId, updatedBookmark)
+        }
     }
 
     /**
      * Remove bookmark
      */
     fun removeBookmark(bookmarkId: String) {
-        _uiState.update {
-            it.copy(bookmarks = it.bookmarks.filter { b -> b.id != bookmarkId })
+        viewModelScope.launch {
+            bookmarkRepository.deleteBookmark(bookmarkId)
         }
-        // TODO: Remove from database
     }
 
     /**
@@ -405,6 +441,7 @@ class PlayerViewModel @Inject constructor(
         super.onCleared()
         stopPositionUpdates()
         sleepTimerJob?.cancel()
+        bookmarkCollectionJob?.cancel()
         playbackController.disconnect()
     }
 }
