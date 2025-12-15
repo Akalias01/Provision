@@ -1,5 +1,8 @@
 package com.rezon.app.presentation.ui.screens.settings
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Download
@@ -31,6 +35,7 @@ import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -82,6 +87,21 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Audio file picker for adding books from device
+    val audioFilePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.addBooksFromDevice(uris)
+            Toast.makeText(
+                context,
+                "Added ${uris.size} file(s) to library",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -131,6 +151,24 @@ fun SettingsScreen(
             // Library Section
             item {
                 SettingsSection(title = "LIBRARY") {
+                    ClickableSettingItem(
+                        icon = Icons.Default.AddCircle,
+                        title = "Add book from device",
+                        subtitle = "Select audiobook files from your device",
+                        onClick = {
+                            audioFilePicker.launch(arrayOf(
+                                "audio/mpeg",
+                                "audio/mp4",
+                                "audio/x-m4a",
+                                "audio/x-m4b",
+                                "audio/flac",
+                                "audio/ogg",
+                                "audio/wav",
+                                "application/epub+zip",
+                                "application/pdf"
+                            ))
+                        }
+                    )
                     SwitchSettingItem(
                         icon = Icons.Default.Folder,
                         title = "Scan folders on startup",
@@ -252,7 +290,7 @@ fun SettingsScreen(
                     ClickableSettingItem(
                         icon = Icons.Default.Info,
                         title = "About",
-                        subtitle = "REZON v1.0.0",
+                        subtitle = "REZON v2.0.1",
                         onClick = { /* TODO */ }
                     )
                 }

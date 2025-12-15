@@ -36,17 +36,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,13 +59,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -86,6 +92,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.rezon.app.domain.model.Bookmark
 import com.rezon.app.domain.model.Chapter
 import com.rezon.app.presentation.ui.theme.PlayerGradientEnd
 import com.rezon.app.presentation.ui.theme.PlayerGradientStart
@@ -127,6 +134,7 @@ fun PlayerScreen(
     // Chapter sheet and options menu state
     var showChaptersSheet by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
     val chaptersSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Gesture state
@@ -301,7 +309,7 @@ fun PlayerScreen(
                 onAddBookmark = { viewModel.addBookmark() },
                 onViewBookmarks = { onNavigateToBookmarks(bookId) },
                 onEqualizer = onNavigateToEqualizer,
-                onSleepTimer = { /* TODO: Show sleep timer dialog */ },
+                onSleepTimer = { showSleepTimerDialog = true },
                 onPlaybackSpeed = { viewModel.cyclePlaybackSpeed() },
                 onShare = { /* TODO: Share functionality */ },
                 onBookInfo = { /* TODO: Book info dialog */ }
@@ -439,73 +447,347 @@ fun PlayerScreen(
         )
     }
 
-    // Chapters Bottom Sheet
+    // Chapters & Bookmarks Bottom Sheet
     if (showChaptersSheet) {
         ModalBottomSheet(
             onDismissRequest = { showChaptersSheet = false },
             sheetState = chaptersSheetState,
             containerColor = MaterialTheme.colorScheme.surface
         ) {
-            ChaptersSheetContent(
+            ChaptersAndBookmarksSheet(
                 chapters = uiState.book?.chapters ?: emptyList(),
+                bookmarks = uiState.bookmarks,
                 currentChapterIndex = uiState.currentChapterIndex,
                 onChapterClick = { chapter ->
                     viewModel.seekTo(chapter.startTime)
                     showChaptersSheet = false
+                },
+                onBookmarkClick = { bookmark ->
+                    viewModel.goToBookmark(bookmark)
+                    showChaptersSheet = false
+                },
+                onDeleteBookmark = { bookmark ->
+                    viewModel.removeBookmark(bookmark.id)
                 }
+            )
+        }
+    }
+
+    // Sleep Timer Dialog
+    if (showSleepTimerDialog) {
+        SleepTimerDialog(
+            currentTimerRemaining = uiState.sleepTimerRemaining,
+            onSetTimer = { durationMs ->
+                viewModel.startSleepTimer(durationMs)
+                showSleepTimerDialog = false
+            },
+            onCancelTimer = {
+                viewModel.cancelSleepTimer()
+                showSleepTimerDialog = false
+            },
+            onDismiss = { showSleepTimerDialog = false }
+        )
+    }
+}
+
+/**
+ * Chapters and Bookmarks bottom sheet with tabs
+ */
+@Composable
+private fun ChaptersAndBookmarksSheet(
+    chapters: List<Chapter>,
+    bookmarks: List<Bookmark>,
+    currentChapterIndex: Int,
+    onChapterClick: (Chapter) -> Unit,
+    onBookmarkClick: (Bookmark) -> Unit,
+    onDeleteBookmark: (Bookmark) -> Unit
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Chapters", "Bookmarks")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp)
+    ) {
+        // Tab Row
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) {
+            tabs.forEachIndexed { index, title ->
+                val count = if (index == 0) chapters.size else bookmarks.size
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = {
+                        Text(
+                            text = "$title ($count)",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    selectedContentColor = RezonPurple,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Tab Content
+        when (selectedTab) {
+            0 -> ChaptersTabContent(
+                chapters = chapters,
+                currentChapterIndex = currentChapterIndex,
+                onChapterClick = onChapterClick
+            )
+            1 -> BookmarksTabContent(
+                bookmarks = bookmarks,
+                onBookmarkClick = onBookmarkClick,
+                onDeleteBookmark = onDeleteBookmark
             )
         }
     }
 }
 
 /**
- * Chapters bottom sheet content
+ * Chapters tab content
  */
 @Composable
-private fun ChaptersSheetContent(
+private fun ChaptersTabContent(
     chapters: List<Chapter>,
     currentChapterIndex: Int,
     onChapterClick: (Chapter) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 24.dp)
-    ) {
-        Text(
-            text = "Chapters",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-        )
-
-        HorizontalDivider()
-
-        if (chapters.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(48.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No chapters available",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+    if (chapters.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No chapters available",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.height(400.dp)
+        ) {
+            itemsIndexed(chapters) { index, chapter ->
+                ChapterItem(
+                    chapter = chapter,
+                    isCurrentChapter = index == currentChapterIndex,
+                    onClick = { onChapterClick(chapter) }
                 )
-            }
-        } else {
-            LazyColumn {
-                itemsIndexed(chapters) { index, chapter ->
-                    ChapterItem(
-                        chapter = chapter,
-                        isCurrentChapter = index == currentChapterIndex,
-                        onClick = { onChapterClick(chapter) }
-                    )
-                }
             }
         }
     }
+}
+
+/**
+ * Bookmarks tab content
+ */
+@Composable
+private fun BookmarksTabContent(
+    bookmarks: List<Bookmark>,
+    onBookmarkClick: (Bookmark) -> Unit,
+    onDeleteBookmark: (Bookmark) -> Unit
+) {
+    if (bookmarks.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Bookmark,
+                    contentDescription = null,
+                    tint = RezonPurple.copy(alpha = 0.3f),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "No bookmarks yet",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Use the menu to add a bookmark",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.height(400.dp)
+        ) {
+            itemsIndexed(bookmarks) { _, bookmark ->
+                BookmarkItem(
+                    bookmark = bookmark,
+                    onClick = { onBookmarkClick(bookmark) },
+                    onDelete = { onDeleteBookmark(bookmark) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Single bookmark item in the list
+ */
+@Composable
+private fun BookmarkItem(
+    bookmark: Bookmark,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Bookmark icon
+        Icon(
+            imageVector = Icons.Default.Bookmark,
+            contentDescription = null,
+            tint = RezonPurple,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            // Time position
+            Text(
+                text = bookmark.formatPosition(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // Note if available
+            bookmark.note?.let { note ->
+                if (note.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = note,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Chapter info
+            bookmark.chapterIndex?.let { chapterIdx ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Chapter ${chapterIdx + 1}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        // Delete button
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Delete bookmark",
+                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Sleep Timer Dialog
+ */
+@Composable
+private fun SleepTimerDialog(
+    currentTimerRemaining: Long?,
+    onSetTimer: (Long) -> Unit,
+    onCancelTimer: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val timerOptions = listOf(
+        "5 minutes" to 5 * 60 * 1000L,
+        "10 minutes" to 10 * 60 * 1000L,
+        "15 minutes" to 15 * 60 * 1000L,
+        "30 minutes" to 30 * 60 * 1000L,
+        "45 minutes" to 45 * 60 * 1000L,
+        "1 hour" to 60 * 60 * 1000L,
+        "End of chapter" to -1L // Special case
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Nightlight,
+                contentDescription = null,
+                tint = RezonPurple,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Sleep Timer",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                if (currentTimerRemaining != null && currentTimerRemaining > 0) {
+                    // Show current timer
+                    Text(
+                        text = "Timer active: ${formatTime(currentTimerRemaining)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = RezonPurple,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
+                // Timer options
+                timerOptions.forEach { (label, duration) ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSetTimer(duration) }
+                            .padding(vertical = 12.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (currentTimerRemaining != null && currentTimerRemaining > 0) {
+                TextButton(onClick = onCancelTimer) {
+                    Text("Cancel Timer", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }
 
 /**
@@ -887,7 +1169,7 @@ private fun PlayerHeader(
                     }
                 )
                 PlayerMenuItem(
-                    icon = Icons.Default.Timer,
+                    icon = Icons.Default.Nightlight,
                     text = "Sleep Timer",
                     onClick = {
                         onSleepTimer()
@@ -1135,7 +1417,7 @@ private fun PlaybackControls(
         // Sleep timer
         IconButton(onClick = onSleepTimer) {
             Icon(
-                imageVector = Icons.Default.Timer,
+                imageVector = Icons.Default.Nightlight,
                 contentDescription = "Sleep Timer",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(28.dp)

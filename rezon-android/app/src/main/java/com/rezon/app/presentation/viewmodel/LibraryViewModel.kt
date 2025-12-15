@@ -122,4 +122,31 @@ class LibraryViewModel @Inject constructor(
         _uiState.update { it.copy(isPlaying = !it.isPlaying) }
         // TODO: Control via audio service
     }
+
+    /**
+     * Delete a book from the library
+     */
+    fun deleteBook(bookId: String) {
+        viewModelScope.launch {
+            // Remove book from the list
+            val updatedBooks = _uiState.value.books.filter { it.id != bookId }
+
+            val notStarted = updatedBooks.count { it.progress == 0f }
+            val inProgress = updatedBooks.count { it.progress > 0f && !it.isCompleted }
+            val finished = updatedBooks.count { it.isCompleted }
+
+            _uiState.update {
+                it.copy(
+                    books = updatedBooks,
+                    notStartedCount = notStarted,
+                    inProgressCount = inProgress,
+                    finishedCount = finished,
+                    // Clear currently playing if it was the deleted book
+                    currentlyPlaying = if (it.currentlyPlaying?.id == bookId) null else it.currentlyPlaying
+                )
+            }
+
+            // TODO: Delete from repository
+        }
+    }
 }

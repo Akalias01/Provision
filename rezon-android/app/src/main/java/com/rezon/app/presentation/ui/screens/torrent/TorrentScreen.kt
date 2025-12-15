@@ -1,5 +1,8 @@
 package com.rezon.app.presentation.ui.screens.torrent
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -28,6 +31,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
@@ -36,6 +41,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,12 +55,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,6 +94,18 @@ fun TorrentScreen(
     viewModel: TorrentViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Torrent file picker launcher
+    val torrentFilePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { selectedUri ->
+            // Get the file path from URI
+            val filePath = selectedUri.path ?: selectedUri.toString()
+            viewModel.addTorrentFile(filePath)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -166,12 +188,16 @@ fun TorrentScreen(
             }
         }
 
-        // Add magnet dialog
+        // Add torrent dialog
         if (uiState.showAddDialog) {
-            AddMagnetDialog(
+            AddTorrentDialog(
                 magnetInput = uiState.magnetInput,
                 onMagnetChange = { viewModel.updateMagnetInput(it) },
-                onConfirm = { viewModel.addMagnet() },
+                onAddMagnet = { viewModel.addMagnet() },
+                onSelectFile = {
+                    viewModel.hideAddDialog()
+                    torrentFilePicker.launch(arrayOf("application/x-bittorrent"))
+                },
                 onDismiss = { viewModel.hideAddDialog() }
             )
         }
@@ -402,44 +428,130 @@ private fun EmptyDownloadsState() {
 }
 
 /**
- * Dialog to add magnet link
+ * Dialog to add torrent (magnet link or file)
  */
 @Composable
-private fun AddMagnetDialog(
+private fun AddTorrentDialog(
     magnetInput: String,
     onMagnetChange: (String) -> Unit,
-    onConfirm: () -> Unit,
+    onAddMagnet: () -> Unit,
+    onSelectFile: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Download,
+                contentDescription = null,
+                tint = RezonPurple,
+                modifier = Modifier.size(32.dp)
+            )
+        },
         title = {
             Text(
-                text = "Add Magnet Link",
+                text = "Add Torrent",
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
-            OutlinedTextField(
-                value = magnetInput,
-                onValueChange = onMagnetChange,
-                label = { Text("Magnet URI") },
-                placeholder = { Text("magnet:?xt=urn:btih:...") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = false,
-                maxLines = 4,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = RezonPurple,
-                    cursorColor = RezonPurple
+            Column {
+                // Select .torrent file option
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = RezonPurple.copy(alpha = 0.1f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onSelectFile)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileOpen,
+                            contentDescription = null,
+                            tint = RezonPurple,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Select .torrent file",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Browse for a torrent file on your device",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Or divider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "  OR  ",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Magnet link input
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        tint = RezonPurple,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Paste magnet link",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                OutlinedTextField(
+                    value = magnetInput,
+                    onValueChange = onMagnetChange,
+                    label = { Text("Magnet URI") },
+                    placeholder = { Text("magnet:?xt=urn:btih:...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = false,
+                    maxLines = 4,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = RezonPurple,
+                        cursorColor = RezonPurple
+                    )
                 )
-            )
+            }
         },
         confirmButton = {
             TextButton(
-                onClick = onConfirm,
+                onClick = onAddMagnet,
                 enabled = magnetInput.trim().isNotEmpty()
             ) {
-                Text("Add", color = RezonPurple, fontWeight = FontWeight.Bold)
+                Text("Add Magnet", color = RezonPurple, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

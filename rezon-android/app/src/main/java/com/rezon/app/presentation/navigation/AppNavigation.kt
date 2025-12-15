@@ -28,7 +28,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.rezon.app.presentation.ui.screens.cloud.CloudStorageScreen
 import com.rezon.app.presentation.ui.screens.equalizer.EqualizerScreen
+import com.rezon.app.presentation.ui.screens.folders.FoldersScreen
 import com.rezon.app.presentation.ui.screens.library.LibraryScreen
 import com.rezon.app.presentation.ui.screens.player.PlayerScreen
 import com.rezon.app.presentation.ui.screens.settings.SettingsScreen
@@ -127,21 +129,17 @@ fun AppNavigation(
             )
         }
 
-        // Cloud Screen - Cloud storage integration (placeholder)
+        // Cloud Screen - Cloud storage integration
         composable(Route.Cloud.route) {
-            PlaceholderScreen(
-                title = "Cloud Storage",
-                subtitle = "Google Drive & Dropbox - Coming Soon",
-                icon = Icons.Default.Cloud
+            CloudStorageScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Folders Screen - Folder management (placeholder)
+        // Folders Screen - Folder management
         composable(Route.Folders.route) {
-            PlaceholderScreen(
-                title = "Folders to Scan",
-                subtitle = "Manage audiobook folders - Coming Soon",
-                icon = Icons.Default.Folder
+            FoldersScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

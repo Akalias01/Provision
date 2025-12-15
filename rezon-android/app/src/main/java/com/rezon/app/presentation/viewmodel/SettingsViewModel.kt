@@ -1,5 +1,6 @@
 package com.rezon.app.presentation.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -113,6 +114,24 @@ class SettingsViewModel @Inject constructor(
     fun setFileLogging(enabled: Boolean) {
         _uiState.update { it.copy(fileLoggingEnabled = enabled) }
         saveSettings()
+    }
+
+    /**
+     * Add books from device via file picker
+     */
+    fun addBooksFromDevice(uris: List<Uri>) {
+        viewModelScope.launch {
+            // TODO: Process the selected URIs and add them to the library
+            // This would typically:
+            // 1. Copy files to app storage or take persistent permissions
+            // 2. Extract metadata (title, author, cover)
+            // 3. Add entries to the library database
+            uris.forEach { uri ->
+                // For now, just log the URI
+                // In a real implementation, use a BookRepository to add the book
+                android.util.Log.d("SettingsViewModel", "Adding book from: $uri")
+            }
+        }
     }
 
     private fun saveSettings() {

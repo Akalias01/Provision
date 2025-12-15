@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Headphones
@@ -41,7 +42,12 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
@@ -116,6 +122,9 @@ fun LibraryScreen(
     var isSearchActive by remember { mutableStateOf(false) }
     var selectedTabIndex by remember { mutableIntStateOf(1) } // Default to "In Progress"
     var isGridView by remember { mutableStateOf(true) }
+    var showSortMenu by remember { mutableStateOf(false) }
+    var sortOption by remember { mutableStateOf(SortOption.RECENT) }
+    var bookToDelete by remember { mutableStateOf<Book?>(null) }
 
     val tabs = listOf("Not Started", "In Progress", "Finished")
 
@@ -143,7 +152,11 @@ fun LibraryScreen(
                     onMenuClick = { scope.launch { drawerState.open() } },
                     onSettingsClick = onNavigateToSettings,
                     isGridView = isGridView,
-                    onToggleViewMode = { isGridView = !isGridView }
+                    onToggleViewMode = { isGridView = !isGridView },
+                    showSortMenu = showSortMenu,
+                    onSortMenuToggle = { showSortMenu = it },
+                    currentSortOption = sortOption,
+                    onSortOptionChange = { sortOption = it }
                 )
             },
             floatingActionButton = {
@@ -223,6 +236,14 @@ fun LibraryScreen(
                     searchQuery.isEmpty() ||
                     it.title.contains(searchQuery, ignoreCase = true) ||
                     it.author.contains(searchQuery, ignoreCase = true)
+                }.let { books ->
+                    when (sortOption) {
+                        SortOption.RECENT -> books.sortedByDescending { it.lastPlayed ?: it.dateAdded }
+                        SortOption.TITLE -> books.sortedBy { it.title.lowercase() }
+                        SortOption.AUTHOR -> books.sortedBy { it.author.lowercase() }
+                        SortOption.PROGRESS -> books.sortedByDescending { it.progress }
+                        SortOption.DATE_ADDED -> books.sortedByDescending { it.dateAdded }
+                    }
                 }
 
                 if (filteredBooks.isEmpty()) {
@@ -249,7 +270,8 @@ fun LibraryScreen(
                         items(filteredBooks, key = { it.id }) { book ->
                             BookListItem(
                                 book = book,
-                                onClick = { onNavigateToPlayer(book.id) }
+                                onClick = { onNavigateToPlayer(book.id) },
+                                onDeleteClick = { bookToDelete = book }
                             )
                         }
                     }
@@ -257,6 +279,29 @@ fun LibraryScreen(
             }
         }
     }
+
+    // Delete confirmation dialog
+    bookToDelete?.let { book ->
+        DeleteBookDialog(
+            bookTitle = book.title,
+            onConfirm = {
+                viewModel.deleteBook(book.id)
+                bookToDelete = null
+            },
+            onDismiss = { bookToDelete = null }
+        )
+    }
+}
+
+/**
+ * Sort options for the library
+ */
+enum class SortOption(val displayName: String) {
+    RECENT("Recently Played"),
+    TITLE("Title"),
+    AUTHOR("Author"),
+    PROGRESS("Progress"),
+    DATE_ADDED("Date Added")
 }
 
 /**
@@ -272,7 +317,11 @@ private fun LibraryTopBar(
     onMenuClick: () -> Unit,
     onSettingsClick: () -> Unit,
     isGridView: Boolean,
-    onToggleViewMode: () -> Unit
+    onToggleViewMode: () -> Unit,
+    showSortMenu: Boolean,
+    onSortMenuToggle: (Boolean) -> Unit,
+    currentSortOption: SortOption,
+    onSortOptionChange: (SortOption) -> Unit
 ) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
 
@@ -321,6 +370,38 @@ private fun LibraryTopBar(
                     contentDescription = "Search",
                     modifier = Modifier.size(28.dp)
                 )
+            }
+
+            // Sort button with dropdown
+            Box {
+                IconButton(onClick = { onSortMenuToggle(true) }) {
+                    Icon(
+                        imageVector = Icons.Default.Sort,
+                        contentDescription = "Sort",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { onSortMenuToggle(false) }
+                ) {
+                    SortOption.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = option.displayName,
+                                    fontWeight = if (option == currentSortOption) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (option == currentSortOption) RezonPurple else MaterialTheme.colorScheme.onSurface
+                                )
+                            },
+                            onClick = {
+                                onSortOptionChange(option)
+                                onSortMenuToggle(false)
+                            }
+                        )
+                    }
+                }
             }
 
             // View mode toggle
@@ -533,8 +614,11 @@ private fun BookGridItem(
 @Composable
 private fun BookListItem(
     book: Book,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -618,16 +702,92 @@ private fun BookListItem(
                 )
             }
 
-            // More button
-            IconButton(onClick = { /* TODO: Options menu */ }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                    modifier = Modifier.size(24.dp)
-                )
+            // More button with dropdown
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Delete",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        onClick = {
+                            showMenu = false
+                            onDeleteClick()
+                        }
+                    )
+                }
             }
         }
     }
+}
+
+/**
+ * Delete confirmation dialog
+ */
+@Composable
+private fun DeleteBookDialog(
+    bookTitle: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Delete Book",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = "Are you sure you want to delete \"$bookTitle\"? This will remove the book from your library but won't delete the file from your device."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    "Delete",
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 /**
