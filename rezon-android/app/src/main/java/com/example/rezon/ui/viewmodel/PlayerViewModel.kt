@@ -1,16 +1,23 @@
 package com.example.rezon.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.rezon.data.AudioServiceHandler
 import com.example.rezon.data.Book
+import com.example.rezon.data.BookDao
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    private val audioHandler: AudioServiceHandler
+    private val audioHandler: AudioServiceHandler,
+    private val bookDao: BookDao
 ) : ViewModel() {
 
     // Current book being played
@@ -34,17 +41,51 @@ class PlayerViewModel @Inject constructor(
     val duration = audioHandler.duration
 
     private var lastPauseTime: Long = 0L
+    private var progressSaveJob: Job? = null
 
     fun playBook(book: Book) {
         _currentBook.value = book
         audioHandler.loadBook(book)
+
+        // Seek to saved progress if available
+        if (book.progress > 0) {
+            audioHandler.seekTo(book.progress)
+        }
+
         audioHandler.play()
+        startProgressSaving()
+    }
+
+    private fun startProgressSaving() {
+        progressSaveJob?.cancel()
+        progressSaveJob = viewModelScope.launch {
+            while (isActive) {
+                delay(5000) // Save every 5 seconds
+                saveCurrentProgress()
+            }
+        }
+    }
+
+    private fun saveCurrentProgress() {
+        val book = _currentBook.value ?: return
+        val position = audioHandler.getCurrentPosition()
+        if (position > 0) {
+            viewModelScope.launch {
+                bookDao.updateProgress(
+                    id = book.id,
+                    pos = position,
+                    ts = System.currentTimeMillis()
+                )
+            }
+        }
     }
 
     fun togglePlayPause() {
         if (isPlaying.value) {
             audioHandler.pause()
             lastPauseTime = System.currentTimeMillis()
+            saveCurrentProgress() // Save progress when pausing
+            progressSaveJob?.cancel()
         } else {
             val now = System.currentTimeMillis()
             val pauseDuration = now - lastPauseTime
@@ -62,6 +103,7 @@ class PlayerViewModel @Inject constructor(
                 audioHandler.seekTo(seekPos)
             }
             audioHandler.play()
+            startProgressSaving()
         }
     }
 
@@ -84,5 +126,11 @@ class PlayerViewModel @Inject constructor(
         val nextIndex = speeds.indexOfFirst { it > current }
         val newSpeed = if (nextIndex != -1) speeds[nextIndex] else speeds[0]
         audioHandler.setSpeed(newSpeed)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        saveCurrentProgress() // Save progress when ViewModel is destroyed
+        progressSaveJob?.cancel()
     }
 }
