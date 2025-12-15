@@ -98,14 +98,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.rezon.app.domain.model.Bookmark
 import com.rezon.app.domain.model.Chapter
-import com.rezon.app.presentation.ui.theme.PlayerGradientEnd
-import com.rezon.app.presentation.ui.theme.PlayerGradientStart
-import com.rezon.app.presentation.ui.theme.ProgressFill
-import com.rezon.app.presentation.ui.theme.ProgressTrack
-import com.rezon.app.presentation.ui.theme.RezonAccentPink
-import com.rezon.app.presentation.ui.theme.RezonPurple
+import com.rezon.app.presentation.ui.components.AddBookmarkDialog
+import com.rezon.app.presentation.ui.components.PlaybackSpeedDialog
+import com.rezon.app.presentation.ui.components.SleepTimerDialog as NewSleepTimerDialog
+import com.rezon.app.presentation.ui.theme.*
 import com.rezon.app.presentation.viewmodel.PlayerViewModel
 import android.widget.Toast
+import androidx.compose.foundation.border
+import androidx.compose.material3.LinearProgressIndicator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -141,6 +141,8 @@ fun PlayerScreen(
     var showChaptersSheet by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var showSpeedDialog by remember { mutableStateOf(false) }
+    var showAddBookmarkDialog by remember { mutableStateOf(false) }
     var initialSheetTab by remember { mutableIntStateOf(0) } // 0 = chapters, 1 = bookmarks
     val chaptersSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -316,18 +318,18 @@ fun PlayerScreen(
                 onMenuClick = { showOptionsMenu = true },
                 showOptionsMenu = showOptionsMenu,
                 onDismissMenu = { showOptionsMenu = false },
-                onAddBookmark = {
-                    viewModel.addBookmark()
+                onAddBookmark = { showAddBookmarkDialog = true },
+                onQuickBookmark = {
+                    viewModel.addBookmark("")
                     Toast.makeText(context, "Bookmark added", Toast.LENGTH_SHORT).show()
                 },
                 onViewBookmarks = {
-                    // Open the chapters sheet with bookmarks tab selected
                     initialSheetTab = 1
                     showChaptersSheet = true
                 },
                 onEqualizer = onNavigateToEqualizer,
                 onSleepTimer = { showSleepTimerDialog = true },
-                onPlaybackSpeed = { viewModel.cyclePlaybackSpeed() },
+                onPlaybackSpeed = { showSpeedDialog = true },
                 onShare = { /* TODO: Share functionality */ },
                 onBookInfo = { /* TODO: Book info dialog */ }
             )
@@ -423,7 +425,7 @@ fun PlayerScreen(
                 onSkipForward = { viewModel.skipForward() },
                 onPreviousChapter = { viewModel.previousChapter() },
                 onNextChapter = { viewModel.nextChapter() },
-                onSpeedChange = { viewModel.cyclePlaybackSpeed() },
+                onSpeedChange = { showSpeedDialog = true },
                 onSleepTimer = { showSleepTimerDialog = true }
             )
 
@@ -496,17 +498,41 @@ fun PlayerScreen(
 
     // Sleep Timer Dialog
     if (showSleepTimerDialog) {
-        SleepTimerDialog(
-            currentTimerRemaining = uiState.sleepTimerRemaining,
-            onSetTimer = { durationMs ->
-                viewModel.startSleepTimer(durationMs)
+        NewSleepTimerDialog(
+            currentTimer = uiState.sleepTimerRemaining,
+            onDismiss = { showSleepTimerDialog = false },
+            onTimerSelected = { durationMs ->
+                if (durationMs == null) {
+                    viewModel.cancelSleepTimer()
+                } else {
+                    viewModel.startSleepTimer(durationMs)
+                }
                 showSleepTimerDialog = false
-            },
-            onCancelTimer = {
-                viewModel.cancelSleepTimer()
-                showSleepTimerDialog = false
-            },
-            onDismiss = { showSleepTimerDialog = false }
+            }
+        )
+    }
+
+    // Playback Speed Dialog
+    if (showSpeedDialog) {
+        PlaybackSpeedDialog(
+            currentSpeed = uiState.playbackSpeed,
+            onDismiss = { showSpeedDialog = false },
+            onSpeedSelected = { speed ->
+                viewModel.setPlaybackSpeed(speed)
+            }
+        )
+    }
+
+    // Add Bookmark Dialog
+    if (showAddBookmarkDialog) {
+        AddBookmarkDialog(
+            currentPosition = uiState.currentPosition,
+            onDismiss = { showAddBookmarkDialog = false },
+            onSave = { note ->
+                viewModel.addBookmark(note)
+                showAddBookmarkDialog = false
+                Toast.makeText(context, "Bookmark added", Toast.LENGTH_SHORT).show()
+            }
         )
     }
 }
@@ -1103,6 +1129,7 @@ private fun PlayerHeader(
     showOptionsMenu: Boolean,
     onDismissMenu: () -> Unit,
     onAddBookmark: () -> Unit,
+    onQuickBookmark: () -> Unit,
     onViewBookmarks: () -> Unit,
     onEqualizer: () -> Unit,
     onSleepTimer: () -> Unit,
@@ -1172,9 +1199,17 @@ private fun PlayerHeader(
             ) {
                 PlayerMenuItem(
                     icon = Icons.Default.BookmarkAdd,
-                    text = "Add Bookmark",
+                    text = "Add Bookmark with Note",
                     onClick = {
                         onAddBookmark()
+                        onDismissMenu()
+                    }
+                )
+                PlayerMenuItem(
+                    icon = Icons.Default.Bookmark,
+                    text = "Quick Bookmark",
+                    onClick = {
+                        onQuickBookmark()
                         onDismissMenu()
                     }
                 )
@@ -1260,7 +1295,7 @@ private fun PlayerMenuItem(
 }
 
 /**
- * Book progress section showing elapsed/remaining time and chapter indicator
+ * Book progress section showing elapsed/remaining time, chapter indicator, and overall progress bar
  */
 @Composable
 private fun BookProgressSection(
@@ -1269,31 +1304,52 @@ private fun BookProgressSection(
     currentChapterIndex: Int,
     totalChapters: Int
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 24.dp)
     ) {
-        Text(
-            text = formatTime(currentPosition),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        // Overall book progress bar
+        val progress = if (duration > 0) (currentPosition.toFloat() / duration).coerceIn(0f, 1f) else 0f
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp)),
+            color = RezonCyan,
+            trackColor = ProgressTrack
         )
 
-        Text(
-            text = "Chapter ${currentChapterIndex + 1}/$totalChapters",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = RezonPurple
-        )
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "-${formatTime(duration - currentPosition)}",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Time and chapter info row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = formatTime(currentPosition),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = RezonCyan
+            )
+
+            Text(
+                text = "${currentChapterIndex + 1}/$totalChapters",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                text = "-${formatTime(duration - currentPosition)}",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -1416,86 +1472,105 @@ private fun PlaybackControls(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Playback speed - Made bigger and more prominent
+        // Playback speed - Styled pill button
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    if (playbackSpeed != 1.0f) RezonCyan.copy(alpha = 0.15f)
+                    else RezonSurfaceVariant
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (playbackSpeed != 1.0f) RezonCyan else Color.Transparent,
+                    shape = RoundedCornerShape(20.dp)
+                )
                 .clickable(onClick = onSpeedChange)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "${playbackSpeed}x",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = RezonPurple
+                fontSize = 16.sp,
+                color = if (playbackSpeed != 1.0f) RezonCyan else Color.White
             )
         }
 
         // Skip backward 10s
         IconButton(
             onClick = onSkipBackward,
-            modifier = Modifier.size(56.dp)
+            modifier = Modifier.size(52.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Replay10,
                 contentDescription = "Skip Backward 10s",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(36.dp)
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
             )
         }
 
-        // Play/Pause button
+        // Play/Pause button - Large central button
         Box(
             modifier = Modifier
-                .size(80.dp)
+                .size(72.dp)
                 .shadow(
-                    elevation = 12.dp,
+                    elevation = 16.dp,
                     shape = CircleShape,
-                    ambientColor = RezonPurple.copy(alpha = 0.5f),
-                    spotColor = RezonPurple.copy(alpha = 0.5f)
+                    ambientColor = RezonCyan.copy(alpha = 0.4f),
+                    spotColor = RezonCyan.copy(alpha = 0.4f)
                 )
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(RezonPurple, RezonAccentPink)
-                    ),
-                    CircleShape
-                ),
+                .background(RezonCyan, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             IconButton(
                 onClick = onPlayPause,
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(72.dp)
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
+                    tint = Color.Black,
+                    modifier = Modifier.size(40.dp)
                 )
             }
         }
 
-        // Skip forward 30s
+        // Skip forward 10s (changed from 30s for consistency)
         IconButton(
             onClick = onSkipForward,
-            modifier = Modifier.size(56.dp)
+            modifier = Modifier.size(52.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Forward30,
-                contentDescription = "Skip Forward 30s",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(36.dp)
+                contentDescription = "Skip Forward 10s",
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
             )
         }
 
-        // Sleep timer with custom Z icon
-        IconButton(onClick = onSleepTimer) {
+        // Sleep timer - Styled pill button to match speed
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(
+                    if (sleepTimerActive) RezonCyan.copy(alpha = 0.15f)
+                    else RezonSurfaceVariant
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (sleepTimerActive) RezonCyan else Color.Transparent,
+                    shape = RoundedCornerShape(20.dp)
+                )
+                .clickable(onClick = onSleepTimer)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
             SleepTimerIcon(
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                isActive = sleepTimerActive
+                tint = if (sleepTimerActive) RezonCyan else Color.White,
+                isActive = sleepTimerActive,
+                modifier = Modifier.size(24.dp)
             )
         }
     }
