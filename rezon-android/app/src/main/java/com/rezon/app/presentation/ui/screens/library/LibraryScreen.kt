@@ -562,7 +562,7 @@ private fun DrawerContent(
         // Logo in drawer
         RezonLogo(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            size = LogoSize.LARGE
+            logoSize = LogoSize.LARGE
         )
 
         Spacer(modifier = Modifier.height(16.dp))
