@@ -4,12 +4,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -24,31 +24,41 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Forward10
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Forward30
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,23 +72,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.rezon.app.domain.model.Chapter
 import com.rezon.app.presentation.ui.theme.PlayerGradientEnd
 import com.rezon.app.presentation.ui.theme.PlayerGradientStart
 import com.rezon.app.presentation.ui.theme.ProgressFill
@@ -89,7 +97,6 @@ import com.rezon.app.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
-import kotlin.math.roundToInt
 
 /**
  * REZON Player Screen
@@ -102,10 +109,13 @@ import kotlin.math.roundToInt
  * - Right edge vertical swipe: Volume
  * - Horizontal swipe: Timeline seek
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
     bookId: String,
     onNavigateBack: () -> Unit,
+    onNavigateToEqualizer: () -> Unit = {},
+    onNavigateToBookmarks: (String) -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -113,6 +123,11 @@ fun PlayerScreen(
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val scope = rememberCoroutineScope()
+
+    // Chapter sheet and options menu state
+    var showChaptersSheet by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
+    val chaptersSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Gesture state
     var showSkipOverlay by remember { mutableStateOf<SkipOverlay?>(null) }
@@ -279,8 +294,17 @@ fun PlayerScreen(
                 title = uiState.book?.title ?: "Unknown",
                 author = uiState.book?.author ?: "Unknown Author",
                 onBackClick = onNavigateBack,
-                onChaptersClick = { /* TODO */ },
-                onMenuClick = { /* TODO */ }
+                onChaptersClick = { showChaptersSheet = true },
+                onMenuClick = { showOptionsMenu = true },
+                showOptionsMenu = showOptionsMenu,
+                onDismissMenu = { showOptionsMenu = false },
+                onAddBookmark = { viewModel.addBookmark() },
+                onViewBookmarks = { onNavigateToBookmarks(bookId) },
+                onEqualizer = onNavigateToEqualizer,
+                onSleepTimer = { /* TODO: Show sleep timer dialog */ },
+                onPlaybackSpeed = { viewModel.cyclePlaybackSpeed() },
+                onShare = { /* TODO: Share functionality */ },
+                onBookInfo = { /* TODO: Book info dialog */ }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -413,6 +437,122 @@ fun PlayerScreen(
             duration = uiState.duration,
             modifier = Modifier.align(Alignment.Center)
         )
+    }
+
+    // Chapters Bottom Sheet
+    if (showChaptersSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showChaptersSheet = false },
+            sheetState = chaptersSheetState,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            ChaptersSheetContent(
+                chapters = uiState.book?.chapters ?: emptyList(),
+                currentChapterIndex = uiState.currentChapterIndex,
+                onChapterClick = { chapter ->
+                    viewModel.seekTo(chapter.startTime)
+                    showChaptersSheet = false
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Chapters bottom sheet content
+ */
+@Composable
+private fun ChaptersSheetContent(
+    chapters: List<Chapter>,
+    currentChapterIndex: Int,
+    onChapterClick: (Chapter) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp)
+    ) {
+        Text(
+            text = "Chapters",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+        )
+
+        HorizontalDivider()
+
+        if (chapters.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No chapters available",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn {
+                itemsIndexed(chapters) { index, chapter ->
+                    ChapterItem(
+                        chapter = chapter,
+                        isCurrentChapter = index == currentChapterIndex,
+                        onClick = { onChapterClick(chapter) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Single chapter item in the list
+ */
+@Composable
+private fun ChapterItem(
+    chapter: Chapter,
+    isCurrentChapter: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .background(
+                if (isCurrentChapter) RezonPurple.copy(alpha = 0.1f)
+                else Color.Transparent
+            )
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = chapter.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (isCurrentChapter) FontWeight.Bold else FontWeight.Normal,
+                color = if (isCurrentChapter) RezonPurple else MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formatTime(chapter.duration),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (isCurrentChapter) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = "Now Playing",
+                tint = RezonPurple,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
@@ -642,7 +782,16 @@ private fun PlayerHeader(
     author: String,
     onBackClick: () -> Unit,
     onChaptersClick: () -> Unit,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    showOptionsMenu: Boolean,
+    onDismissMenu: () -> Unit,
+    onAddBookmark: () -> Unit,
+    onViewBookmarks: () -> Unit,
+    onEqualizer: () -> Unit,
+    onSleepTimer: () -> Unit,
+    onPlaybackSpeed: () -> Unit,
+    onShare: () -> Unit,
+    onBookInfo: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -652,7 +801,7 @@ private fun PlayerHeader(
     ) {
         IconButton(onClick = onBackClick) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(28.dp)
@@ -690,15 +839,107 @@ private fun PlayerHeader(
             )
         }
 
-        IconButton(onClick = onMenuClick) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "Menu",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(28.dp)
-            )
+        Box {
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Menu",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            DropdownMenu(
+                expanded = showOptionsMenu,
+                onDismissRequest = onDismissMenu
+            ) {
+                PlayerMenuItem(
+                    icon = Icons.Default.BookmarkAdd,
+                    text = "Add Bookmark",
+                    onClick = {
+                        onAddBookmark()
+                        onDismissMenu()
+                    }
+                )
+                PlayerMenuItem(
+                    icon = Icons.Default.Bookmark,
+                    text = "View Bookmarks",
+                    onClick = {
+                        onViewBookmarks()
+                        onDismissMenu()
+                    }
+                )
+                HorizontalDivider()
+                PlayerMenuItem(
+                    icon = Icons.Default.Equalizer,
+                    text = "Equalizer",
+                    onClick = {
+                        onEqualizer()
+                        onDismissMenu()
+                    }
+                )
+                PlayerMenuItem(
+                    icon = Icons.Default.Speed,
+                    text = "Playback Speed",
+                    onClick = {
+                        onPlaybackSpeed()
+                        onDismissMenu()
+                    }
+                )
+                PlayerMenuItem(
+                    icon = Icons.Default.Timer,
+                    text = "Sleep Timer",
+                    onClick = {
+                        onSleepTimer()
+                        onDismissMenu()
+                    }
+                )
+                HorizontalDivider()
+                PlayerMenuItem(
+                    icon = Icons.Default.Share,
+                    text = "Share",
+                    onClick = {
+                        onShare()
+                        onDismissMenu()
+                    }
+                )
+                PlayerMenuItem(
+                    icon = Icons.Default.Info,
+                    text = "Book Info",
+                    onClick = {
+                        onBookInfo()
+                        onDismissMenu()
+                    }
+                )
+            }
         }
     }
+}
+
+/**
+ * Single menu item in dropdown
+ */
+@Composable
+private fun PlayerMenuItem(
+    icon: ImageVector,
+    text: String,
+    onClick: () -> Unit
+) {
+    DropdownMenuItem(
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(text = text)
+            }
+        },
+        onClick = onClick
+    )
 }
 
 /**

@@ -1,5 +1,9 @@
 package com.rezon.app.presentation.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,7 +64,6 @@ import androidx.navigation.compose.rememberNavController
 import com.rezon.app.presentation.navigation.AppNavigation
 import com.rezon.app.presentation.navigation.Route
 import com.rezon.app.presentation.ui.theme.DrawerBackground
-import com.rezon.app.presentation.ui.theme.DrawerItemHover
 import com.rezon.app.presentation.ui.theme.DrawerItemSelected
 import com.rezon.app.presentation.ui.theme.DividerColor
 import com.rezon.app.presentation.ui.theme.RezonCyan
@@ -83,6 +87,7 @@ fun MainLayout(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // Get current route for title
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -107,7 +112,30 @@ fun MainLayout(
                 },
                 onScanFolder = {
                     scope.launch { drawerState.close() }
-                    // TODO: Implement folder scanning
+                    // Open document tree picker to select folder
+                    Toast.makeText(context, "Select a folder containing audiobooks", Toast.LENGTH_SHORT).show()
+                    // Note: Actual folder picker requires Activity result handling
+                    // This shows intent - full implementation needs ActivityResultLauncher
+                },
+                onRecommend = {
+                    scope.launch { drawerState.close() }
+                    // Share the app
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "REZON Audiobook Player")
+                        putExtra(Intent.EXTRA_TEXT, "Check out REZON - A beautiful audiobook player for Android!\n\nhttps://play.google.com/store/apps/details?id=com.rezon.app")
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "Share REZON"))
+                },
+                onTranslate = {
+                    scope.launch { drawerState.close() }
+                    // Open language settings
+                    try {
+                        val intent = Intent(Settings.ACTION_LOCALE_SETTINGS)
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Language settings not available", Toast.LENGTH_SHORT).show()
+                    }
                 }
             )
         },
@@ -140,7 +168,9 @@ fun MainLayout(
 private fun RezonDrawerContent(
     currentRoute: Route,
     onNavigate: (Route) -> Unit,
-    onScanFolder: () -> Unit
+    onScanFolder: () -> Unit,
+    onRecommend: () -> Unit,
+    onTranslate: () -> Unit
 ) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
     val navBarPadding = WindowInsets.navigationBars.asPaddingValues()
@@ -249,7 +279,7 @@ private fun RezonDrawerContent(
                 icon = Icons.Default.Share,
                 label = "Recommend",
                 selected = false,
-                onClick = { /* TODO: Share app */ }
+                onClick = onRecommend
             )
 
             // Translate
@@ -257,7 +287,7 @@ private fun RezonDrawerContent(
                 icon = Icons.Default.Language,
                 label = "Translate",
                 selected = false,
-                onClick = { /* TODO: Translate */ }
+                onClick = onTranslate
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -270,7 +300,7 @@ private fun RezonDrawerContent(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "REZON v1.0.0",
+                    text = "REZON v2.0.1",
                     style = MaterialTheme.typography.bodySmall,
                     color = RezonOnSurfaceVariant
                 )

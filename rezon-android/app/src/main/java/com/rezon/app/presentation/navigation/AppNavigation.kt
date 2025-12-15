@@ -99,7 +99,9 @@ fun AppNavigation(
             val bookId = backStackEntry.arguments?.getString(Route.Player.ARG_BOOK_ID) ?: ""
             PlayerScreen(
                 bookId = bookId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEqualizer = { navController.navigate(Route.Equalizer.route) },
+                onNavigateToBookmarks = { id -> navController.navigate(Route.Bookmarks.createRoute(id)) }
             )
         }
 
