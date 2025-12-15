@@ -61,6 +61,7 @@ fun PlayerScreen(
     var showInfoSheet by remember { mutableStateOf(false) }
     var showSleepSheet by remember { mutableStateOf(false) }
     var showChaptersSheet by remember { mutableStateOf(false) }
+    var showEqSheet by remember { mutableStateOf(false) }
 
     // Status Bar Styling
     val context = LocalContext.current
@@ -210,7 +211,7 @@ fun PlayerScreen(
             ) {
                 BottomTool(Icons.Rounded.Speed, "${speed}x", currentThemeColor) { onCycleSpeed() }
                 BottomTool(Icons.Rounded.Timer, "Sleep", currentThemeColor) { showSleepSheet = true }
-                BottomTool(Icons.Rounded.Equalizer, "EQ", currentThemeColor) { onEqualizerClick() }
+                BottomTool(Icons.Rounded.Equalizer, "EQ", currentThemeColor) { showEqSheet = true }
                 BottomTool(Icons.Default.List, "Chapters", currentThemeColor) { showChaptersSheet = true }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -291,6 +292,94 @@ fun PlayerScreen(
                     Spacer(Modifier.height(48.dp))
                 }
              }
+        }
+
+        // 4. Equalizer Sheet
+        if (showEqSheet) {
+            val eqEnabled by viewModel.eqEnabled.collectAsState()
+            val bands by viewModel.bandLevels.collectAsState()
+
+            ModalBottomSheet(
+                onDismissRequest = { showEqSheet = false },
+                containerColor = Color(0xFF161618)
+            ) {
+                Column(Modifier.padding(24.dp)) {
+                    // Header with Switch
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Equalizer", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                        Switch(
+                            checked = eqEnabled,
+                            onCheckedChange = { viewModel.toggleEqualizer(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = currentThemeColor,
+                                checkedTrackColor = currentThemeColor.copy(alpha = 0.5f)
+                            )
+                        )
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // Amplifier Slider
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Amplifier", color = Color.White, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(16.dp))
+                        Slider(
+                            value = 0f, // Bind to VM if needed
+                            onValueChange = { viewModel.updateAmplifier(it) },
+                            modifier = Modifier.weight(1f),
+                            colors = SliderDefaults.colors(thumbColor = currentThemeColor, activeTrackColor = currentThemeColor)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("+0dB", color = Color.Gray, fontSize = 12.sp)
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // Presets (Buttons)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("0", "1", "2", "3", "4").forEach { preset ->
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color(0xFF2C2C2E), RoundedCornerShape(4.dp))
+                                    .clickable { /* Apply Preset */ },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(preset, color = Color.Gray)
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(32.dp))
+
+                    // 5 Bands
+                    val freqLabels = listOf("60Hz", "230Hz", "910Hz", "3kHz", "14kHz")
+
+                    freqLabels.forEachIndexed { index, label ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        ) {
+                            Text(label, color = Color.White, modifier = Modifier.width(60.dp), fontSize = 14.sp)
+
+                            Slider(
+                                value = if(index < bands.size) bands[index].toFloat() else 0f,
+                                onValueChange = { viewModel.updateEqBand(index, it.toInt()) },
+                                valueRange = -15f..15f,
+                                modifier = Modifier.weight(1f),
+                                colors = SliderDefaults.colors(thumbColor = currentThemeColor, activeTrackColor = Color.DarkGray, inactiveTrackColor = Color.DarkGray)
+                            )
+
+                            Text("+${if(index < bands.size) bands[index] else 0}dB", color = Color.Gray, modifier = Modifier.width(50.dp), fontSize = 12.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(48.dp))
+                }
+            }
         }
     }
 }
