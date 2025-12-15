@@ -3,12 +3,15 @@ package com.example.rezon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import com.example.rezon.ui.screens.PlayerScreen
-import com.example.rezon.ui.theme.RezonTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.rezon.ui.MainLayout
+import com.example.rezon.ui.screens.SplashScreen
+import com.example.rezon.ui.theme.RezonBlack
+import com.example.rezon.ui.theme.RezonSurface
+import com.example.rezon.ui.viewmodel.ThemeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -16,12 +19,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            RezonTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    PlayerScreen()
+            val themeViewModel: ThemeViewModel = hiltViewModel()
+            val currentTheme by themeViewModel.currentTheme
+
+            var showSplash by remember { mutableStateOf(true) }
+
+            // Dynamic Theme Application
+            MaterialTheme(
+                colorScheme = darkColorScheme(
+                    primary = currentTheme.primary,
+                    background = RezonBlack,
+                    surface = RezonSurface
+                )
+            ) {
+                if (showSplash) {
+                    SplashScreen(onAnimationFinished = { showSplash = false })
+                } else {
+                    MainLayout()
                 }
             }
         }
