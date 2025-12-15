@@ -28,6 +28,7 @@ import com.example.rezon.ui.viewmodel.PlayerViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
+    onBack: () -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel()
 ) {
     val book = viewModel.demoBook
