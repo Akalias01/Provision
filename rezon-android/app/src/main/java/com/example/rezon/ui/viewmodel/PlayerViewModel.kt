@@ -3,8 +3,9 @@ package com.example.rezon.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import com.example.rezon.data.AudioServiceHandler
 import com.example.rezon.data.Book
-import com.example.rezon.data.ChapterMarker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -12,20 +13,18 @@ class PlayerViewModel @Inject constructor(
     private val audioHandler: AudioServiceHandler
 ) : ViewModel() {
 
-    // Demo Data
+    // Current book being played
+    private val _currentBook = MutableStateFlow<Book?>(null)
+    val currentBook = _currentBook.asStateFlow()
+
+    // Demo book for when no book is selected
     val demoBook = Book(
-        id = "1",
+        id = "demo",
         title = "The Martian",
         author = "Andy Weir",
         coverUrl = "https://upload.wikimedia.org/wikipedia/en/2/21/The_Martian_%28Weir_novel%29.jpg",
         filePath = "asset:///demo_audio.mp3",
-        synopsis = "Six days ago, astronaut Mark Watney became one of the first people to walk on Mars. Now, he's sure he'll be the first person to die there.",
-        seriesInfo = "The Martian: Standalone Novel",
-        chapterMarkers = listOf(
-            ChapterMarker("Chapter 1", 0),
-            ChapterMarker("Chapter 2", 300000),
-            ChapterMarker("Chapter 3", 600000)
-        )
+        duration = 0L
     )
 
     val isServiceConnected = audioHandler.isServiceConnected
@@ -36,9 +35,10 @@ class PlayerViewModel @Inject constructor(
 
     private var lastPauseTime: Long = 0L
 
-    init {
-        // This will now queue correctly if service isn't ready
-        audioHandler.loadBook(demoBook)
+    fun playBook(book: Book) {
+        _currentBook.value = book
+        audioHandler.loadBook(book)
+        audioHandler.play()
     }
 
     fun togglePlayPause() {
