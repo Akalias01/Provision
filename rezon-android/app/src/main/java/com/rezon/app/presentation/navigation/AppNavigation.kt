@@ -14,8 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Headphones
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,12 +28,16 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.rezon.app.presentation.ui.screens.library.LibraryScreen
+import com.rezon.app.presentation.ui.screens.player.PlayerScreen
+import com.rezon.app.presentation.ui.screens.settings.SettingsScreen
 import com.rezon.app.presentation.ui.theme.RezonPurple
 
 /**
  * REZON App Navigation
  *
  * Main NavHost containing all app routes with smooth animations.
+ * Uses actual screen implementations where available.
  */
 @Composable
 fun AppNavigation(
@@ -71,15 +73,19 @@ fun AppNavigation(
             )
         }
     ) {
-        // Library Screen
+        // Library Screen - Main screen with audiobook list
         composable(Route.Library.route) {
-            PlaceholderScreen(
-                title = "Library",
-                icon = Icons.Default.Headphones
+            LibraryScreen(
+                onNavigateToPlayer = { bookId ->
+                    navController.navigate(Route.Player.createRoute(bookId))
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Route.Settings.route)
+                }
             )
         }
 
-        // Player Screen
+        // Player Screen - Full audiobook player with gestures
         composable(
             route = Route.Player.route,
             arguments = listOf(
@@ -89,53 +95,50 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getString(Route.Player.ARG_BOOK_ID) ?: ""
-            PlaceholderScreen(
-                title = "Now Playing",
-                subtitle = "Book ID: $bookId",
-                icon = Icons.Default.Headphones
+            PlayerScreen(
+                bookId = bookId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // Torrents Screen
+        // Settings Screen - App configuration
+        composable(Route.Settings.route) {
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Torrents Screen - Download manager (placeholder)
         composable(Route.Torrents.route) {
             PlaceholderScreen(
                 title = "Downloads",
-                subtitle = "Torrent Manager",
+                subtitle = "Torrent Manager - Coming Soon",
                 icon = Icons.Default.Download
             )
         }
 
-        // Cloud Screen
+        // Cloud Screen - Cloud storage integration (placeholder)
         composable(Route.Cloud.route) {
             PlaceholderScreen(
                 title = "Cloud Storage",
-                subtitle = "Google Drive & Dropbox",
+                subtitle = "Google Drive & Dropbox - Coming Soon",
                 icon = Icons.Default.Cloud
             )
         }
 
-        // Folders Screen
+        // Folders Screen - Folder management (placeholder)
         composable(Route.Folders.route) {
             PlaceholderScreen(
                 title = "Folders to Scan",
-                subtitle = "Manage audiobook folders",
+                subtitle = "Manage audiobook folders - Coming Soon",
                 icon = Icons.Default.Folder
-            )
-        }
-
-        // Settings Screen
-        composable(Route.Settings.route) {
-            PlaceholderScreen(
-                title = "Settings",
-                subtitle = "App preferences",
-                icon = Icons.Default.Settings
             )
         }
     }
 }
 
 /**
- * Placeholder screen for testing navigation
+ * Placeholder screen for features under development
  */
 @Composable
 private fun PlaceholderScreen(

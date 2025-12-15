@@ -79,13 +79,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.rezon.app.presentation.ui.theme.AccentPink
-import com.rezon.app.presentation.ui.theme.NeonGlow
 import com.rezon.app.presentation.ui.theme.PlayerGradientEnd
 import com.rezon.app.presentation.ui.theme.PlayerGradientStart
-import com.rezon.app.presentation.ui.theme.PrimaryDark
 import com.rezon.app.presentation.ui.theme.ProgressFill
 import com.rezon.app.presentation.ui.theme.ProgressTrack
+import com.rezon.app.presentation.ui.theme.RezonAccentPink
+import com.rezon.app.presentation.ui.theme.RezonPurple
 import com.rezon.app.presentation.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -261,8 +260,8 @@ fun PlayerScreen(
                     .shadow(
                         elevation = 24.dp,
                         shape = RoundedCornerShape(16.dp),
-                        ambientColor = PrimaryDark.copy(alpha = 0.5f),
-                        spotColor = PrimaryDark.copy(alpha = 0.5f)
+                        ambientColor = RezonPurple.copy(alpha = 0.5f),
+                        spotColor = RezonPurple.copy(alpha = 0.5f)
                     )
             ) {
                 AsyncImage(
@@ -597,7 +596,7 @@ private fun BookProgressSection(
             text = "Chapter ${currentChapterIndex + 1}/$totalChapters",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = PrimaryDark
+            color = RezonPurple
         )
 
         Text(
@@ -723,12 +722,12 @@ private fun PlaybackControls(
                 .shadow(
                     elevation = 12.dp,
                     shape = CircleShape,
-                    ambientColor = PrimaryDark.copy(alpha = 0.5f),
-                    spotColor = PrimaryDark.copy(alpha = 0.5f)
+                    ambientColor = RezonPurple.copy(alpha = 0.5f),
+                    spotColor = RezonPurple.copy(alpha = 0.5f)
                 )
                 .background(
                     Brush.linearGradient(
-                        colors = listOf(PrimaryDark, AccentPink)
+                        colors = listOf(RezonPurple, RezonAccentPink)
                     ),
                     CircleShape
                 ),

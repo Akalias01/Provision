@@ -45,12 +45,11 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rezon.app.presentation.ui.theme.AccentPink
-import com.rezon.app.presentation.ui.theme.BackgroundDark
-import com.rezon.app.presentation.ui.theme.NeonGlow
-import com.rezon.app.presentation.ui.theme.PrimaryDark
-import com.rezon.app.presentation.ui.theme.SecondaryDark
-import com.rezon.app.presentation.ui.theme.TertiaryDark
+import com.rezon.app.presentation.ui.theme.RezonAccentPink
+import com.rezon.app.presentation.ui.theme.RezonBackground
+import com.rezon.app.presentation.ui.theme.RezonCyan
+import com.rezon.app.presentation.ui.theme.RezonPurple
+import com.rezon.app.presentation.ui.theme.RezonPurpleLight
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
@@ -136,7 +135,7 @@ fun SplashScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark),
+            .background(RezonBackground),
         contentAlignment = Alignment.Center
     ) {
         // Audio wave visualization background
@@ -178,7 +177,7 @@ fun SplashScreen(
                             fontSize = 72.sp,
                             fontWeight = FontWeight.Black
                         ),
-                        color = PrimaryDark.copy(alpha = 0.5f),
+                        color = RezonPurple.copy(alpha = 0.5f),
                         modifier = Modifier
                             .blur(16.dp)
                             .offset(x = 2.dp, y = 2.dp)
@@ -190,7 +189,7 @@ fun SplashScreen(
                             fontSize = 72.sp,
                             fontWeight = FontWeight.Black
                         ),
-                        color = PrimaryDark
+                        color = RezonPurple
                     )
                 }
 
@@ -232,7 +231,7 @@ private fun AudioWaveVisualization(
     phase: Float,
     alpha: Float
 ) {
-    val waveColors = listOf(PrimaryDark, SecondaryDark, TertiaryDark, AccentPink)
+    val waveColors = listOf(RezonPurple, RezonCyan, RezonPurpleLight, RezonAccentPink)
 
     Canvas(modifier = modifier.alpha(alpha)) {
         val width = size.width
@@ -315,10 +314,10 @@ private data class Particle(
 ) {
     companion object {
         private val colors = listOf(
-            PrimaryDark,
-            SecondaryDark,
-            TertiaryDark,
-            AccentPink,
+            RezonPurple,
+            RezonCyan,
+            RezonPurpleLight,
+            RezonAccentPink,
             Color(0xFF22D3EE) // Cyan
         )
 

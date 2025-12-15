@@ -84,10 +84,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.rezon.app.domain.model.Book
 import com.rezon.app.presentation.ui.components.MiniPlayer
-import com.rezon.app.presentation.ui.theme.AccentPink
-import com.rezon.app.presentation.ui.theme.PrimaryDark
 import com.rezon.app.presentation.ui.theme.ProgressFill
 import com.rezon.app.presentation.ui.theme.ProgressTrack
+import com.rezon.app.presentation.ui.theme.RezonPurple
 import com.rezon.app.presentation.viewmodel.LibraryViewModel
 import kotlinx.coroutines.launch
 
@@ -150,7 +149,7 @@ fun LibraryScreen(
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { viewModel.addFiles() },
-                    containerColor = PrimaryDark,
+                    containerColor = RezonPurple,
                     contentColor = Color.White,
                     modifier = Modifier.padding(bottom = if (uiState.currentlyPlaying != null) 72.dp else 0.dp)
                 ) {
@@ -207,7 +206,7 @@ fun LibraryScreen(
                                     fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
-                            selectedContentColor = PrimaryDark,
+                            selectedContentColor = RezonPurple,
                             unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -305,7 +304,7 @@ private fun LibraryTopBar(
                     text = "R",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
-                    color = PrimaryDark
+                    color = RezonPurple
                 )
                 Text(
                     text = "EZON",
@@ -378,7 +377,7 @@ private fun DrawerContent(
                 text = "R",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Black,
-                color = PrimaryDark
+                color = RezonPurple
             )
             Text(
                 text = "EZON",
@@ -479,7 +478,7 @@ private fun BookGridItem(
                         Icon(
                             imageVector = Icons.Default.Headphones,
                             contentDescription = null,
-                            tint = PrimaryDark.copy(alpha = 0.5f),
+                            tint = RezonPurple.copy(alpha = 0.5f),
                             modifier = Modifier.size(64.dp)
                         )
                     }
@@ -497,7 +496,7 @@ private fun BookGridItem(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(4.dp),
-                            color = PrimaryDark,
+                            color = RezonPurple,
                             trackColor = ProgressTrack
                         )
                     }
@@ -573,7 +572,7 @@ private fun BookListItem(
                         Icon(
                             imageVector = Icons.Default.Headphones,
                             contentDescription = null,
-                            tint = PrimaryDark.copy(alpha = 0.5f),
+                            tint = RezonPurple.copy(alpha = 0.5f),
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -608,7 +607,7 @@ private fun BookListItem(
                         .fillMaxWidth()
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp)),
-                    color = PrimaryDark,
+                    color = RezonPurple,
                     trackColor = ProgressTrack
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -647,7 +646,7 @@ private fun EmptyState() {
             Icon(
                 imageVector = Icons.Default.Headphones,
                 contentDescription = null,
-                tint = PrimaryDark.copy(alpha = 0.3f),
+                tint = RezonPurple.copy(alpha = 0.3f),
                 modifier = Modifier.size(120.dp)
             )
             Spacer(modifier = Modifier.height(24.dp))

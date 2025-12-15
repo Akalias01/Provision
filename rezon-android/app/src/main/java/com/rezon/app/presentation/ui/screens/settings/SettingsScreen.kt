@@ -59,9 +59,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.rezon.app.presentation.ui.theme.PrimaryDark
 import com.rezon.app.presentation.ui.theme.ProgressFill
 import com.rezon.app.presentation.ui.theme.ProgressTrack
+import com.rezon.app.presentation.ui.theme.RezonPurple
 import com.rezon.app.presentation.viewmodel.SettingsViewModel
 
 /**
@@ -274,7 +274,7 @@ private fun SettingsSection(
                 text = title,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryDark,
+                color = RezonPurple,
                 modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
             )
         }
@@ -312,7 +312,7 @@ private fun SwitchSettingItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PrimaryDark,
+            tint = RezonPurple,
             modifier = Modifier.size(26.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))
@@ -333,7 +333,7 @@ private fun SwitchSettingItem(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = PrimaryDark
+                checkedTrackColor = RezonPurple
             )
         )
     }
@@ -365,7 +365,7 @@ private fun SliderSettingItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = PrimaryDark,
+                tint = RezonPurple,
                 modifier = Modifier.size(26.dp)
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -379,7 +379,7 @@ private fun SliderSettingItem(
                 text = valueLabel,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryDark
+                color = RezonPurple
             )
         }
         Slider(
@@ -389,7 +389,7 @@ private fun SliderSettingItem(
             valueRange = valueRange,
             steps = steps,
             colors = SliderDefaults.colors(
-                thumbColor = PrimaryDark,
+                thumbColor = RezonPurple,
                 activeTrackColor = ProgressFill,
                 inactiveTrackColor = ProgressTrack
             ),
@@ -418,7 +418,7 @@ private fun ClickableSettingItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PrimaryDark,
+            tint = RezonPurple,
             modifier = Modifier.size(26.dp)
         )
         Spacer(modifier = Modifier.width(16.dp))

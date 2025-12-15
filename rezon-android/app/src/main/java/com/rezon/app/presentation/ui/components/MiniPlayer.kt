@@ -36,9 +36,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.rezon.app.domain.model.Book
-import com.rezon.app.presentation.ui.theme.PrimaryDark
 import com.rezon.app.presentation.ui.theme.ProgressFill
 import com.rezon.app.presentation.ui.theme.ProgressTrack
+import com.rezon.app.presentation.ui.theme.RezonPurple
 
 /**
  * Mini player displayed at bottom of library screen
@@ -97,7 +97,7 @@ fun MiniPlayer(
                         Icon(
                             imageVector = Icons.Default.Headphones,
                             contentDescription = null,
-                            tint = PrimaryDark.copy(alpha = 0.5f),
+                            tint = RezonPurple.copy(alpha = 0.5f),
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -129,7 +129,7 @@ fun MiniPlayer(
                 onClick = onPlayPause,
                 modifier = Modifier
                     .size(48.dp)
-                    .background(PrimaryDark, CircleShape)
+                    .background(RezonPurple, CircleShape)
             ) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
