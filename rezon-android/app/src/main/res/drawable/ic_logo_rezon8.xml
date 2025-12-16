@@ -1,0 +1,44 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- The R Shape and Waves -->
+    <path
+        android:pathData="M140 100 H200 Q320 100 320 220 Q320 340 200 340 H140 V100 Z
+                          M200 140 V300 H220 Q280 300 280 220 Q280 140 220 140 H200 Z
+                          M340 220 A100 100 0 0 1 240 320
+                          M370 220 A130 130 0 0 1 240 350
+                          M400 220 A160 160 0 0 1 240 380"
+        android:strokeWidth="15"
+        android:strokeLineCap="round">
+
+        <!-- Gradient Fill -->
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="0"
+                android:startX="0"
+                android:endY="512"
+                android:endX="0"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#00d2ff"/>
+                <item android:offset="1.0" android:color="#3a7bd5"/>
+            </gradient>
+        </aapt:attr>
+
+        <!-- Gradient Stroke -->
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startY="0"
+                android:startX="0"
+                android:endY="512"
+                android:endX="0"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#00d2ff"/>
+                <item android:offset="1.0" android:color="#3a7bd5"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>
