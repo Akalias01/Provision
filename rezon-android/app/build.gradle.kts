@@ -80,6 +80,9 @@ dependencies {
     implementation("androidx.room:room-ktx:$room_version")
     kapt("androidx.room:room-compiler:$room_version")
 
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // Permissions (Accompanist)
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
