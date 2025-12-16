@@ -1,44 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
-    android:width="512dp"
-    android:height="512dp"
-    android:viewportWidth="512"
-    android:viewportHeight="512">
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
 
-    <!-- The R Shape and Waves -->
+    <!-- R letter vertical stem -->
     <path
-        android:pathData="M140 100 H200 Q320 100 320 220 Q320 340 200 340 H140 V100 Z
-                          M200 140 V300 H220 Q280 300 280 220 Q280 140 220 140 H200 Z
-                          M340 220 A100 100 0 0 1 240 320
-                          M370 220 A130 130 0 0 1 240 350
-                          M400 220 A160 160 0 0 1 240 380"
-        android:strokeWidth="15"
-        android:strokeLineCap="round">
-
-        <!-- Gradient Fill -->
+        android:pathData="M28,24L28,84L38,84L38,24Z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:startY="0"
-                android:startX="0"
-                android:endY="512"
-                android:endX="0"
-                android:type="linear">
-                <item android:offset="0.0" android:color="#00d2ff"/>
-                <item android:offset="1.0" android:color="#3a7bd5"/>
-            </gradient>
-        </aapt:attr>
-
-        <!-- Gradient Stroke -->
-        <aapt:attr name="android:strokeColor">
-            <gradient
-                android:startY="0"
-                android:startX="0"
-                android:endY="512"
-                android:endX="0"
-                android:type="linear">
+                android:type="linear"
+                android:startX="33"
+                android:startY="24"
+                android:endX="33"
+                android:endY="84">
                 <item android:offset="0.0" android:color="#00d2ff"/>
                 <item android:offset="1.0" android:color="#3a7bd5"/>
             </gradient>
         </aapt:attr>
     </path>
+
+    <!-- R letter diagonal leg -->
+    <path
+        android:pathData="M38,52L50,52L68,84L56,84Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="38"
+                android:startY="52"
+                android:endX="68"
+                android:endY="84">
+                <item android:offset="0.0" android:color="#00d2ff"/>
+                <item android:offset="1.0" android:color="#3a7bd5"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Sound wave arc 1 -->
+    <path
+        android:pathData="M46,54A12,12,0,0,1,46,30"
+        android:strokeWidth="4"
+        android:strokeColor="#00d2ff"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"/>
+
+    <!-- Sound wave arc 2 -->
+    <path
+        android:pathData="M54,60A20,20,0,0,1,54,24"
+        android:strokeWidth="4"
+        android:strokeColor="#00c4e0"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"/>
+
+    <!-- Sound wave arc 3 -->
+    <path
+        android:pathData="M62,66A28,28,0,0,1,62,18"
+        android:strokeWidth="4"
+        android:strokeColor="#1a9fd4"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"/>
+
+    <!-- Sound wave arc 4 -->
+    <path
+        android:pathData="M70,72A36,36,0,0,1,70,12"
+        android:strokeWidth="4"
+        android:strokeColor="#3a7bd5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round"/>
+
 </vector>
