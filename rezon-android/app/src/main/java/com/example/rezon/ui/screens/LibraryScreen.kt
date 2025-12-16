@@ -62,7 +62,7 @@ fun LibraryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("REZON", color = currentThemeColor, fontWeight = FontWeight.Bold) },
+                title = { Text("Rezon8", color = currentThemeColor, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onOpenDrawer) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color.White)

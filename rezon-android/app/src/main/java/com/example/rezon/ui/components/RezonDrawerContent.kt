@@ -44,7 +44,7 @@ fun RezonDrawerContent(
                 Text("R", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             }
             Spacer(modifier = Modifier.width(16.dp))
-            Text("REZON", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = currentTheme.primary)
+            Text("Rezon8", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = currentTheme.primary)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
