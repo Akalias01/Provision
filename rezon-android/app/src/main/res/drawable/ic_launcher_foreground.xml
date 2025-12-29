@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- R letter - vertical stem with gradient -->
+    <path
+        android:pathData="M30,24 L30,84 L40,84 L40,24 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="35"
+                android:startY="24"
+                android:endX="35"
+                android:endY="84">
+                <item android:offset="0" android:color="#00E5FF"/>
+                <item android:offset="1" android:color="#1E88E5"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- R letter - diagonal leg -->
+    <path
+        android:pathData="M40,54 L40,62 L60,84 L72,84 L48,56 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="54"
+                android:endX="72"
+                android:endY="84">
+                <item android:offset="0" android:color="#00BCD4"/>
+                <item android:offset="1" android:color="#1976D2"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Sound wave arc 1 (innermost, connects to stem) -->
+    <path
+        android:pathData="M40,54 Q52,54 52,42 Q52,30 40,30"
+        android:strokeWidth="5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="30"
+                android:endX="52"
+                android:endY="54">
+                <item android:offset="0" android:color="#00E5FF"/>
+                <item android:offset="1" android:color="#00D4E8"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Sound wave arc 2 -->
+    <path
+        android:pathData="M40,62 Q62,62 62,42 Q62,22 40,22"
+        android:strokeWidth="5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="22"
+                android:endX="62"
+                android:endY="62">
+                <item android:offset="0" android:color="#00E5FF"/>
+                <item android:offset="1" android:color="#00BCD4"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Sound wave arc 3 -->
+    <path
+        android:pathData="M40,70 Q72,70 72,42 Q72,14 40,14"
+        android:strokeWidth="5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="14"
+                android:endX="72"
+                android:endY="70">
+                <item android:offset="0" android:color="#00BCD4"/>
+                <item android:offset="1" android:color="#2196F3"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Sound wave arc 4 (outermost) -->
+    <path
+        android:pathData="M40,78 Q82,78 82,42 Q82,6 40,6"
+        android:strokeWidth="5"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="6"
+                android:endX="82"
+                android:endY="78">
+                <item android:offset="0" android:color="#2196F3"/>
+                <item android:offset="1" android:color="#1976D2"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+</vector>

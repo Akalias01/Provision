@@ -1,0 +1,106 @@
+{
+  "name": "rezon",
+  "productName": "Rezon",
+  "private": true,
+  "version": "1.0.16",
+  "description": "Audiobooks Reimagined. Resonate With Every Word.",
+  "author": "Rezon",
+  "type": "module",
+  "main": "electron.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "build": {
+    "appId": "com.rezon.app",
+    "productName": "Rezon",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron.cjs",
+      "preload.cjs",
+      "public/**/*",
+      "node_modules/**/*",
+      "!node_modules/**/node-gyp/**/*",
+      "!node_modules/**/*.{o,obj,a,lib,pdb,exp,map}",
+      "!node_modules/**/{test,tests,__tests__,__mocks__}/**/*",
+      "!node_modules/**/*.md"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/webtorrent/**/*",
+      "node_modules/bittorrent-*/**/*",
+      "node_modules/ut_*/**/*"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "public/logo.svg"
+    },
+    "portable": {
+      "artifactName": "Rezon-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Rezon-${version}-setup.exe"
+    }
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "@tanstack/react-query": "^5.90.12",
+    "dropbox": "^10.34.0",
+    "epubjs": "^0.3.93",
+    "framer-motion": "^12.23.26",
+    "lucide-react": "^0.561.0",
+    "mammoth": "^1.11.0",
+    "music-metadata-browser": "^2.5.11",
+    "pdfjs-dist": "^5.4.449",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "webtorrent": "^2.5.1",
+    "zustand": "^5.0.9"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.3",
+    "@types/webtorrent": "^0.109.8",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "concurrently": "^9.1.0",
+    "electron": "^33.3.0",
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4",
+    "wait-on": "^8.0.3"
+  }
+}

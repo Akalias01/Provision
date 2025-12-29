@@ -1,0 +1,265 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-surface-200 dark:border-surface-700;
+    box-sizing: border-box;
+  }
+
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    @apply bg-surface-50 text-surface-900 dark:bg-surface-950 dark:text-surface-100;
+    @apply font-sans antialiased;
+    @apply font-medium;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+    /* Safe area padding */
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* App container - fills entire screen */
+  .app-container {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--bg-color, #0a0a0f);
+  }
+
+  .dark .app-container {
+    --bg-color: #0a0a0f;
+  }
+
+  /* Safe area utilities */
+  .safe-area-top {
+    padding-top: max(env(safe-area-inset-top, 0px), 24px);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-300 dark:bg-surface-700 rounded-full;
+    @apply hover:bg-surface-400 dark:hover:bg-surface-600;
+  }
+
+  ::selection {
+    background-color: rgba(var(--primary-rgb, 6, 182, 212), 0.3);
+  }
+
+  /* Mobile-specific fixes */
+  @media (max-width: 768px) {
+    .hide-mobile {
+      display: none !important;
+    }
+  }
+
+  /* Touch feedback for buttons */
+  button, .btn, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 dark:bg-surface-900/70;
+    @apply backdrop-blur-xl;
+    @apply border border-white/20 dark:border-surface-700/50;
+    @apply shadow-xl;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  }
+
+  .glass-subtle {
+    @apply bg-white/50 dark:bg-surface-900/50;
+    @apply backdrop-blur-md;
+    @apply border border-white/10 dark:border-surface-800/50;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply px-4 py-2.5 rounded-xl;
+    @apply font-medium text-sm;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply active:scale-[0.98];
+  }
+
+  .btn-primary {
+    @apply btn;
+    background: linear-gradient(to right, var(--primary-500, #06b6d4), var(--primary-600, #0891b2));
+    @apply text-white shadow-lg;
+    box-shadow: 0 4px 14px rgba(var(--primary-rgb, 6, 182, 212), 0.25);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(to right, var(--primary-600, #0891b2), var(--primary-700, #0e7490));
+  }
+
+  .btn-secondary {
+    @apply btn;
+    @apply bg-surface-100 dark:bg-surface-800;
+    @apply hover:bg-surface-200 dark:hover:bg-surface-700;
+    @apply text-surface-700 dark:text-surface-200;
+    @apply focus:ring-surface-500;
+  }
+
+  .btn-ghost {
+    @apply btn;
+    @apply hover:bg-surface-100 dark:hover:bg-surface-800;
+    @apply text-surface-600 dark:text-surface-400;
+    @apply focus:ring-surface-400;
+  }
+
+  .btn-icon {
+    @apply p-2.5 rounded-xl;
+    @apply transition-all duration-200;
+    @apply hover:bg-surface-100 dark:hover:bg-surface-800;
+    @apply text-surface-500 hover:text-surface-700 dark:hover:text-surface-200;
+    @apply active:scale-95;
+  }
+
+  .card {
+    @apply bg-white dark:bg-surface-900;
+    @apply rounded-2xl;
+    @apply border border-surface-200 dark:border-surface-800;
+    @apply shadow-xl;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+  }
+
+  .card-hover {
+    @apply card;
+    @apply transition-all duration-300;
+    @apply cursor-pointer;
+  }
+
+  .card-hover:hover {
+    @apply shadow-2xl;
+    transform: translateY(-4px);
+  }
+
+  .input {
+    @apply w-full px-4 py-3 rounded-xl;
+    @apply bg-surface-100 dark:bg-surface-800;
+    @apply border-2 border-transparent;
+    @apply text-surface-900 dark:text-surface-100;
+    @apply placeholder:text-surface-400 dark:placeholder:text-surface-500;
+    @apply focus:outline-none focus:bg-white dark:focus:bg-surface-900;
+    @apply transition-all duration-200;
+  }
+
+  .input:focus {
+    border-color: var(--primary-500, #06b6d4);
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full;
+    @apply text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply badge;
+    background-color: rgba(var(--primary-rgb, 6, 182, 212), 0.1);
+    color: var(--primary-500, #06b6d4);
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400;
+  }
+
+  .progress-bar {
+    @apply h-1.5 rounded-full bg-surface-200 dark:bg-surface-700 overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full;
+    @apply transition-all duration-300 ease-out;
+    background: linear-gradient(to right, var(--primary-500, #06b6d4), var(--primary-400, #22d3ee));
+  }
+
+  .waveform-bar {
+    @apply w-1 rounded-full;
+    @apply transform origin-bottom;
+    background-color: var(--primary-500, #06b6d4);
+  }
+
+  /* Cool Rezon logo font styles */
+  .rezon-font-orbitron {
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .rezon-font-audiowide {
+    font-family: 'Audiowide', sans-serif;
+  }
+
+  .rezon-font-rajdhani {
+    font-family: 'Rajdhani', sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(to right, var(--primary-500, #06b6d4), var(--primary-400, #22d3ee), var(--primary-600, #0891b2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Primary color RGB variable for rgba() usage */
+:root {
+  --primary-rgb: 6, 182, 212;
+}

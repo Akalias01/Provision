@@ -1,0 +1,48 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="500dp"
+    android:height="500dp"
+    android:viewportWidth="500"
+    android:viewportHeight="500">
+
+    <group>
+        <path
+            android:pathData="M145,100 L205,100 L205,320 L145,320 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="175"
+                    android:startY="100"
+                    android:endX="175"
+                    android:endY="320">
+                    <item android:offset="0.0" android:color="#FF00E5FF"/>
+                    <item android:offset="1.0" android:color="#FF2962FF"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M230,100 C290,100 355,150 355,210 C355,270 290,320 230,320 L230,290 C275,290 325,250 325,210 C325,170 275,130 230,130 Z
+                              M230,155 C265,155 300,185 300,210 C300,235 265,265 230,265 L230,245 C255,245 275,225 275,210 C275,195 255,175 230,175 Z
+                              M230,195 C245,195 255,205 255,210 C255,215 245,225 230,225 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="230"
+                    android:startY="100"
+                    android:endX="355"
+                    android:endY="320">
+                    <item android:offset="0.0" android:color="#FF00E5FF"/>
+                    <item android:offset="1.0" android:color="#FF2962FF"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M100,370 H125 V405 H155 V425 H125 V460 H100 Z
+                          M165,460 L190,370 H215 L190,460 Z
+                          M225,460 L250,370 H280 L255,460 Z
+                          M290,415 C290,385 310,370 335,370 C360,370 380,385 380,415 C380,445 360,460 335,460 C310,460 290,445 290,415 Z M315,415 C315,430 325,440 335,440 C345,440 355,430 355,415 C355,400 345,390 335,390 C325,390 315,400 315,415 Z
+                          M390,370 H415 V400 C415,380 430,370 445,370 C460,370 475,380 475,400 V460 H450 V405 C450,395 445,390 435,390 C425,390 415,395 415,405 V460 H390 Z"/>
+</vector>

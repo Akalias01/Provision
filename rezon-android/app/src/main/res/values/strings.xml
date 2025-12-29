@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Rezon8</string>
+    <string name="app_tagline">Audiobooks Reimagined</string>
+
+    <!-- Navigation -->
+    <string name="nav_library">Library</string>
+    <string name="nav_player">Player</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Player -->
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_skip_forward">Skip Forward</string>
+    <string name="player_skip_backward">Skip Backward</string>
+    <string name="player_chapters">Chapters</string>
+    <string name="player_speed">Speed</string>
+    <string name="player_sleep_timer">Sleep Timer</string>
+
+    <!-- Library -->
+    <string name="library_not_started">Not Started</string>
+    <string name="library_in_progress">In Progress</string>
+    <string name="library_finished">Finished</string>
+    <string name="library_empty">No audiobooks yet</string>
+    <string name="library_empty_subtitle">Add files or scan a folder to get started</string>
+    <string name="library_search">Search books…</string>
+
+    <!-- Settings -->
+    <string name="settings_downloads">Downloads</string>
+    <string name="settings_library">Library</string>
+    <string name="settings_player">Player</string>
+    <string name="settings_audio">Audio</string>
+    <string name="settings_about">About</string>
+
+    <!-- Actions -->
+    <string name="action_add">Add</string>
+    <string name="action_scan_folder">Scan Folder</string>
+    <string name="action_add_torrent">Add Torrent/Magnet</string>
+    <string name="action_cloud_storage">Cloud Storage</string>
+</resources>
