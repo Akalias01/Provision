@@ -1,0 +1,38 @@
+name: stackable_widgets
+description: A Flutter app with stackable interactive widgets for iOS and Android
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Widget support
+  home_widget: ^0.6.0
+
+  # State management
+  provider: ^6.1.1
+
+  # Local storage
+  shared_preferences: ^2.2.2
+
+  # UI utilities
+  cupertino_icons: ^1.0.6
+  flutter_staggered_grid_view: ^0.7.0
+
+  # Animations
+  animations: ^2.0.11
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
