@@ -1,0 +1,307 @@
+<resources>
+    <string name="app_name">Reverie</string>
+
+    <!-- Navigation - UI3 Adaptive Context -->
+    <string name="nav_now">今</string>
+    <string name="nav_browse">ブラウズ</string>
+    <string name="nav_find">探す</string>
+    <string name="nav_journey">旅</string>
+    <string name="nav_you">あなた</string>
+    <!-- Legacy navigation -->
+    <string name="nav_home">ホーム</string>
+    <string name="nav_library">ライブラリ</string>
+    <string name="nav_settings">設定</string>
+    <string name="nav_search">検索</string>
+    <string name="nav_downloads">ダウンロード</string>
+    <string name="nav_bookmarks">ブックマーク</string>
+    <string name="nav_stats">再生統計</string>
+    <string name="nav_cloud">クラウド同期</string>
+    <string name="nav_equalizer">イコライザー</string>
+
+    <!-- Player Controls -->
+    <string name="player_play">再生</string>
+    <string name="player_pause">一時停止</string>
+    <string name="player_rewind">巻き戻し</string>
+    <string name="player_forward">早送り</string>
+    <string name="player_skip_back">前へスキップ</string>
+    <string name="player_skip_forward">次へスキップ</string>
+    <string name="player_chapters">チャプター</string>
+    <string name="player_speed">再生速度</string>
+    <string name="player_sleep_timer">スリープタイマー</string>
+    <string name="player_cancel_timer">タイマーをキャンセル</string>
+    <string name="player_add_bookmark">ブックマークを追加</string>
+    <string name="player_book_details">本の詳細</string>
+    <string name="player_now_playing">再生中</string>
+
+    <!-- Library -->
+    <string name="library_all">すべて</string>
+    <string name="library_not_started">未開始</string>
+    <string name="library_in_progress">再生中</string>
+    <string name="library_finished">完了</string>
+    <string name="library_listen">聴く</string>
+    <string name="library_read">読む</string>
+    <string name="library_list_view">リスト表示</string>
+    <string name="library_grid_view">グリッド表示</string>
+    <string name="library_recents_view">最近の表示</string>
+    <string name="library_sort">ライブラリを並び替え</string>
+    <string name="library_recents">最近</string>
+    <string name="library_author">著者</string>
+    <string name="library_title">タイトル</string>
+    <string name="library_series">シリーズ</string>
+    <string name="library_path">パス</string>
+    <string name="library_show_headers">ヘッダーを表示</string>
+    <string name="library_no_audiobooks">このカテゴリにオーディオブックがありません</string>
+    <string name="library_no_ebooks">このカテゴリに電子書籍がありません</string>
+    <string name="library_search_hint">本を検索...</string>
+    <string name="library_search_placeholder">本、著者...</string>
+
+    <!-- Library Menu -->
+    <string name="menu_play">再生</string>
+    <string name="menu_edit">編集</string>
+    <string name="menu_mark_as">マークする...</string>
+    <string name="menu_delete">ライブラリから削除</string>
+    <string name="menu_share">共有</string>
+
+    <!-- Book Detail -->
+    <string name="detail_change_cover">カバーを変更</string>
+    <string name="detail_add_to_series">シリーズに追加</string>
+    <string name="detail_split_book">本を分割</string>
+    <string name="detail_merge_books">本を結合</string>
+    <string name="detail_send_files">ファイルを送信</string>
+    <string name="detail_delete_files">ファイルを削除</string>
+    <string name="detail_delete_book">本を削除</string>
+
+    <!-- Settings -->
+    <string name="settings_title">設定</string>
+    <string name="settings_downloads">ダウンロード</string>
+    <string name="settings_wifi_only">Wi-Fi接続時のみダウンロード</string>
+    <string name="settings_library">ライブラリ</string>
+    <string name="settings_scan_startup">アプリ起動時にフォルダをスキャン</string>
+    <string name="settings_delete_missing">ライブラリから見つからないファイルを削除</string>
+    <string name="settings_audio">オーディオ</string>
+    <string name="settings_equalizer">イコライザー</string>
+    <string name="settings_equalizer_desc">オーディオプリセットを設定</string>
+    <string name="settings_codecs">コーデック（優先順位）</string>
+    <string name="settings_player">プレーヤー</string>
+    <string name="settings_skip_forward">早送りスキップ量</string>
+    <string name="settings_skip_backward">巻き戻しスキップ量</string>
+    <string name="settings_persistent">常駐プレーヤー</string>
+    <string name="settings_persistent_desc">バックグラウンドでプレーヤーを有効にする</string>
+    <string name="settings_skip_amounts">スキップ量</string>
+    <string name="settings_skip_desc">対称的なスキップ時間を設定</string>
+    <string name="settings_seconds">%d秒</string>
+    <string name="settings_decoder">オーディオデコーダー</string>
+    <string name="settings_default">デフォルト</string>
+    <string name="settings_appearance">外観</string>
+    <string name="settings_theme">テーマ</string>
+    <string name="settings_dynamic_colors">動的プレーヤーカラー</string>
+    <string name="settings_language">言語</string>
+    <string name="settings_torrent">トレント</string>
+    <string name="settings_torrent_enabled">トレントダウンロードを有効化</string>
+    <string name="settings_torrent_wifi">Wi-Fi接続時のみトレントをダウンロード</string>
+    <string name="settings_max_downloads">最大同時ダウンロード数</string>
+    <string name="settings_upload_limit">アップロード速度制限（KB/s）</string>
+    <string name="settings_download_limit">ダウンロード速度制限（KB/s）</string>
+    <string name="settings_auto_metadata">メタデータを自動取得</string>
+    <string name="settings_seed_after">ダウンロード後にシード</string>
+    <string name="settings_kids_mode">キッズモード</string>
+    <string name="settings_kids_enabled">キッズモードを有効化</string>
+    <string name="settings_kids_pin">キッズモードPIN</string>
+    <string name="settings_debug">デバッグ</string>
+    <string name="settings_file_logging">ファイルログ記録</string>
+
+    <!-- Drawer Menu -->
+    <string name="drawer_add_files">ファイルを追加</string>
+    <string name="drawer_add_files_desc">コンテンツをインポート</string>
+    <string name="drawer_torrent">トレントダウンロード</string>
+    <string name="drawer_torrent_desc">マグネットダウンロード</string>
+    <string name="drawer_cloud">クラウドストレージ</string>
+    <string name="drawer_cloud_desc">Drive &amp; Dropbox</string>
+    <string name="drawer_library">ライブラリ</string>
+    <string name="drawer_library_desc">あなたのコレクション</string>
+    <string name="drawer_appearance">外観</string>
+    <string name="drawer_appearance_desc">テーマオプション</string>
+    <string name="drawer_settings">設定</string>
+    <string name="drawer_settings_desc">アプリを設定</string>
+    <string name="drawer_translate">翻訳</string>
+    <string name="drawer_translate_desc">言語を変更</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">ブックマーク</string>
+    <string name="bookmarks_none">まだブックマークがありません</string>
+    <string name="bookmarks_add_hint">メニューから追加してください</string>
+    <string name="bookmark_label">ブックマーク %d</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_off">オフ</string>
+    <string name="sleep_minutes">%d分</string>
+    <string name="sleep_end_of_chapter">チャプターの終わり</string>
+    <string name="sleep_custom">カスタム</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_exit_title">Reverieを終了しますか？</string>
+    <string name="dialog_exit_message">アプリを終了してもよろしいですか？</string>
+    <string name="dialog_exit">終了</string>
+    <string name="dialog_cancel">キャンセル</string>
+    <string name="dialog_close">閉じる</string>
+    <string name="dialog_done">完了</string>
+    <string name="dialog_save">保存</string>
+    <string name="dialog_delete">削除</string>
+    <string name="dialog_confirm">確認</string>
+    <string name="dialog_not_connected">接続されていません</string>
+    <string name="dialog_connect">接続</string>
+    <string name="dialog_book_not_found">本が見つかりません</string>
+    <string name="dialog_no_results">結果が見つかりません</string>
+    <string name="dialog_no_recent">最近の本がありません</string>
+    <string name="dialog_open_library">ライブラリを開く</string>
+
+    <!-- Resume Dialog -->
+    <string name="resume_title">再生を再開しますか？</string>
+    <string name="resume_message">%sから再開しますか？</string>
+    <string name="resume_yes">再開</string>
+    <string name="resume_start_over">最初から</string>
+
+    <!-- Equalizer -->
+    <string name="eq_preamp">プリアンプ</string>
+    <string name="eq_reset">リセット</string>
+    <string name="eq_save_preset">プリセットを保存</string>
+    <string name="eq_category_audiobook">オーディオブック</string>
+    <string name="eq_category_genre">ジャンル</string>
+    <string name="eq_category_use_case">用途</string>
+    <string name="eq_category_custom">カスタム</string>
+    <string name="eq_flat">フラット</string>
+    <string name="eq_rock">ロック</string>
+    <string name="eq_pop">ポップ</string>
+    <string name="eq_jazz">ジャズ</string>
+    <string name="eq_classical">クラシック</string>
+    <string name="eq_electronic">エレクトロニック</string>
+    <string name="eq_hiphop">ヒップホップ</string>
+    <string name="eq_rnb">R&amp;B</string>
+    <string name="eq_metal">メタル</string>
+    <string name="eq_acoustic">アコースティック</string>
+    <string name="eq_country">カントリー</string>
+    <string name="eq_speech_clarity">音声明瞭化</string>
+    <string name="eq_narrator">ナレーター</string>
+    <string name="eq_podcast">ポッドキャスト</string>
+    <string name="eq_audiobook_night">オーディオブック（夜）</string>
+    <string name="eq_bass_boost">低音ブースト</string>
+    <string name="eq_treble_boost">高音ブースト</string>
+    <string name="eq_bass_reducer">低音軽減</string>
+    <string name="eq_loudness">ラウドネス</string>
+    <string name="eq_late_night">深夜</string>
+    <string name="eq_small_speakers">小型スピーカー</string>
+    <string name="eq_headphones">ヘッドフォン</string>
+    <string name="eq_car_audio">カーオーディオ</string>
+
+    <!-- Audio Effects -->
+    <string name="effect_amplifier">アンプ</string>
+    <string name="effect_amplifier_desc">音量ゲイン調整</string>
+    <string name="effect_bass_boost">低音ブースト</string>
+    <string name="effect_bass_boost_desc">低音域を強化</string>
+    <string name="effect_virtualizer">バーチャライザー</string>
+    <string name="effect_virtualizer_desc">3D空間オーディオ効果</string>
+    <string name="effect_stereo">ステレオバランス</string>
+    <string name="effect_stereo_desc">左右チャンネルバランス</string>
+    <string name="effect_reverb">リバーブ</string>
+    <string name="effect_reverb_desc">部屋のシミュレーション効果</string>
+    <string name="effect_normalization">ラウドネス正規化</string>
+    <string name="effect_normalization_desc">一定の音量を維持</string>
+    <string name="effect_on">オン</string>
+    <string name="effect_off">オフ</string>
+    <string name="reverb_small_room">小部屋</string>
+    <string name="reverb_medium_room">中部屋</string>
+    <string name="reverb_large_hall">大ホール</string>
+    <string name="reverb_concert_hall">コンサートホール</string>
+    <string name="reverb_cathedral">大聖堂</string>
+    <string name="reverb_studio">スタジオ</string>
+
+    <!-- Stats -->
+    <string name="stats_total_time">合計再生時間</string>
+    <string name="stats_sessions">%dセッション</string>
+    <string name="stats_today">今日</string>
+    <string name="stats_this_week">今週</string>
+    <string name="stats_completed">完了</string>
+    <string name="stats_books">冊</string>
+    <string name="stats_total">合計</string>
+
+    <!-- Torrent -->
+    <string name="torrent_add">トレントを追加</string>
+    <string name="torrent_browse">トレントファイルを参照</string>
+    <string name="torrent_select">.torrentファイルを選択</string>
+    <string name="torrent_magnet">マグネットリンクを入力</string>
+    <string name="torrent_magnet_hint">マグネットリンクを貼り付けてダウンロード。</string>
+    <string name="torrent_magnet_placeholder">magnet:?xt=urn:btih...</string>
+    <string name="torrent_download">ダウンロード</string>
+
+    <!-- Series -->
+    <string name="series_existing">既存</string>
+    <string name="series_new">新しいシリーズ</string>
+    <string name="series_name">シリーズ名</string>
+    <string name="series_select">シリーズを選択</string>
+    <string name="series_book_number">本の番号（任意）</string>
+    <string name="series_number_hint">例：1または1.5</string>
+
+    <!-- Reader -->
+    <string name="reader_chapters">チャプター</string>
+    <string name="reader_loading_epub">EPUBを読み込み中...</string>
+    <string name="reader_loading_pdf">PDFを読み込み中...</string>
+    <string name="reader_no_content">表示するコンテンツがありません</string>
+    <string name="reader_go_back">戻る</string>
+
+    <!-- Edit Book -->
+    <string name="edit_cover">カバー</string>
+    <string name="edit_tracks">トラック</string>
+    <string name="edit_tap_cover">タップしてカバーを変更</string>
+    <string name="edit_title">タイトル</string>
+    <string name="edit_author">著者</string>
+    <string name="edit_series">シリーズ</string>
+    <string name="edit_format">形式</string>
+    <string name="edit_duration">再生時間</string>
+    <string name="edit_fetching">取得中...</string>
+    <string name="edit_fetch_metadata">オンラインでメタデータを取得</string>
+    <string name="edit_track_editor">トラックエディタ</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Reverieへようこそ</string>
+    <string name="welcome_subtitle">あなたのオーディオ、再発見。</string>
+
+    <!-- Cloud -->
+    <string name="cloud_connect_hint">クラウドストレージに接続して直接インポート。</string>
+    <string name="cloud_google_drive">Google Drive</string>
+    <string name="cloud_dropbox">Dropbox</string>
+    <string name="cloud_connected">接続済み</string>
+    <string name="cloud_disconnect">切断</string>
+
+    <!-- Languages -->
+    <string name="lang_system">システム</string>
+    <string name="lang_english">英語</string>
+    <string name="lang_spanish">スペイン語</string>
+    <string name="lang_french">フランス語</string>
+    <string name="lang_german">ドイツ語</string>
+    <string name="lang_italian">イタリア語</string>
+    <string name="lang_portuguese">ポルトガル語</string>
+    <string name="lang_japanese">日本語</string>
+    <string name="lang_korean">韓国語</string>
+    <string name="lang_chinese">中国語</string>
+    <string name="lang_russian">ロシア語</string>
+    <string name="lang_arabic">アラビア語</string>
+
+    <!-- Playback Speed -->
+    <string name="speed_preset_normal">標準</string>
+    <string name="speed_preset_slow">遅い</string>
+    <string name="speed_preset_fast">速い</string>
+    <string name="speed_preset_commute">通勤</string>
+    <string name="speed_preset_bedtime">就寝前</string>
+    <string name="speed_save_preset">プリセットとして保存</string>
+
+    <!-- Common -->
+    <string name="loading">読み込み中...</string>
+    <string name="error">エラー</string>
+    <string name="retry">再試行</string>
+    <string name="ok">OK</string>
+    <string name="yes">はい</string>
+    <string name="no">いいえ</string>
+    <string name="left">左</string>
+    <string name="right">右</string>
+    <string name="center">中央</string>
+</resources>

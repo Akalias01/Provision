@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Safe zone is 44dp radius from center (54,54) -->
+    <!-- Minimalist 3-bar soundwave design - copper/bronze -->
+
+    <!-- Bar 1 - Left (medium height) -->
+    <path
+        android:fillColor="#B87333"
+        android:pathData="M38,42
+                         L38,66
+                         Q38,70 42,70
+                         L42,70
+                         Q46,70 46,66
+                         L46,42
+                         Q46,38 42,38
+                         L42,38
+                         Q38,38 38,42
+                         Z" />
+
+    <!-- Bar 2 - Center (tallest) -->
+    <path
+        android:fillColor="#CD7F32"
+        android:pathData="M50,32
+                         L50,76
+                         Q50,80 54,80
+                         L54,80
+                         Q58,80 58,76
+                         L58,32
+                         Q58,28 54,28
+                         L54,28
+                         Q50,28 50,32
+                         Z" />
+
+    <!-- Bar 3 - Right (medium-short height) -->
+    <path
+        android:fillColor="#D4A574"
+        android:pathData="M62,46
+                         L62,62
+                         Q62,66 66,66
+                         L66,66
+                         Q70,66 70,62
+                         L70,46
+                         Q70,42 66,42
+                         L66,42
+                         Q62,42 62,46
+                         Z" />
+
+    <!-- Subtle glow effect on center bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.15"
+        android:pathData="M52,34
+                         L52,50
+                         Q52,52 54,52
+                         L54,52
+                         Q56,52 56,50
+                         L56,34
+                         Q56,32 54,32
+                         L54,32
+                         Q52,32 52,34
+                         Z" />
+
+</vector>

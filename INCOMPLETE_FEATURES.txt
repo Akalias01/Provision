@@ -1,0 +1,54 @@
+INCOMPLETE FEATURES LIST
+========================
+
+NOT IMPLEMENTED (Core Features):
+
+1. Reading Mode (Amber/Sepia theme)
+2. Translate Menu
+3. Split Book
+4. Merge Books
+
+NEEDS VERIFICATION:
+
+5. TTS Engine Toggle in Settings
+6. Kids Mode UI Filtering
+
+NEEDS CONFIGURATION:
+
+7. Crash Reporting (needs Firebase/Sentry)
+8. Dropbox APP_KEY
+
+FUTURE INNOVATION FEATURES:
+
+Passive Intelligence:
+9. Auto-detect optimal playback speed by content type
+10. Smart chapter detection for poorly-tagged files
+11. Ambient-aware volume adjustment
+12. Sleep detection to auto-pause
+13. Commute-aware playback preparation
+
+Gesture Innovation:
+14. Edge gestures for quick actions
+15. Shake to bookmark
+16. Proximity gestures (wave to pause)
+
+Content Intelligence:
+17. AI-powered chapter summaries
+18. Character voice profiles
+19. Mood-based recommendations
+20. Reading/listening time predictions
+21. Smart series ordering
+
+Social and Sharing:
+22. Quote extraction and sharing
+23. Progress sharing with friends
+24. Book clubs and discussion features
+25. Social listening sessions
+
+Accessibility:
+26. Voice control for hands-free operation
+27. Screen reader optimization
+28. High contrast modes
+29. Dyslexia-friendly reading options
+
+TOTAL: 29 items

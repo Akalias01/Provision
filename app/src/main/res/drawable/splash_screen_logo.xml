@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Reverie Splash Screen Logo -->
+    <!-- Minimalist 3-bar soundwave - copper/bronze metallic -->
+    <!-- Based on user's E2/E3 examples -->
+
+    <!-- Bar 1 - Left (medium height) -->
+    <path
+        android:fillColor="#B87333"
+        android:pathData="M66,70
+                         L66,130
+                         Q66,140 76,140
+                         L76,140
+                         Q86,140 86,130
+                         L86,70
+                         Q86,60 76,60
+                         L76,60
+                         Q66,60 66,70
+                         Z" />
+
+    <!-- Bar 2 - Center (tallest) -->
+    <path
+        android:fillColor="#CD7F32"
+        android:pathData="M90,45
+                         L90,155
+                         Q90,165 100,165
+                         L100,165
+                         Q110,165 110,155
+                         L110,45
+                         Q110,35 100,35
+                         L100,35
+                         Q90,35 90,45
+                         Z" />
+
+    <!-- Bar 3 - Right (shorter) -->
+    <path
+        android:fillColor="#D4A574"
+        android:pathData="M114,80
+                         L114,120
+                         Q114,130 124,130
+                         L124,130
+                         Q134,130 134,120
+                         L134,80
+                         Q134,70 124,70
+                         L124,70
+                         Q114,70 114,80
+                         Z" />
+
+    <!-- Subtle glow/highlight on center bar for metallic effect -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.15"
+        android:pathData="M94,50
+                         L94,100
+                         Q94,105 100,105
+                         L100,105
+                         Q106,105 106,100
+                         L106,50
+                         Q106,45 100,45
+                         L100,45
+                         Q94,45 94,50
+                         Z" />
+
+    <!-- Subtle shadow under bars -->
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.1"
+        android:pathData="M70,142 Q76,148 82,142
+                         M94,167 Q100,173 106,167
+                         M118,132 Q124,138 130,132" />
+
+</vector>

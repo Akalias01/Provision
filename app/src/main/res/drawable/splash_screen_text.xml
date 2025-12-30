@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="60dp"
+    android:viewportWidth="240"
+    android:viewportHeight="60">
+
+    <!-- Reverie wordmark with glass styling -->
+    <!-- Using a stylized, modern approach with individual letter shapes -->
+
+    <!-- R -->
+    <group android:translateX="10" android:translateY="15">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M0,0 L0,30 M0,0 L10,0 Q15,0 15,7.5 Q15,15 10,15 L0,15 M10,15 L15,30" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M0,0 L0,30 M0,0 L10,0 Q15,0 15,7.5 Q15,15 10,15 L0,15 M10,15 L15,30" />
+    </group>
+
+    <!-- E -->
+    <group android:translateX="35" android:translateY="15">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M0,0 L0,30 M0,0 L12,0 M0,15 L10,15 M0,30 L12,30" />
+    </group>
+
+    <!-- Z -->
+    <group android:translateX="58" android:translateY="15">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M0,0 L12,0 L0,30 L12,30" />
+    </group>
+
+    <!-- O -->
+    <group android:translateX="81" android:translateY="15">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M6,0 Q12,0 12,15 Q12,30 6,30 Q0,30 0,15 Q0,0 6,0 Z" />
+    </group>
+
+    <!-- N -->
+    <group android:translateX="105" android:translateY="15">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M0,30 L0,0 L12,30 L12,0" />
+    </group>
+
+    <!-- 8 - with copper accent -->
+    <group android:translateX="130" android:translateY="15">
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#CD7F32"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M6,0 Q12,0 12,7.5 Q12,15 6,15 Q0,15 0,7.5 Q0,0 6,0 Z M6,15 Q12,15 12,22.5 Q12,30 6,30 Q0,30 0,22.5 Q0,15 6,15 Z" />
+
+        <!-- Inner glow on 8 -->
+        <path
+            android:fillColor="#CD7F32"
+            android:fillAlpha="0.2"
+            android:pathData="M6,2 Q10,2 10,7.5 Q10,13 6,13 Q2,13 2,7.5 Q2,2 6,2 Z M6,17 Q10,17 10,22.5 Q10,28 6,28 Q2,28 2,22.5 Q2,17 6,17 Z" />
+    </group>
+
+    <!-- Subtle glow line under entire text -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#CD7F32"
+        android:strokeWidth="1.5"
+        android:strokeAlpha="0.5"
+        android:pathData="M10,52 L145,52" />
+
+    <!-- Bottom accent dots (circles drawn with path arcs) -->
+    <path
+        android:fillColor="#CD7F32"
+        android:fillAlpha="0.6"
+        android:pathData="M155,50 a2,2 0 1,1 0,4 a2,2 0 1,1 0,-4 z" />
+
+    <path
+        android:fillColor="#CD7F32"
+        android:fillAlpha="0.4"
+        android:pathData="M162,50.5 a1.5,1.5 0 1,1 0,3 a1.5,1.5 0 1,1 0,-3 z" />
+
+    <path
+        android:fillColor="#CD7F32"
+        android:fillAlpha="0.2"
+        android:pathData="M168,51 a1,1 0 1,1 0,2 a1,1 0 1,1 0,-2 z" />
+</vector>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Reverie" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- REVERIE WATERCOLOR BRANDING -->
+
+        <!-- 1. Background Color - Warm cream/paper to complement watercolor art -->
+        <item name="android:windowSplashScreenBackground">#FAF7F2</item>
+
+        <!-- 2. The Icon - Watercolor tree with play button -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/reverie_splash_watercolor</item>
+
+        <!-- 3. Edge-to-edge with matching system bars -->
+        <item name="android:statusBarColor">#FAF7F2</item>
+        <item name="android:navigationBarColor">#FAF7F2</item>
+        <item name="android:windowBackground">#FAF7F2</item>
+        <item name="android:colorBackground">#FAF7F2</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+    </style>
+</resources>

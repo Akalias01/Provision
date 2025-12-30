@@ -1,0 +1,21 @@
+REZON8 UI2 CHECKPOINT BACKUP
+Created: December 25, 2025
+Purpose: UI2 backup before UI3 (Adaptive Context) redesign
+
+FILES BACKED UP:
+- MainLayoutGlass.kt (102KB) - Main navigation and layout
+- HomeScreenGlass.kt (38KB) - Home screen
+- LibraryScreenGlass.kt (55KB) - Library screen
+- BookDetailScreen.kt (34KB) - Book detail/synopsis
+- PlayerScreenGlass.kt (147KB) - Audio player
+- SettingsScreen.kt (72KB) - Settings
+
+TO RESTORE UI2:
+Copy all .kt files back to their original locations:
+
+cp UI2_checkpoint/MainLayoutGlass.kt app/src/main/java/com/example/rezon8/ui/
+cp UI2_checkpoint/HomeScreenGlass.kt app/src/main/java/com/example/rezon8/ui/screens/
+cp UI2_checkpoint/LibraryScreenGlass.kt app/src/main/java/com/example/rezon8/ui/screens/
+cp UI2_checkpoint/BookDetailScreen.kt app/src/main/java/com/example/rezon8/ui/screens/
+cp UI2_checkpoint/PlayerScreenGlass.kt app/src/main/java/com/example/rezon8/ui/screens/
+cp UI2_checkpoint/SettingsScreen.kt app/src/main/java/com/example/rezon8/ui/screens/

@@ -1,0 +1,44 @@
+    /**
+     * Check if book has progress and show resume dialog if needed.
+     * Used when user taps play from library.
+     */
+    fun checkAndShowResumeDialog(book: Book) {
+        // Only show dialog if book has progress > 0 and is not finished
+        if (book.progress > 0 && !book.isFinished) {
+            _showResumeDialog.value = book
+        } else {
+            // No progress, just load and play
+            resumeFromPosition(book)
+        }
+    }
+
+    /**
+     * Resume book from saved position.
+     */
+    fun resumeFromPosition(book: Book) {
+        _showResumeDialog.value = null
+        loadBook(book)
+        audioHandler.play()
+    }
+
+    /**
+     * Start book from beginning (reset progress to 0).
+     */
+    fun startFromBeginning(book: Book) {
+        _showResumeDialog.value = null
+        // Reset progress to 0 in database
+        viewModelScope.launch {
+            bookDao.updateProgress(book.id, 0L, System.currentTimeMillis())
+            // Load updated book with progress = 0
+            val updatedBook = bookDao.getBookById(book.id) ?: book.copy(progress = 0)
+            loadBook(updatedBook)
+            audioHandler.play()
+        }
+    }
+
+    /**
+     * Dismiss resume dialog without action.
+     */
+    fun dismissResumeDialog() {
+        _showResumeDialog.value = null
+    }

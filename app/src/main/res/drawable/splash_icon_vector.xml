@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- Reverie Splash Screen Logo - 3-bar copper soundwave -->
+    <!-- Centered in 288dp splash zone -->
+
+    <!-- Bar 1 - Left (medium height) -->
+    <path
+        android:fillColor="#B87333"
+        android:pathData="M100,108
+                         L100,180
+                         Q100,192 112,192
+                         L112,192
+                         Q124,192 124,180
+                         L124,108
+                         Q124,96 112,96
+                         L112,96
+                         Q100,96 100,108
+                         Z" />
+
+    <!-- Bar 2 - Center (tallest) -->
+    <path
+        android:fillColor="#CD7F32"
+        android:pathData="M132,80
+                         L132,208
+                         Q132,220 144,220
+                         L144,220
+                         Q156,220 156,208
+                         L156,80
+                         Q156,68 144,68
+                         L144,68
+                         Q132,68 132,80
+                         Z" />
+
+    <!-- Bar 3 - Right (medium-short height) -->
+    <path
+        android:fillColor="#D4A574"
+        android:pathData="M164,120
+                         L164,168
+                         Q164,180 176,180
+                         L176,180
+                         Q188,180 188,168
+                         L188,120
+                         Q188,108 176,108
+                         L176,108
+                         Q164,108 164,120
+                         Z" />
+
+    <!-- Subtle glow effect on center bar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.15"
+        android:pathData="M138,88
+                         L138,140
+                         Q138,148 144,148
+                         L144,148
+                         Q150,148 150,140
+                         L150,88
+                         Q150,80 144,80
+                         L144,80
+                         Q138,80 138,88
+                         Z" />
+
+</vector>

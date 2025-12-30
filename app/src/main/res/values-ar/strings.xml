@@ -1,0 +1,307 @@
+<resources>
+    <string name="app_name">Reverie</string>
+
+    <!-- Navigation - UI3 Adaptive Context -->
+    <string name="nav_now">الآن</string>
+    <string name="nav_browse">تصفح</string>
+    <string name="nav_find">اكتشف</string>
+    <string name="nav_journey">رحلة</string>
+    <string name="nav_you">أنت</string>
+    <!-- Legacy navigation -->
+    <string name="nav_home">الرئيسية</string>
+    <string name="nav_library">المكتبة</string>
+    <string name="nav_settings">الإعدادات</string>
+    <string name="nav_search">البحث</string>
+    <string name="nav_downloads">التنزيلات</string>
+    <string name="nav_bookmarks">العلامات المرجعية</string>
+    <string name="nav_stats">إحصائيات الاستماع</string>
+    <string name="nav_cloud">المزامنة السحابية</string>
+    <string name="nav_equalizer">المعادل الصوتي</string>
+
+    <!-- Player Controls -->
+    <string name="player_play">تشغيل</string>
+    <string name="player_pause">إيقاف مؤقت</string>
+    <string name="player_rewind">ترجيع</string>
+    <string name="player_forward">تقديم</string>
+    <string name="player_skip_back">التخطي للخلف</string>
+    <string name="player_skip_forward">التخطي للأمام</string>
+    <string name="player_chapters">الفصول</string>
+    <string name="player_speed">السرعة</string>
+    <string name="player_sleep_timer">مؤقت النوم</string>
+    <string name="player_cancel_timer">إلغاء المؤقت</string>
+    <string name="player_add_bookmark">إضافة علامة مرجعية</string>
+    <string name="player_book_details">تفاصيل الكتاب</string>
+    <string name="player_now_playing">قيد التشغيل الآن</string>
+
+    <!-- Library -->
+    <string name="library_all">الكل</string>
+    <string name="library_not_started">لم يبدأ</string>
+    <string name="library_in_progress">قيد التقدم</string>
+    <string name="library_finished">منتهي</string>
+    <string name="library_listen">استماع</string>
+    <string name="library_read">قراءة</string>
+    <string name="library_list_view">عرض القائمة</string>
+    <string name="library_grid_view">عرض الشبكة</string>
+    <string name="library_recents_view">عرض الأحدث</string>
+    <string name="library_sort">ترتيب المكتبة</string>
+    <string name="library_recents">الأحدث</string>
+    <string name="library_author">المؤلف</string>
+    <string name="library_title">العنوان</string>
+    <string name="library_series">السلسلة</string>
+    <string name="library_path">المسار</string>
+    <string name="library_show_headers">إظهار العناوين</string>
+    <string name="library_no_audiobooks">لا توجد كتب صوتية في هذا التصنيف</string>
+    <string name="library_no_ebooks">لا توجد كتب إلكترونية في هذا التصنيف</string>
+    <string name="library_search_hint">البحث عن الكتب...</string>
+    <string name="library_search_placeholder">الكتب، المؤلفون...</string>
+
+    <!-- Library Menu -->
+    <string name="menu_play">تشغيل</string>
+    <string name="menu_edit">تعديل</string>
+    <string name="menu_mark_as">تعليم كـ...</string>
+    <string name="menu_delete">حذف من المكتبة</string>
+    <string name="menu_share">مشاركة</string>
+
+    <!-- Book Detail -->
+    <string name="detail_change_cover">تغيير الغلاف</string>
+    <string name="detail_add_to_series">إضافة إلى السلسلة</string>
+    <string name="detail_split_book">تقسيم الكتاب</string>
+    <string name="detail_merge_books">دمج الكتب</string>
+    <string name="detail_send_files">إرسال الملفات</string>
+    <string name="detail_delete_files">حذف الملفات</string>
+    <string name="detail_delete_book">حذف الكتاب</string>
+
+    <!-- Settings -->
+    <string name="settings_title">الإعدادات</string>
+    <string name="settings_downloads">التنزيلات</string>
+    <string name="settings_wifi_only">التنزيل عبر الواي فاي فقط</string>
+    <string name="settings_library">المكتبة</string>
+    <string name="settings_scan_startup">فحص المجلدات عند بدء التطبيق</string>
+    <string name="settings_delete_missing">حذف الملفات المفقودة من المكتبة</string>
+    <string name="settings_audio">الصوت</string>
+    <string name="settings_equalizer">المعادل الصوتي</string>
+    <string name="settings_equalizer_desc">إعداد الضبط المسبق للصوت</string>
+    <string name="settings_codecs">برامج الترميز (الأولوية)</string>
+    <string name="settings_player">المشغل</string>
+    <string name="settings_skip_forward">مقدار التخطي للأمام</string>
+    <string name="settings_skip_backward">مقدار التخطي للخلف</string>
+    <string name="settings_persistent">مشغل دائم</string>
+    <string name="settings_persistent_desc">إبقاء المشغل نشطاً في الخلفية</string>
+    <string name="settings_skip_amounts">مقادير التخطي</string>
+    <string name="settings_skip_desc">تعيين فترات التخطي المتماثلة</string>
+    <string name="settings_seconds">%d ثانية</string>
+    <string name="settings_decoder">فك تشفير الصوت</string>
+    <string name="settings_default">افتراضي</string>
+    <string name="settings_appearance">المظهر</string>
+    <string name="settings_theme">السمة</string>
+    <string name="settings_dynamic_colors">ألوان المشغل الديناميكية</string>
+    <string name="settings_language">اللغة</string>
+    <string name="settings_torrent">التورنت</string>
+    <string name="settings_torrent_enabled">تفعيل تنزيلات التورنت</string>
+    <string name="settings_torrent_wifi">تنزيل التورنت عبر الواي فاي فقط</string>
+    <string name="settings_max_downloads">الحد الأقصى للتنزيلات المتزامنة</string>
+    <string name="settings_upload_limit">حد سرعة الرفع (كيلوبايت/ثانية)</string>
+    <string name="settings_download_limit">حد سرعة التنزيل (كيلوبايت/ثانية)</string>
+    <string name="settings_auto_metadata">جلب البيانات الوصفية تلقائياً</string>
+    <string name="settings_seed_after">المشاركة بعد التنزيل</string>
+    <string name="settings_kids_mode">وضع الأطفال</string>
+    <string name="settings_kids_enabled">تفعيل وضع الأطفال</string>
+    <string name="settings_kids_pin">رمز PIN لوضع الأطفال</string>
+    <string name="settings_debug">التصحيح</string>
+    <string name="settings_file_logging">تسجيل الملفات</string>
+
+    <!-- Drawer Menu -->
+    <string name="drawer_add_files">إضافة ملفات</string>
+    <string name="drawer_add_files_desc">استيراد المحتوى</string>
+    <string name="drawer_torrent">تنزيلات التورنت</string>
+    <string name="drawer_torrent_desc">تنزيلات المغناطيس</string>
+    <string name="drawer_cloud">التخزين السحابي</string>
+    <string name="drawer_cloud_desc">درايف ودروب بوكس</string>
+    <string name="drawer_library">المكتبة</string>
+    <string name="drawer_library_desc">مجموعتك</string>
+    <string name="drawer_appearance">المظهر</string>
+    <string name="drawer_appearance_desc">خيارات السمة</string>
+    <string name="drawer_settings">الإعدادات</string>
+    <string name="drawer_settings_desc">إعداد التطبيق</string>
+    <string name="drawer_translate">الترجمة</string>
+    <string name="drawer_translate_desc">تغيير اللغة</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">العلامات المرجعية</string>
+    <string name="bookmarks_none">لا توجد علامات مرجعية بعد</string>
+    <string name="bookmarks_add_hint">أضف واحدة من القائمة</string>
+    <string name="bookmark_label">علامة مرجعية %d</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_off">إيقاف</string>
+    <string name="sleep_minutes">%d دقيقة</string>
+    <string name="sleep_end_of_chapter">نهاية الفصل</string>
+    <string name="sleep_custom">مخصص</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_exit_title">الخروج من Reverie؟</string>
+    <string name="dialog_exit_message">هل أنت متأكد من رغبتك في الخروج من التطبيق؟</string>
+    <string name="dialog_exit">خروج</string>
+    <string name="dialog_cancel">إلغاء</string>
+    <string name="dialog_close">إغلاق</string>
+    <string name="dialog_done">تم</string>
+    <string name="dialog_save">حفظ</string>
+    <string name="dialog_delete">حذف</string>
+    <string name="dialog_confirm">تأكيد</string>
+    <string name="dialog_not_connected">غير متصل</string>
+    <string name="dialog_connect">اتصال</string>
+    <string name="dialog_book_not_found">الكتاب غير موجود</string>
+    <string name="dialog_no_results">لا توجد نتائج</string>
+    <string name="dialog_no_recent">لا توجد كتب حديثة</string>
+    <string name="dialog_open_library">فتح المكتبة الكاملة</string>
+
+    <!-- Resume Dialog -->
+    <string name="resume_title">استئناف التشغيل؟</string>
+    <string name="resume_message">الاستئناف من %s؟</string>
+    <string name="resume_yes">استئناف</string>
+    <string name="resume_start_over">البدء من جديد</string>
+
+    <!-- Equalizer -->
+    <string name="eq_preamp">مكبر مسبق</string>
+    <string name="eq_reset">إعادة تعيين</string>
+    <string name="eq_save_preset">حفظ الضبط المسبق</string>
+    <string name="eq_category_audiobook">كتاب صوتي</string>
+    <string name="eq_category_genre">النوع</string>
+    <string name="eq_category_use_case">حالة الاستخدام</string>
+    <string name="eq_category_custom">مخصص</string>
+    <string name="eq_flat">مسطح</string>
+    <string name="eq_rock">روك</string>
+    <string name="eq_pop">بوب</string>
+    <string name="eq_jazz">جاز</string>
+    <string name="eq_classical">كلاسيكي</string>
+    <string name="eq_electronic">إلكتروني</string>
+    <string name="eq_hiphop">هيب هوب</string>
+    <string name="eq_rnb">آر أند بي</string>
+    <string name="eq_metal">ميتال</string>
+    <string name="eq_acoustic">أكوستيك</string>
+    <string name="eq_country">كانتري</string>
+    <string name="eq_speech_clarity">وضوح الكلام</string>
+    <string name="eq_narrator">راوي</string>
+    <string name="eq_podcast">بودكاست</string>
+    <string name="eq_audiobook_night">كتاب صوتي ليلي</string>
+    <string name="eq_bass_boost">تعزيز الجهير</string>
+    <string name="eq_treble_boost">تعزيز الحدة</string>
+    <string name="eq_bass_reducer">تقليل الجهير</string>
+    <string name="eq_loudness">ارتفاع الصوت</string>
+    <string name="eq_late_night">وقت متأخر من الليل</string>
+    <string name="eq_small_speakers">مكبرات صغيرة</string>
+    <string name="eq_headphones">سماعات الرأس</string>
+    <string name="eq_car_audio">صوت السيارة</string>
+
+    <!-- Audio Effects -->
+    <string name="effect_amplifier">المضخم</string>
+    <string name="effect_amplifier_desc">ضبط زيادة الصوت</string>
+    <string name="effect_bass_boost">تعزيز الجهير</string>
+    <string name="effect_bass_boost_desc">تحسين الترددات المنخفضة</string>
+    <string name="effect_virtualizer">المحاكي الافتراضي</string>
+    <string name="effect_virtualizer_desc">تأثير صوتي مجسم ثلاثي الأبعاد</string>
+    <string name="effect_stereo">توازن الستيريو</string>
+    <string name="effect_stereo_desc">توازن القناة اليسرى/اليمنى</string>
+    <string name="effect_reverb">الصدى</string>
+    <string name="effect_reverb_desc">تأثير محاكاة الغرفة</string>
+    <string name="effect_normalization">توحيد مستوى الصوت</string>
+    <string name="effect_normalization_desc">الحفاظ على مستوى صوت ثابت</string>
+    <string name="effect_on">تشغيل</string>
+    <string name="effect_off">إيقاف</string>
+    <string name="reverb_small_room">غرفة صغيرة</string>
+    <string name="reverb_medium_room">غرفة متوسطة</string>
+    <string name="reverb_large_hall">قاعة كبيرة</string>
+    <string name="reverb_concert_hall">قاعة حفلات</string>
+    <string name="reverb_cathedral">كاتدرائية</string>
+    <string name="reverb_studio">استوديو</string>
+
+    <!-- Stats -->
+    <string name="stats_total_time">إجمالي وقت الاستماع</string>
+    <string name="stats_sessions">%d جلسة</string>
+    <string name="stats_today">اليوم</string>
+    <string name="stats_this_week">هذا الأسبوع</string>
+    <string name="stats_completed">مكتمل</string>
+    <string name="stats_books">كتب</string>
+    <string name="stats_total">الإجمالي</string>
+
+    <!-- Torrent -->
+    <string name="torrent_add">إضافة تورنت</string>
+    <string name="torrent_browse">تصفح ملفات التورنت</string>
+    <string name="torrent_select">اختر ملفات .torrent</string>
+    <string name="torrent_magnet">إدخال رابط مغناطيسي</string>
+    <string name="torrent_magnet_hint">الصق رابطاً مغناطيسياً للتنزيل.</string>
+    <string name="torrent_magnet_placeholder">magnet:?xt=urn:btih...</string>
+    <string name="torrent_download">تنزيل</string>
+
+    <!-- Series -->
+    <string name="series_existing">موجودة</string>
+    <string name="series_new">سلسلة جديدة</string>
+    <string name="series_name">اسم السلسلة</string>
+    <string name="series_select">اختر السلسلة</string>
+    <string name="series_book_number">رقم الكتاب (اختياري)</string>
+    <string name="series_number_hint">مثال، 1 أو 1.5</string>
+
+    <!-- Reader -->
+    <string name="reader_chapters">الفصول</string>
+    <string name="reader_loading_epub">تحميل EPUB...</string>
+    <string name="reader_loading_pdf">تحميل PDF...</string>
+    <string name="reader_no_content">لا يوجد محتوى للعرض</string>
+    <string name="reader_go_back">العودة</string>
+
+    <!-- Edit Book -->
+    <string name="edit_cover">الغلاف</string>
+    <string name="edit_tracks">المقاطع</string>
+    <string name="edit_tap_cover">انقر لتغيير الغلاف</string>
+    <string name="edit_title">العنوان</string>
+    <string name="edit_author">المؤلف</string>
+    <string name="edit_series">السلسلة</string>
+    <string name="edit_format">الصيغة</string>
+    <string name="edit_duration">المدة</string>
+    <string name="edit_fetching">جاري الجلب...</string>
+    <string name="edit_fetch_metadata">جلب البيانات الوصفية عبر الإنترنت</string>
+    <string name="edit_track_editor">محرر المقاطع</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">مرحباً بك في Reverie</string>
+    <string name="welcome_subtitle">صوتك، معاد تصوره.</string>
+
+    <!-- Cloud -->
+    <string name="cloud_connect_hint">اتصل بالتخزين السحابي للاستيراد مباشرة.</string>
+    <string name="cloud_google_drive">جوجل درايف</string>
+    <string name="cloud_dropbox">دروب بوكس</string>
+    <string name="cloud_connected">متصل</string>
+    <string name="cloud_disconnect">قطع الاتصال</string>
+
+    <!-- Languages -->
+    <string name="lang_system">النظام</string>
+    <string name="lang_english">الإنجليزية</string>
+    <string name="lang_spanish">الإسبانية</string>
+    <string name="lang_french">الفرنسية</string>
+    <string name="lang_german">الألمانية</string>
+    <string name="lang_italian">الإيطالية</string>
+    <string name="lang_portuguese">البرتغالية</string>
+    <string name="lang_japanese">اليابانية</string>
+    <string name="lang_korean">الكورية</string>
+    <string name="lang_chinese">الصينية</string>
+    <string name="lang_russian">الروسية</string>
+    <string name="lang_arabic">العربية</string>
+
+    <!-- Playback Speed -->
+    <string name="speed_preset_normal">عادي</string>
+    <string name="speed_preset_slow">بطيء</string>
+    <string name="speed_preset_fast">سريع</string>
+    <string name="speed_preset_commute">التنقل</string>
+    <string name="speed_preset_bedtime">وقت النوم</string>
+    <string name="speed_save_preset">حفظ كضبط مسبق</string>
+
+    <!-- Common -->
+    <string name="loading">جاري التحميل...</string>
+    <string name="error">خطأ</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="ok">حسناً</string>
+    <string name="yes">نعم</string>
+    <string name="no">لا</string>
+    <string name="left">يسار</string>
+    <string name="right">يمين</string>
+    <string name="center">الوسط</string>
+</resources>

@@ -1,0 +1,307 @@
+<resources>
+    <string name="app_name">Reverie</string>
+
+    <!-- Navigation - UI3 Adaptive Context -->
+    <string name="nav_now">Ora</string>
+    <string name="nav_browse">Sfoglia</string>
+    <string name="nav_find">Trova</string>
+    <string name="nav_journey">Viaggio</string>
+    <string name="nav_you">Tu</string>
+    <!-- Legacy navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_library">Libreria</string>
+    <string name="nav_settings">Impostazioni</string>
+    <string name="nav_search">Cerca</string>
+    <string name="nav_downloads">Download</string>
+    <string name="nav_bookmarks">Segnalibri</string>
+    <string name="nav_stats">Statistiche di ascolto</string>
+    <string name="nav_cloud">Sincronizzazione cloud</string>
+    <string name="nav_equalizer">Equalizzatore</string>
+
+    <!-- Player Controls -->
+    <string name="player_play">Riproduci</string>
+    <string name="player_pause">Pausa</string>
+    <string name="player_rewind">Indietro</string>
+    <string name="player_forward">Avanti</string>
+    <string name="player_skip_back">Salta indietro</string>
+    <string name="player_skip_forward">Salta avanti</string>
+    <string name="player_chapters">Capitoli</string>
+    <string name="player_speed">Velocità</string>
+    <string name="player_sleep_timer">Timer di spegnimento</string>
+    <string name="player_cancel_timer">Annulla timer</string>
+    <string name="player_add_bookmark">Aggiungi segnalibro</string>
+    <string name="player_book_details">Dettagli libro</string>
+    <string name="player_now_playing">In riproduzione</string>
+
+    <!-- Library -->
+    <string name="library_all">Tutti</string>
+    <string name="library_not_started">Non iniziati</string>
+    <string name="library_in_progress">In corso</string>
+    <string name="library_finished">Completati</string>
+    <string name="library_listen">Ascolta</string>
+    <string name="library_read">Leggi</string>
+    <string name="library_list_view">Vista elenco</string>
+    <string name="library_grid_view">Vista griglia</string>
+    <string name="library_recents_view">Vista recenti</string>
+    <string name="library_sort">Ordina libreria</string>
+    <string name="library_recents">Recenti</string>
+    <string name="library_author">Autore</string>
+    <string name="library_title">Titolo</string>
+    <string name="library_series">Serie</string>
+    <string name="library_path">Percorso</string>
+    <string name="library_show_headers">Mostra intestazioni</string>
+    <string name="library_no_audiobooks">Nessun audiolibro in questa categoria</string>
+    <string name="library_no_ebooks">Nessun ebook in questa categoria</string>
+    <string name="library_search_hint">Cerca libri...</string>
+    <string name="library_search_placeholder">Libri, autori...</string>
+
+    <!-- Library Menu -->
+    <string name="menu_play">Riproduci</string>
+    <string name="menu_edit">Modifica</string>
+    <string name="menu_mark_as">Segna come...</string>
+    <string name="menu_delete">Elimina dalla libreria</string>
+    <string name="menu_share">Condividi</string>
+
+    <!-- Book Detail -->
+    <string name="detail_change_cover">Cambia copertina</string>
+    <string name="detail_add_to_series">Aggiungi a serie</string>
+    <string name="detail_split_book">Dividi libro</string>
+    <string name="detail_merge_books">Unisci libri</string>
+    <string name="detail_send_files">Invia file</string>
+    <string name="detail_delete_files">Elimina file</string>
+    <string name="detail_delete_book">Elimina libro</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_downloads">DOWNLOAD</string>
+    <string name="settings_wifi_only">Scarica solo tramite Wi-Fi</string>
+    <string name="settings_library">LIBRERIA</string>
+    <string name="settings_scan_startup">Scansiona cartelle all\'avvio dell\'applicazione</string>
+    <string name="settings_delete_missing">Elimina i file mancanti dalla libreria</string>
+    <string name="settings_audio">AUDIO</string>
+    <string name="settings_equalizer">Equalizzatore</string>
+    <string name="settings_equalizer_desc">Configura preset audio</string>
+    <string name="settings_codecs">Codec (priorità)</string>
+    <string name="settings_player">LETTORE</string>
+    <string name="settings_skip_forward">Salto avanti</string>
+    <string name="settings_skip_backward">Salto indietro</string>
+    <string name="settings_persistent">Lettore persistente</string>
+    <string name="settings_persistent_desc">Mantieni il lettore attivo in background</string>
+    <string name="settings_skip_amounts">Durata salti</string>
+    <string name="settings_skip_desc">Imposta durata simmetrica dei salti</string>
+    <string name="settings_seconds">%d secondi</string>
+    <string name="settings_decoder">Decodificatore audio</string>
+    <string name="settings_default">Predefinito</string>
+    <string name="settings_appearance">ASPETTO</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_dynamic_colors">Colori dinamici del lettore</string>
+    <string name="settings_language">Lingua</string>
+    <string name="settings_torrent">TORRENT</string>
+    <string name="settings_torrent_enabled">Abilita download torrent</string>
+    <string name="settings_torrent_wifi">Scarica torrent solo tramite Wi-Fi</string>
+    <string name="settings_max_downloads">Download simultanei massimi</string>
+    <string name="settings_upload_limit">Limite velocità upload (KB/s)</string>
+    <string name="settings_download_limit">Limite velocità download (KB/s)</string>
+    <string name="settings_auto_metadata">Recupera metadati automaticamente</string>
+    <string name="settings_seed_after">Condividi dopo il download</string>
+    <string name="settings_kids_mode">MODALITÀ BAMBINI</string>
+    <string name="settings_kids_enabled">Abilita modalità bambini</string>
+    <string name="settings_kids_pin">PIN modalità bambini</string>
+    <string name="settings_debug">DEBUG</string>
+    <string name="settings_file_logging">Registrazione file</string>
+
+    <!-- Drawer Menu -->
+    <string name="drawer_add_files">Aggiungi file</string>
+    <string name="drawer_add_files_desc">Importa contenuti</string>
+    <string name="drawer_torrent">Download torrent</string>
+    <string name="drawer_torrent_desc">Download magnet</string>
+    <string name="drawer_cloud">Archiviazione cloud</string>
+    <string name="drawer_cloud_desc">Drive e Dropbox</string>
+    <string name="drawer_library">Libreria</string>
+    <string name="drawer_library_desc">La tua collezione</string>
+    <string name="drawer_appearance">Aspetto</string>
+    <string name="drawer_appearance_desc">Opzioni tema</string>
+    <string name="drawer_settings">Impostazioni</string>
+    <string name="drawer_settings_desc">Configura l\'app</string>
+    <string name="drawer_translate">Traduci</string>
+    <string name="drawer_translate_desc">Cambia lingua</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Segnalibri</string>
+    <string name="bookmarks_none">Nessun segnalibro ancora</string>
+    <string name="bookmarks_add_hint">Aggiungine uno dal menu</string>
+    <string name="bookmark_label">Segnalibro %d</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_off">Disattivato</string>
+    <string name="sleep_minutes">%d minuti</string>
+    <string name="sleep_end_of_chapter">Fine del capitolo</string>
+    <string name="sleep_custom">Personalizzato</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_exit_title">Uscire da Reverie?</string>
+    <string name="dialog_exit_message">Sei sicuro di voler uscire dall\'app?</string>
+    <string name="dialog_exit">Esci</string>
+    <string name="dialog_cancel">Annulla</string>
+    <string name="dialog_close">Chiudi</string>
+    <string name="dialog_done">Fatto</string>
+    <string name="dialog_save">Salva</string>
+    <string name="dialog_delete">Elimina</string>
+    <string name="dialog_confirm">Conferma</string>
+    <string name="dialog_not_connected">Non connesso</string>
+    <string name="dialog_connect">Connetti</string>
+    <string name="dialog_book_not_found">Libro non trovato</string>
+    <string name="dialog_no_results">Nessun risultato trovato</string>
+    <string name="dialog_no_recent">Nessun libro recente</string>
+    <string name="dialog_open_library">Apri libreria completa</string>
+
+    <!-- Resume Dialog -->
+    <string name="resume_title">Riprendere la riproduzione?</string>
+    <string name="resume_message">Riprendere da %s?</string>
+    <string name="resume_yes">Riprendi</string>
+    <string name="resume_start_over">Ricomincia</string>
+
+    <!-- Equalizer -->
+    <string name="eq_preamp">Preamplificatore</string>
+    <string name="eq_reset">Ripristina</string>
+    <string name="eq_save_preset">Salva preset</string>
+    <string name="eq_category_audiobook">Audiolibro</string>
+    <string name="eq_category_genre">Genere</string>
+    <string name="eq_category_use_case">Caso d\'uso</string>
+    <string name="eq_category_custom">Personalizzato</string>
+    <string name="eq_flat">Piatto</string>
+    <string name="eq_rock">Rock</string>
+    <string name="eq_pop">Pop</string>
+    <string name="eq_jazz">Jazz</string>
+    <string name="eq_classical">Classica</string>
+    <string name="eq_electronic">Elettronica</string>
+    <string name="eq_hiphop">Hip-Hop</string>
+    <string name="eq_rnb">R&amp;B</string>
+    <string name="eq_metal">Metal</string>
+    <string name="eq_acoustic">Acustica</string>
+    <string name="eq_country">Country</string>
+    <string name="eq_speech_clarity">Chiarezza vocale</string>
+    <string name="eq_narrator">Narratore</string>
+    <string name="eq_podcast">Podcast</string>
+    <string name="eq_audiobook_night">Audiolibro notturno</string>
+    <string name="eq_bass_boost">Aumento bassi</string>
+    <string name="eq_treble_boost">Aumento alti</string>
+    <string name="eq_bass_reducer">Riduzione bassi</string>
+    <string name="eq_loudness">Loudness</string>
+    <string name="eq_late_night">Tarda notte</string>
+    <string name="eq_small_speakers">Piccoli altoparlanti</string>
+    <string name="eq_headphones">Cuffie</string>
+    <string name="eq_car_audio">Audio auto</string>
+
+    <!-- Audio Effects -->
+    <string name="effect_amplifier">AMPLIFICATORE</string>
+    <string name="effect_amplifier_desc">Regolazione guadagno volume</string>
+    <string name="effect_bass_boost">AUMENTO BASSI</string>
+    <string name="effect_bass_boost_desc">Migliora le basse frequenze</string>
+    <string name="effect_virtualizer">VIRTUALIZZATORE</string>
+    <string name="effect_virtualizer_desc">Effetto audio spaziale 3D</string>
+    <string name="effect_stereo">BILANCIAMENTO STEREO</string>
+    <string name="effect_stereo_desc">Bilanciamento canali sinistro/destro</string>
+    <string name="effect_reverb">RIVERBERO</string>
+    <string name="effect_reverb_desc">Effetto simulazione ambiente</string>
+    <string name="effect_normalization">NORMALIZZAZIONE LOUDNESS</string>
+    <string name="effect_normalization_desc">Mantieni volume costante</string>
+    <string name="effect_on">ATTIVO</string>
+    <string name="effect_off">DISATTIVO</string>
+    <string name="reverb_small_room">Stanza piccola</string>
+    <string name="reverb_medium_room">Stanza media</string>
+    <string name="reverb_large_hall">Grande sala</string>
+    <string name="reverb_concert_hall">Sala da concerto</string>
+    <string name="reverb_cathedral">Cattedrale</string>
+    <string name="reverb_studio">Studio</string>
+
+    <!-- Stats -->
+    <string name="stats_total_time">Tempo totale di ascolto</string>
+    <string name="stats_sessions">%d sessioni</string>
+    <string name="stats_today">Oggi</string>
+    <string name="stats_this_week">Questa settimana</string>
+    <string name="stats_completed">Completati</string>
+    <string name="stats_books">libri</string>
+    <string name="stats_total">totale</string>
+
+    <!-- Torrent -->
+    <string name="torrent_add">Aggiungi TORRENT</string>
+    <string name="torrent_browse">Sfoglia file torrent</string>
+    <string name="torrent_select">Seleziona file .torrent</string>
+    <string name="torrent_magnet">Inserisci link magnet</string>
+    <string name="torrent_magnet_hint">Incolla un link magnet da scaricare.</string>
+    <string name="torrent_magnet_placeholder">magnet:?xt=urn:btih...</string>
+    <string name="torrent_download">Scarica</string>
+
+    <!-- Series -->
+    <string name="series_existing">Esistente</string>
+    <string name="series_new">Nuova serie</string>
+    <string name="series_name">Nome serie</string>
+    <string name="series_select">Seleziona serie</string>
+    <string name="series_book_number">Numero libro (facoltativo)</string>
+    <string name="series_number_hint">es. 1 o 1.5</string>
+
+    <!-- Reader -->
+    <string name="reader_chapters">Capitoli</string>
+    <string name="reader_loading_epub">Caricamento EPUB...</string>
+    <string name="reader_loading_pdf">Caricamento PDF...</string>
+    <string name="reader_no_content">Nessun contenuto da visualizzare</string>
+    <string name="reader_go_back">Torna indietro</string>
+
+    <!-- Edit Book -->
+    <string name="edit_cover">COPERTINA</string>
+    <string name="edit_tracks">TRACCE</string>
+    <string name="edit_tap_cover">Tocca per cambiare copertina</string>
+    <string name="edit_title">Titolo</string>
+    <string name="edit_author">Autore</string>
+    <string name="edit_series">Serie</string>
+    <string name="edit_format">Formato</string>
+    <string name="edit_duration">Durata</string>
+    <string name="edit_fetching">Recupero...</string>
+    <string name="edit_fetch_metadata">Recupera metadati online</string>
+    <string name="edit_track_editor">Editor tracce</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Benvenuto in Reverie</string>
+    <string name="welcome_subtitle">Il tuo audio, reinventato.</string>
+
+    <!-- Cloud -->
+    <string name="cloud_connect_hint">Connetti l\'archiviazione cloud per importare direttamente.</string>
+    <string name="cloud_google_drive">Google Drive</string>
+    <string name="cloud_dropbox">Dropbox</string>
+    <string name="cloud_connected">Connesso</string>
+    <string name="cloud_disconnect">Disconnetti</string>
+
+    <!-- Languages -->
+    <string name="lang_system">Sistema</string>
+    <string name="lang_english">Inglese</string>
+    <string name="lang_spanish">Spagnolo</string>
+    <string name="lang_french">Francese</string>
+    <string name="lang_german">Tedesco</string>
+    <string name="lang_italian">Italiano</string>
+    <string name="lang_portuguese">Portoghese</string>
+    <string name="lang_japanese">Giapponese</string>
+    <string name="lang_korean">Coreano</string>
+    <string name="lang_chinese">Cinese</string>
+    <string name="lang_russian">Russo</string>
+    <string name="lang_arabic">Arabo</string>
+
+    <!-- Playback Speed -->
+    <string name="speed_preset_normal">Normale</string>
+    <string name="speed_preset_slow">Lenta</string>
+    <string name="speed_preset_fast">Veloce</string>
+    <string name="speed_preset_commute">Viaggio</string>
+    <string name="speed_preset_bedtime">Prima di dormire</string>
+    <string name="speed_save_preset">Salva come preset</string>
+
+    <!-- Common -->
+    <string name="loading">Caricamento...</string>
+    <string name="error">Errore</string>
+    <string name="retry">Riprova</string>
+    <string name="ok">OK</string>
+    <string name="yes">Sì</string>
+    <string name="no">No</string>
+    <string name="left">Sinistra</string>
+    <string name="right">Destra</string>
+    <string name="center">Centro</string>
+</resources>

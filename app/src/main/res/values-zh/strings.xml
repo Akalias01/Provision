@@ -1,0 +1,307 @@
+<resources>
+    <string name="app_name">Reverie</string>
+
+    <!-- Navigation - UI3 Adaptive Context -->
+    <string name="nav_now">现在</string>
+    <string name="nav_browse">浏览</string>
+    <string name="nav_find">发现</string>
+    <string name="nav_journey">旅程</string>
+    <string name="nav_you">我</string>
+    <!-- Legacy navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_library">书库</string>
+    <string name="nav_settings">设置</string>
+    <string name="nav_search">搜索</string>
+    <string name="nav_downloads">下载</string>
+    <string name="nav_bookmarks">书签</string>
+    <string name="nav_stats">收听统计</string>
+    <string name="nav_cloud">云同步</string>
+    <string name="nav_equalizer">均衡器</string>
+
+    <!-- Player Controls -->
+    <string name="player_play">播放</string>
+    <string name="player_pause">暂停</string>
+    <string name="player_rewind">后退</string>
+    <string name="player_forward">前进</string>
+    <string name="player_skip_back">快退</string>
+    <string name="player_skip_forward">快进</string>
+    <string name="player_chapters">章节</string>
+    <string name="player_speed">速度</string>
+    <string name="player_sleep_timer">睡眠定时</string>
+    <string name="player_cancel_timer">取消定时</string>
+    <string name="player_add_bookmark">添加书签</string>
+    <string name="player_book_details">书籍详情</string>
+    <string name="player_now_playing">正在播放</string>
+
+    <!-- Library -->
+    <string name="library_all">全部</string>
+    <string name="library_not_started">未开始</string>
+    <string name="library_in_progress">进行中</string>
+    <string name="library_finished">已完成</string>
+    <string name="library_listen">收听</string>
+    <string name="library_read">阅读</string>
+    <string name="library_list_view">列表视图</string>
+    <string name="library_grid_view">网格视图</string>
+    <string name="library_recents_view">最近视图</string>
+    <string name="library_sort">排序书库</string>
+    <string name="library_recents">最近</string>
+    <string name="library_author">作者</string>
+    <string name="library_title">标题</string>
+    <string name="library_series">系列</string>
+    <string name="library_path">路径</string>
+    <string name="library_show_headers">显示标题</string>
+    <string name="library_no_audiobooks">此分类中没有有声书</string>
+    <string name="library_no_ebooks">此分类中没有电子书</string>
+    <string name="library_search_hint">搜索书籍...</string>
+    <string name="library_search_placeholder">书籍、作者...</string>
+
+    <!-- Library Menu -->
+    <string name="menu_play">播放</string>
+    <string name="menu_edit">编辑</string>
+    <string name="menu_mark_as">标记为...</string>
+    <string name="menu_delete">从书库删除</string>
+    <string name="menu_share">分享</string>
+
+    <!-- Book Detail -->
+    <string name="detail_change_cover">更换封面</string>
+    <string name="detail_add_to_series">添加到系列</string>
+    <string name="detail_split_book">拆分书籍</string>
+    <string name="detail_merge_books">合并书籍</string>
+    <string name="detail_send_files">发送文件</string>
+    <string name="detail_delete_files">删除文件</string>
+    <string name="detail_delete_book">删除书籍</string>
+
+    <!-- Settings -->
+    <string name="settings_title">设置</string>
+    <string name="settings_downloads">下载</string>
+    <string name="settings_wifi_only">仅通过Wi-Fi下载</string>
+    <string name="settings_library">书库</string>
+    <string name="settings_scan_startup">启动应用时扫描文件夹</string>
+    <string name="settings_delete_missing">从书库删除缺失文件</string>
+    <string name="settings_audio">音频</string>
+    <string name="settings_equalizer">均衡器</string>
+    <string name="settings_equalizer_desc">配置音频预设</string>
+    <string name="settings_codecs">编解码器（优先级）</string>
+    <string name="settings_player">播放器</string>
+    <string name="settings_skip_forward">快进时长</string>
+    <string name="settings_skip_backward">快退时长</string>
+    <string name="settings_persistent">持久播放器</string>
+    <string name="settings_persistent_desc">在后台保持播放器活动</string>
+    <string name="settings_skip_amounts">跳跃时长</string>
+    <string name="settings_skip_desc">设置对称跳跃时长</string>
+    <string name="settings_seconds">%d 秒</string>
+    <string name="settings_decoder">音频解码器</string>
+    <string name="settings_default">默认</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_dynamic_colors">动态播放器颜色</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_torrent">种子下载</string>
+    <string name="settings_torrent_enabled">启用种子下载</string>
+    <string name="settings_torrent_wifi">仅通过Wi-Fi下载种子</string>
+    <string name="settings_max_downloads">最大同时下载数</string>
+    <string name="settings_upload_limit">上传速度限制（KB/s）</string>
+    <string name="settings_download_limit">下载速度限制（KB/s）</string>
+    <string name="settings_auto_metadata">自动获取元数据</string>
+    <string name="settings_seed_after">下载后做种</string>
+    <string name="settings_kids_mode">儿童模式</string>
+    <string name="settings_kids_enabled">启用儿童模式</string>
+    <string name="settings_kids_pin">儿童模式密码</string>
+    <string name="settings_debug">调试</string>
+    <string name="settings_file_logging">文件日志记录</string>
+
+    <!-- Drawer Menu -->
+    <string name="drawer_add_files">添加文件</string>
+    <string name="drawer_add_files_desc">导入内容</string>
+    <string name="drawer_torrent">种子下载</string>
+    <string name="drawer_torrent_desc">磁力链接下载</string>
+    <string name="drawer_cloud">云存储</string>
+    <string name="drawer_cloud_desc">云盘和Dropbox</string>
+    <string name="drawer_library">书库</string>
+    <string name="drawer_library_desc">您的收藏</string>
+    <string name="drawer_appearance">外观</string>
+    <string name="drawer_appearance_desc">主题选项</string>
+    <string name="drawer_settings">设置</string>
+    <string name="drawer_settings_desc">配置应用</string>
+    <string name="drawer_translate">翻译</string>
+    <string name="drawer_translate_desc">更改语言</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">书签</string>
+    <string name="bookmarks_none">还没有书签</string>
+    <string name="bookmarks_add_hint">从菜单中添加</string>
+    <string name="bookmark_label">书签 %d</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_off">关闭</string>
+    <string name="sleep_minutes">%d 分钟</string>
+    <string name="sleep_end_of_chapter">章节结束</string>
+    <string name="sleep_custom">自定义</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_exit_title">退出 Reverie？</string>
+    <string name="dialog_exit_message">确定要退出应用吗？</string>
+    <string name="dialog_exit">退出</string>
+    <string name="dialog_cancel">取消</string>
+    <string name="dialog_close">关闭</string>
+    <string name="dialog_done">完成</string>
+    <string name="dialog_save">保存</string>
+    <string name="dialog_delete">删除</string>
+    <string name="dialog_confirm">确认</string>
+    <string name="dialog_not_connected">未连接</string>
+    <string name="dialog_connect">连接</string>
+    <string name="dialog_book_not_found">未找到书籍</string>
+    <string name="dialog_no_results">未找到结果</string>
+    <string name="dialog_no_recent">没有最近的书籍</string>
+    <string name="dialog_open_library">打开完整书库</string>
+
+    <!-- Resume Dialog -->
+    <string name="resume_title">继续播放？</string>
+    <string name="resume_message">从 %s 继续播放？</string>
+    <string name="resume_yes">继续</string>
+    <string name="resume_start_over">重新开始</string>
+
+    <!-- Equalizer -->
+    <string name="eq_preamp">前置放大</string>
+    <string name="eq_reset">重置</string>
+    <string name="eq_save_preset">保存预设</string>
+    <string name="eq_category_audiobook">有声书</string>
+    <string name="eq_category_genre">音乐类型</string>
+    <string name="eq_category_use_case">使用场景</string>
+    <string name="eq_category_custom">自定义</string>
+    <string name="eq_flat">平直</string>
+    <string name="eq_rock">摇滚</string>
+    <string name="eq_pop">流行</string>
+    <string name="eq_jazz">爵士</string>
+    <string name="eq_classical">古典</string>
+    <string name="eq_electronic">电子</string>
+    <string name="eq_hiphop">嘻哈</string>
+    <string name="eq_rnb">节奏布鲁斯</string>
+    <string name="eq_metal">金属</string>
+    <string name="eq_acoustic">原声</string>
+    <string name="eq_country">乡村</string>
+    <string name="eq_speech_clarity">语音清晰</string>
+    <string name="eq_narrator">旁白</string>
+    <string name="eq_podcast">播客</string>
+    <string name="eq_audiobook_night">有声书夜间</string>
+    <string name="eq_bass_boost">低音增强</string>
+    <string name="eq_treble_boost">高音增强</string>
+    <string name="eq_bass_reducer">低音减弱</string>
+    <string name="eq_loudness">响度</string>
+    <string name="eq_late_night">深夜</string>
+    <string name="eq_small_speakers">小型扬声器</string>
+    <string name="eq_headphones">耳机</string>
+    <string name="eq_car_audio">车载音响</string>
+
+    <!-- Audio Effects -->
+    <string name="effect_amplifier">放大器</string>
+    <string name="effect_amplifier_desc">音量增益调整</string>
+    <string name="effect_bass_boost">低音增强</string>
+    <string name="effect_bass_boost_desc">增强低频</string>
+    <string name="effect_virtualizer">虚拟环绕</string>
+    <string name="effect_virtualizer_desc">3D 空间音频效果</string>
+    <string name="effect_stereo">立体声平衡</string>
+    <string name="effect_stereo_desc">左/右声道平衡</string>
+    <string name="effect_reverb">混响</string>
+    <string name="effect_reverb_desc">房间模拟效果</string>
+    <string name="effect_normalization">响度标准化</string>
+    <string name="effect_normalization_desc">保持音量一致</string>
+    <string name="effect_on">开</string>
+    <string name="effect_off">关</string>
+    <string name="reverb_small_room">小房间</string>
+    <string name="reverb_medium_room">中等房间</string>
+    <string name="reverb_large_hall">大礼堂</string>
+    <string name="reverb_concert_hall">音乐厅</string>
+    <string name="reverb_cathedral">大教堂</string>
+    <string name="reverb_studio">录音室</string>
+
+    <!-- Stats -->
+    <string name="stats_total_time">总收听时长</string>
+    <string name="stats_sessions">%d 次收听</string>
+    <string name="stats_today">今天</string>
+    <string name="stats_this_week">本周</string>
+    <string name="stats_completed">已完成</string>
+    <string name="stats_books">本书</string>
+    <string name="stats_total">总计</string>
+
+    <!-- Torrent -->
+    <string name="torrent_add">添加种子</string>
+    <string name="torrent_browse">浏览种子文件</string>
+    <string name="torrent_select">选择 .torrent 文件</string>
+    <string name="torrent_magnet">输入磁力链接</string>
+    <string name="torrent_magnet_hint">粘贴磁力链接以下载。</string>
+    <string name="torrent_magnet_placeholder">magnet:?xt=urn:btih...</string>
+    <string name="torrent_download">下载</string>
+
+    <!-- Series -->
+    <string name="series_existing">现有系列</string>
+    <string name="series_new">新系列</string>
+    <string name="series_name">系列名称</string>
+    <string name="series_select">选择系列</string>
+    <string name="series_book_number">书籍编号（可选）</string>
+    <string name="series_number_hint">例如：1 或 1.5</string>
+
+    <!-- Reader -->
+    <string name="reader_chapters">章节</string>
+    <string name="reader_loading_epub">加载 EPUB 中...</string>
+    <string name="reader_loading_pdf">加载 PDF 中...</string>
+    <string name="reader_no_content">无内容可显示</string>
+    <string name="reader_go_back">返回</string>
+
+    <!-- Edit Book -->
+    <string name="edit_cover">封面</string>
+    <string name="edit_tracks">音轨</string>
+    <string name="edit_tap_cover">点击更换封面</string>
+    <string name="edit_title">标题</string>
+    <string name="edit_author">作者</string>
+    <string name="edit_series">系列</string>
+    <string name="edit_format">格式</string>
+    <string name="edit_duration">时长</string>
+    <string name="edit_fetching">获取中...</string>
+    <string name="edit_fetch_metadata">在线获取元数据</string>
+    <string name="edit_track_editor">音轨编辑器</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">欢迎使用 Reverie</string>
+    <string name="welcome_subtitle">重新想象您的音频体验。</string>
+
+    <!-- Cloud -->
+    <string name="cloud_connect_hint">连接云存储以直接导入。</string>
+    <string name="cloud_google_drive">Google 云端硬盘</string>
+    <string name="cloud_dropbox">Dropbox</string>
+    <string name="cloud_connected">已连接</string>
+    <string name="cloud_disconnect">断开连接</string>
+
+    <!-- Languages -->
+    <string name="lang_system">系统</string>
+    <string name="lang_english">英语</string>
+    <string name="lang_spanish">西班牙语</string>
+    <string name="lang_french">法语</string>
+    <string name="lang_german">德语</string>
+    <string name="lang_italian">意大利语</string>
+    <string name="lang_portuguese">葡萄牙语</string>
+    <string name="lang_japanese">日语</string>
+    <string name="lang_korean">韩语</string>
+    <string name="lang_chinese">中文</string>
+    <string name="lang_russian">俄语</string>
+    <string name="lang_arabic">阿拉伯语</string>
+
+    <!-- Playback Speed -->
+    <string name="speed_preset_normal">正常</string>
+    <string name="speed_preset_slow">慢速</string>
+    <string name="speed_preset_fast">快速</string>
+    <string name="speed_preset_commute">通勤</string>
+    <string name="speed_preset_bedtime">睡前</string>
+    <string name="speed_save_preset">保存为预设</string>
+
+    <!-- Common -->
+    <string name="loading">加载中...</string>
+    <string name="error">错误</string>
+    <string name="retry">重试</string>
+    <string name="ok">确定</string>
+    <string name="yes">是</string>
+    <string name="no">否</string>
+    <string name="left">左</string>
+    <string name="right">右</string>
+    <string name="center">中</string>
+</resources>

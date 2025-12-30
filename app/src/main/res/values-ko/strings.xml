@@ -1,0 +1,307 @@
+<resources>
+    <string name="app_name">Reverie</string>
+
+    <!-- Navigation - UI3 Adaptive Context -->
+    <string name="nav_now">지금</string>
+    <string name="nav_browse">탐색</string>
+    <string name="nav_find">찾기</string>
+    <string name="nav_journey">여정</string>
+    <string name="nav_you">나</string>
+    <!-- Legacy navigation -->
+    <string name="nav_home">홈</string>
+    <string name="nav_library">라이브러리</string>
+    <string name="nav_settings">설정</string>
+    <string name="nav_search">검색</string>
+    <string name="nav_downloads">다운로드</string>
+    <string name="nav_bookmarks">책갈피</string>
+    <string name="nav_stats">청취 통계</string>
+    <string name="nav_cloud">클라우드 동기화</string>
+    <string name="nav_equalizer">이퀄라이저</string>
+
+    <!-- Player Controls -->
+    <string name="player_play">재생</string>
+    <string name="player_pause">일시정지</string>
+    <string name="player_rewind">되감기</string>
+    <string name="player_forward">빨리 감기</string>
+    <string name="player_skip_back">뒤로 건너뛰기</string>
+    <string name="player_skip_forward">앞으로 건너뛰기</string>
+    <string name="player_chapters">챕터</string>
+    <string name="player_speed">재생 속도</string>
+    <string name="player_sleep_timer">취침 타이머</string>
+    <string name="player_cancel_timer">타이머 취소</string>
+    <string name="player_add_bookmark">책갈피 추가</string>
+    <string name="player_book_details">도서 정보</string>
+    <string name="player_now_playing">재생 중</string>
+
+    <!-- Library -->
+    <string name="library_all">전체</string>
+    <string name="library_not_started">시작 안 함</string>
+    <string name="library_in_progress">진행 중</string>
+    <string name="library_finished">완료</string>
+    <string name="library_listen">듣기</string>
+    <string name="library_read">읽기</string>
+    <string name="library_list_view">목록 보기</string>
+    <string name="library_grid_view">격자 보기</string>
+    <string name="library_recents_view">최근 보기</string>
+    <string name="library_sort">라이브러리 정렬</string>
+    <string name="library_recents">최근 항목</string>
+    <string name="library_author">저자</string>
+    <string name="library_title">제목</string>
+    <string name="library_series">시리즈</string>
+    <string name="library_path">경로</string>
+    <string name="library_show_headers">헤더 표시</string>
+    <string name="library_no_audiobooks">이 카테고리에 오디오북이 없습니다</string>
+    <string name="library_no_ebooks">이 카테고리에 전자책이 없습니다</string>
+    <string name="library_search_hint">도서 검색...</string>
+    <string name="library_search_placeholder">도서, 저자...</string>
+
+    <!-- Library Menu -->
+    <string name="menu_play">재생</string>
+    <string name="menu_edit">편집</string>
+    <string name="menu_mark_as">다음으로 표시...</string>
+    <string name="menu_delete">라이브러리에서 삭제</string>
+    <string name="menu_share">공유</string>
+
+    <!-- Book Detail -->
+    <string name="detail_change_cover">표지 변경</string>
+    <string name="detail_add_to_series">시리즈에 추가</string>
+    <string name="detail_split_book">도서 분할</string>
+    <string name="detail_merge_books">도서 병합</string>
+    <string name="detail_send_files">파일 전송</string>
+    <string name="detail_delete_files">파일 삭제</string>
+    <string name="detail_delete_book">도서 삭제</string>
+
+    <!-- Settings -->
+    <string name="settings_title">설정</string>
+    <string name="settings_downloads">다운로드</string>
+    <string name="settings_wifi_only">Wi-Fi에서만 다운로드</string>
+    <string name="settings_library">라이브러리</string>
+    <string name="settings_scan_startup">앱 시작 시 폴더 스캔</string>
+    <string name="settings_delete_missing">라이브러리에서 누락된 파일 삭제</string>
+    <string name="settings_audio">오디오</string>
+    <string name="settings_equalizer">이퀄라이저</string>
+    <string name="settings_equalizer_desc">오디오 프리셋 구성</string>
+    <string name="settings_codecs">코덱 (우선순위)</string>
+    <string name="settings_player">플레이어</string>
+    <string name="settings_skip_forward">앞으로 건너뛰기 시간</string>
+    <string name="settings_skip_backward">뒤로 건너뛰기 시간</string>
+    <string name="settings_persistent">지속적 플레이어</string>
+    <string name="settings_persistent_desc">백그라운드에서 플레이어 활성 상태 유지</string>
+    <string name="settings_skip_amounts">건너뛰기 시간</string>
+    <string name="settings_skip_desc">대칭 건너뛰기 시간 설정</string>
+    <string name="settings_seconds">%d초</string>
+    <string name="settings_decoder">오디오 디코더</string>
+    <string name="settings_default">기본값</string>
+    <string name="settings_appearance">모양</string>
+    <string name="settings_theme">테마</string>
+    <string name="settings_dynamic_colors">동적 플레이어 색상</string>
+    <string name="settings_language">언어</string>
+    <string name="settings_torrent">토렌트</string>
+    <string name="settings_torrent_enabled">토렌트 다운로드 활성화</string>
+    <string name="settings_torrent_wifi">Wi-Fi에서만 토렌트 다운로드</string>
+    <string name="settings_max_downloads">최대 동시 다운로드 수</string>
+    <string name="settings_upload_limit">업로드 속도 제한 (KB/s)</string>
+    <string name="settings_download_limit">다운로드 속도 제한 (KB/s)</string>
+    <string name="settings_auto_metadata">메타데이터 자동 가져오기</string>
+    <string name="settings_seed_after">다운로드 후 시드</string>
+    <string name="settings_kids_mode">어린이 모드</string>
+    <string name="settings_kids_enabled">어린이 모드 활성화</string>
+    <string name="settings_kids_pin">어린이 모드 PIN</string>
+    <string name="settings_debug">디버그</string>
+    <string name="settings_file_logging">파일 로깅</string>
+
+    <!-- Drawer Menu -->
+    <string name="drawer_add_files">파일 추가</string>
+    <string name="drawer_add_files_desc">콘텐츠 가져오기</string>
+    <string name="drawer_torrent">토렌트 다운로드</string>
+    <string name="drawer_torrent_desc">마그넷 다운로드</string>
+    <string name="drawer_cloud">클라우드 저장소</string>
+    <string name="drawer_cloud_desc">드라이브 &amp; 드롭박스</string>
+    <string name="drawer_library">라이브러리</string>
+    <string name="drawer_library_desc">내 컬렉션</string>
+    <string name="drawer_appearance">모양</string>
+    <string name="drawer_appearance_desc">테마 옵션</string>
+    <string name="drawer_settings">설정</string>
+    <string name="drawer_settings_desc">앱 구성</string>
+    <string name="drawer_translate">번역</string>
+    <string name="drawer_translate_desc">언어 변경</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">책갈피</string>
+    <string name="bookmarks_none">아직 책갈피가 없습니다</string>
+    <string name="bookmarks_add_hint">메뉴에서 추가하세요</string>
+    <string name="bookmark_label">책갈피 %d</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_off">끄기</string>
+    <string name="sleep_minutes">%d분</string>
+    <string name="sleep_end_of_chapter">챕터 끝</string>
+    <string name="sleep_custom">사용자 지정</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_exit_title">Reverie를 종료하시겠습니까?</string>
+    <string name="dialog_exit_message">정말로 앱을 종료하시겠습니까?</string>
+    <string name="dialog_exit">종료</string>
+    <string name="dialog_cancel">취소</string>
+    <string name="dialog_close">닫기</string>
+    <string name="dialog_done">완료</string>
+    <string name="dialog_save">저장</string>
+    <string name="dialog_delete">삭제</string>
+    <string name="dialog_confirm">확인</string>
+    <string name="dialog_not_connected">연결되지 않음</string>
+    <string name="dialog_connect">연결</string>
+    <string name="dialog_book_not_found">도서를 찾을 수 없습니다</string>
+    <string name="dialog_no_results">결과 없음</string>
+    <string name="dialog_no_recent">최근 도서 없음</string>
+    <string name="dialog_open_library">전체 라이브러리 열기</string>
+
+    <!-- Resume Dialog -->
+    <string name="resume_title">재생을 계속하시겠습니까?</string>
+    <string name="resume_message">%s부터 계속 재생하시겠습니까?</string>
+    <string name="resume_yes">계속 재생</string>
+    <string name="resume_start_over">처음부터 시작</string>
+
+    <!-- Equalizer -->
+    <string name="eq_preamp">프리앰프</string>
+    <string name="eq_reset">초기화</string>
+    <string name="eq_save_preset">프리셋 저장</string>
+    <string name="eq_category_audiobook">오디오북</string>
+    <string name="eq_category_genre">장르</string>
+    <string name="eq_category_use_case">사용 사례</string>
+    <string name="eq_category_custom">사용자 지정</string>
+    <string name="eq_flat">플랫</string>
+    <string name="eq_rock">록</string>
+    <string name="eq_pop">팝</string>
+    <string name="eq_jazz">재즈</string>
+    <string name="eq_classical">클래식</string>
+    <string name="eq_electronic">일렉트로닉</string>
+    <string name="eq_hiphop">힙합</string>
+    <string name="eq_rnb">R&amp;B</string>
+    <string name="eq_metal">메탈</string>
+    <string name="eq_acoustic">어쿠스틱</string>
+    <string name="eq_country">컨트리</string>
+    <string name="eq_speech_clarity">음성 명료도</string>
+    <string name="eq_narrator">내레이터</string>
+    <string name="eq_podcast">팟캐스트</string>
+    <string name="eq_audiobook_night">오디오북 야간</string>
+    <string name="eq_bass_boost">베이스 부스트</string>
+    <string name="eq_treble_boost">고음 부스트</string>
+    <string name="eq_bass_reducer">베이스 감소</string>
+    <string name="eq_loudness">라우드니스</string>
+    <string name="eq_late_night">심야</string>
+    <string name="eq_small_speakers">소형 스피커</string>
+    <string name="eq_headphones">헤드폰</string>
+    <string name="eq_car_audio">자동차 오디오</string>
+
+    <!-- Audio Effects -->
+    <string name="effect_amplifier">앰프</string>
+    <string name="effect_amplifier_desc">볼륨 게인 조정</string>
+    <string name="effect_bass_boost">베이스 부스트</string>
+    <string name="effect_bass_boost_desc">저음역 강화</string>
+    <string name="effect_virtualizer">버추얼라이저</string>
+    <string name="effect_virtualizer_desc">3D 공간 오디오 효과</string>
+    <string name="effect_stereo">스테레오 밸런스</string>
+    <string name="effect_stereo_desc">좌/우 채널 밸런스</string>
+    <string name="effect_reverb">리버브</string>
+    <string name="effect_reverb_desc">공간 시뮬레이션 효과</string>
+    <string name="effect_normalization">라우드니스 노멀라이제이션</string>
+    <string name="effect_normalization_desc">일정한 볼륨 유지</string>
+    <string name="effect_on">켜기</string>
+    <string name="effect_off">끄기</string>
+    <string name="reverb_small_room">작은 방</string>
+    <string name="reverb_medium_room">중간 방</string>
+    <string name="reverb_large_hall">대형 홀</string>
+    <string name="reverb_concert_hall">콘서트 홀</string>
+    <string name="reverb_cathedral">대성당</string>
+    <string name="reverb_studio">스튜디오</string>
+
+    <!-- Stats -->
+    <string name="stats_total_time">총 청취 시간</string>
+    <string name="stats_sessions">%d개 세션</string>
+    <string name="stats_today">오늘</string>
+    <string name="stats_this_week">이번 주</string>
+    <string name="stats_completed">완료됨</string>
+    <string name="stats_books">도서</string>
+    <string name="stats_total">총</string>
+
+    <!-- Torrent -->
+    <string name="torrent_add">토렌트 추가</string>
+    <string name="torrent_browse">토렌트 파일 찾아보기</string>
+    <string name="torrent_select">.torrent 파일 선택</string>
+    <string name="torrent_magnet">마그넷 링크 입력</string>
+    <string name="torrent_magnet_hint">다운로드할 마그넷 링크를 붙여넣으세요.</string>
+    <string name="torrent_magnet_placeholder">magnet:?xt=urn:btih...</string>
+    <string name="torrent_download">다운로드</string>
+
+    <!-- Series -->
+    <string name="series_existing">기존</string>
+    <string name="series_new">새 시리즈</string>
+    <string name="series_name">시리즈 이름</string>
+    <string name="series_select">시리즈 선택</string>
+    <string name="series_book_number">도서 번호 (선택사항)</string>
+    <string name="series_number_hint">예: 1 또는 1.5</string>
+
+    <!-- Reader -->
+    <string name="reader_chapters">챕터</string>
+    <string name="reader_loading_epub">EPUB 로딩 중...</string>
+    <string name="reader_loading_pdf">PDF 로딩 중...</string>
+    <string name="reader_no_content">표시할 콘텐츠가 없습니다</string>
+    <string name="reader_go_back">뒤로 가기</string>
+
+    <!-- Edit Book -->
+    <string name="edit_cover">표지</string>
+    <string name="edit_tracks">트랙</string>
+    <string name="edit_tap_cover">탭하여 표지 변경</string>
+    <string name="edit_title">제목</string>
+    <string name="edit_author">저자</string>
+    <string name="edit_series">시리즈</string>
+    <string name="edit_format">형식</string>
+    <string name="edit_duration">재생 시간</string>
+    <string name="edit_fetching">가져오는 중...</string>
+    <string name="edit_fetch_metadata">온라인 메타데이터 가져오기</string>
+    <string name="edit_track_editor">트랙 편집기</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Reverie에 오신 것을 환영합니다</string>
+    <string name="welcome_subtitle">당신의 오디오, 새롭게.</string>
+
+    <!-- Cloud -->
+    <string name="cloud_connect_hint">클라우드 저장소를 연결하여 직접 가져오세요.</string>
+    <string name="cloud_google_drive">Google 드라이브</string>
+    <string name="cloud_dropbox">Dropbox</string>
+    <string name="cloud_connected">연결됨</string>
+    <string name="cloud_disconnect">연결 해제</string>
+
+    <!-- Languages -->
+    <string name="lang_system">시스템</string>
+    <string name="lang_english">영어</string>
+    <string name="lang_spanish">스페인어</string>
+    <string name="lang_french">프랑스어</string>
+    <string name="lang_german">독일어</string>
+    <string name="lang_italian">이탈리아어</string>
+    <string name="lang_portuguese">포르투갈어</string>
+    <string name="lang_japanese">일본어</string>
+    <string name="lang_korean">한국어</string>
+    <string name="lang_chinese">중국어</string>
+    <string name="lang_russian">러시아어</string>
+    <string name="lang_arabic">아랍어</string>
+
+    <!-- Playback Speed -->
+    <string name="speed_preset_normal">보통</string>
+    <string name="speed_preset_slow">느림</string>
+    <string name="speed_preset_fast">빠름</string>
+    <string name="speed_preset_commute">통근</string>
+    <string name="speed_preset_bedtime">취침 시간</string>
+    <string name="speed_save_preset">프리셋으로 저장</string>
+
+    <!-- Common -->
+    <string name="loading">로딩 중...</string>
+    <string name="error">오류</string>
+    <string name="retry">재시도</string>
+    <string name="ok">확인</string>
+    <string name="yes">예</string>
+    <string name="no">아니요</string>
+    <string name="left">왼쪽</string>
+    <string name="right">오른쪽</string>
+    <string name="center">중앙</string>
+</resources>

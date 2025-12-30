@@ -1,0 +1,166 @@
+Mini Player Animation Fixes for iOS 26 Fluidity
+=================================================
+
+ISSUE 1: CONSISTENT 5-SECOND SHRINK TIMER
+The LaunchedEffect timer was being cancelled on recomposition, preventing consistent shrinking.
+
+FIX:
+- Use rememberCoroutineScope() instead of LaunchedEffect alone
+- Store the job reference in a remember { mutableStateOf<Job?>(null) }
+- Cancel only when needed (on pause, manual expand, scroll)
+- Timer now survives UI recompositions
+
+ISSUE 2: iOS 26 SPRING PHYSICS
+Wrong damping ratios and stiffness values for iOS 26 feel.
+
+FIX:
+- Shrink animation: dampingRatio = 0.7f, stiffness = 400f (bouncy)
+- Expand animation: dampingRatio = 0.8f, stiffness = 300f (smooth)
+- Added scale overshoot: animates to 1.05 then settles to 1.0
+- Added subtle rotation: 3 degrees during morph transition
+
+ISSUE 3: MORPH ANIMATION
+Circle-to-pill transition felt jarring, not organic.
+
+FIX:
+- Use spring() for all size/position changes
+- Add scaleIn/scaleOut to AnimatedVisibility for smooth scaling
+- Progress ring fades as progress bar appears (handled by AnimatedVisibility)
+- Cover art scales smoothly with parent container
+
+ISSUE 4: PREMIUM FEEL
+Missing haptic feedback and polish.
+
+FIX:
+- Add haptic feedback on shrink (CONTEXT_CLICK)
+- Add haptic feedback on expand (CONTEXT_CLICK)
+- graphicsLayer with scale/rotation for "alive" feel
+- Spring animations throughout for organic motion
+
+CODE CHANGES REQUIRED:
+======================
+
+In GlassMiniPlayer() function (lines 913-1006):
+
+1. Add after line 929:
+   val scope = rememberCoroutineScope()
+   val view = androidx.compose.ui.platform.LocalView.current
+   var timerJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
+2. Replace LaunchedEffect(isPlaying) block (lines 932-943) with:
+   LaunchedEffect(isPlaying) {
+       if (isPlaying) {
+           timerJob?.cancel()
+           isCollapsed = false
+           timerJob = scope.launch {
+               kotlinx.coroutines.delay(5000)
+               view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
+               isCollapsed = true
+           }
+       } else {
+           timerJob?.cancel()
+           timerJob = null
+           isCollapsed = false
+       }
+   }
+
+3. Replace LaunchedEffect(onScroll) block (lines 945-949) with:
+   LaunchedEffect(onScroll) {
+       if (onScroll) {
+           timerJob?.cancel()
+           isCollapsed = true
+       }
+   }
+
+4. Add before Box modifier (after line 950):
+   val morphScale by animateFloatAsState(
+       targetValue = if (!isCollapsed) 1.05f else 1.0f,
+       animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+       label = "morph_scale"
+   )
+
+   val morphRotation by animateFloatAsState(
+       targetValue = if (!isCollapsed) 3f else 0f,
+       animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
+       label = "morph_rotation"
+   )
+
+5. Update Box modifier (line 952-956) to include:
+   .graphicsLayer {
+       scaleX = morphScale
+       scaleY = morphScale
+       rotationZ = morphRotation
+   }
+
+6. Update AnimatedVisibility for collapsed mode (lines 959-967):
+   AnimatedVisibility(
+       visible = isCollapsed,
+       enter = scaleIn(
+           initialScale = 0.8f,
+           animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
+       ) + fadeIn(
+           animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f)
+       ),
+       exit = scaleOut(
+           targetScale = 0.95f,
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+       ) + fadeOut(
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+       )
+   )
+
+7. Update onExpand callback (lines 974-976):
+   onExpand = {
+       view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
+       timerJob?.cancel()
+       timerJob = null
+       isCollapsed = false
+   }
+
+8. Update AnimatedVisibility for expanded mode (lines 980-990):
+   AnimatedVisibility(
+       visible = !isCollapsed,
+       enter = expandHorizontally(
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
+           expandFrom = Alignment.Start
+       ) + fadeIn(
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+       ) + scaleIn(
+           initialScale = 0.95f,
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+       ),
+       exit = shrinkHorizontally(
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
+           shrinkTowards = Alignment.Start
+       ) + fadeOut(
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+       ) + scaleOut(
+           targetScale = 0.95f,
+           animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+       )
+   )
+
+EXPECTED BEHAVIOR AFTER FIX:
+============================
+
+1. 5-Second Timer: Consistently collapses to circle after 5 seconds of playback
+2. Timer Persistence: Survives recompositions, doesn't reset randomly
+3. Bouncy Shrink: Circle appears with satisfying bounce (0.7 dampingRatio)
+4. Smooth Expand: Pill expands smoothly without jarring motion (0.8 dampingRatio)
+5. Scale Overshoot: Brief 1.05x scale before settling to 1.0
+6. Subtle Rotation: 3-degree rotation during morph adds life
+7. Haptic Feedback: Tactile feedback on both shrink and expand
+8. Organic Feel: Everything feels fluid and connected like iOS 26
+
+TESTING CHECKLIST:
+==================
+- [ ] Play audio, verify mini player appears
+- [ ] Wait 5 seconds, verify it shrinks to circle with bounce
+- [ ] Tap circle, verify it expands with smooth animation
+- [ ] Pause audio, verify it expands immediately
+- [ ] Resume audio, verify 5-second timer restarts
+- [ ] Scroll while playing, verify it shrinks
+- [ ] Verify haptic feedback on shrink/expand
+- [ ] Verify subtle rotation during transitions
+- [ ] Verify scale overshoot (1.05x) is visible
+- [ ] Verify progress ring fades smoothly

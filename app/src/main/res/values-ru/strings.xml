@@ -1,0 +1,307 @@
+<resources>
+    <string name="app_name">Reverie</string>
+
+    <!-- Navigation - UI3 Adaptive Context -->
+    <string name="nav_now">Сейчас</string>
+    <string name="nav_browse">Обзор</string>
+    <string name="nav_find">Найти</string>
+    <string name="nav_journey">Путь</string>
+    <string name="nav_you">Вы</string>
+    <!-- Legacy navigation -->
+    <string name="nav_home">Главная</string>
+    <string name="nav_library">Библиотека</string>
+    <string name="nav_settings">Настройки</string>
+    <string name="nav_search">Поиск</string>
+    <string name="nav_downloads">Загрузки</string>
+    <string name="nav_bookmarks">Закладки</string>
+    <string name="nav_stats">Статистика прослушивания</string>
+    <string name="nav_cloud">Облачная синхронизация</string>
+    <string name="nav_equalizer">Эквалайзер</string>
+
+    <!-- Player Controls -->
+    <string name="player_play">Воспроизвести</string>
+    <string name="player_pause">Пауза</string>
+    <string name="player_rewind">Перемотка назад</string>
+    <string name="player_forward">Перемотка вперёд</string>
+    <string name="player_skip_back">Назад</string>
+    <string name="player_skip_forward">Вперёд</string>
+    <string name="player_chapters">Главы</string>
+    <string name="player_speed">Скорость</string>
+    <string name="player_sleep_timer">Таймер сна</string>
+    <string name="player_cancel_timer">Отменить таймер</string>
+    <string name="player_add_bookmark">Добавить закладку</string>
+    <string name="player_book_details">Информация о книге</string>
+    <string name="player_now_playing">Сейчас играет</string>
+
+    <!-- Library -->
+    <string name="library_all">Все</string>
+    <string name="library_not_started">Не начато</string>
+    <string name="library_in_progress">В процессе</string>
+    <string name="library_finished">Завершено</string>
+    <string name="library_listen">Слушать</string>
+    <string name="library_read">Читать</string>
+    <string name="library_list_view">Список</string>
+    <string name="library_grid_view">Сетка</string>
+    <string name="library_recents_view">Недавние</string>
+    <string name="library_sort">Сортировка библиотеки</string>
+    <string name="library_recents">Недавние</string>
+    <string name="library_author">Автор</string>
+    <string name="library_title">Название</string>
+    <string name="library_series">Серия</string>
+    <string name="library_path">Путь</string>
+    <string name="library_show_headers">Показать заголовки</string>
+    <string name="library_no_audiobooks">Нет аудиокниг в этой категории</string>
+    <string name="library_no_ebooks">Нет электронных книг в этой категории</string>
+    <string name="library_search_hint">Поиск книг...</string>
+    <string name="library_search_placeholder">Книги, авторы...</string>
+
+    <!-- Library Menu -->
+    <string name="menu_play">Воспроизвести</string>
+    <string name="menu_edit">Редактировать</string>
+    <string name="menu_mark_as">Отметить как...</string>
+    <string name="menu_delete">Удалить из библиотеки</string>
+    <string name="menu_share">Поделиться</string>
+
+    <!-- Book Detail -->
+    <string name="detail_change_cover">Изменить обложку</string>
+    <string name="detail_add_to_series">Добавить в серию</string>
+    <string name="detail_split_book">Разделить книгу</string>
+    <string name="detail_merge_books">Объединить книги</string>
+    <string name="detail_send_files">Отправить файлы</string>
+    <string name="detail_delete_files">Удалить файлы</string>
+    <string name="detail_delete_book">Удалить книгу</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_downloads">ЗАГРУЗКИ</string>
+    <string name="settings_wifi_only">Загружать только через Wi-Fi</string>
+    <string name="settings_library">БИБЛИОТЕКА</string>
+    <string name="settings_scan_startup">Сканировать папки при запуске приложения</string>
+    <string name="settings_delete_missing">Удалять отсутствующие файлы из библиотеки</string>
+    <string name="settings_audio">АУДИО</string>
+    <string name="settings_equalizer">Эквалайзер</string>
+    <string name="settings_equalizer_desc">Настройка аудио пресетов</string>
+    <string name="settings_codecs">Кодеки (приоритет)</string>
+    <string name="settings_player">ПЛЕЕР</string>
+    <string name="settings_skip_forward">Размер перехода вперёд</string>
+    <string name="settings_skip_backward">Размер перехода назад</string>
+    <string name="settings_persistent">Постоянный плеер</string>
+    <string name="settings_persistent_desc">Держать плеер активным в фоновом режиме</string>
+    <string name="settings_skip_amounts">Размеры переходов</string>
+    <string name="settings_skip_desc">Установить одинаковые интервалы переходов</string>
+    <string name="settings_seconds">%d секунд</string>
+    <string name="settings_decoder">Аудио декодер</string>
+    <string name="settings_default">По умолчанию</string>
+    <string name="settings_appearance">ВНЕШНИЙ ВИД</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_dynamic_colors">Динамические цвета плеера</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_torrent">ТОРРЕНТ</string>
+    <string name="settings_torrent_enabled">Включить загрузки через торрент</string>
+    <string name="settings_torrent_wifi">Загружать торренты только через Wi-Fi</string>
+    <string name="settings_max_downloads">Максимум одновременных загрузок</string>
+    <string name="settings_upload_limit">Ограничение скорости отдачи (КБ/с)</string>
+    <string name="settings_download_limit">Ограничение скорости загрузки (КБ/с)</string>
+    <string name="settings_auto_metadata">Автоматическое получение метаданных</string>
+    <string name="settings_seed_after">Раздавать после загрузки</string>
+    <string name="settings_kids_mode">ДЕТСКИЙ РЕЖИМ</string>
+    <string name="settings_kids_enabled">Включить детский режим</string>
+    <string name="settings_kids_pin">PIN-код детского режима</string>
+    <string name="settings_debug">ОТЛАДКА</string>
+    <string name="settings_file_logging">Логирование в файл</string>
+
+    <!-- Drawer Menu -->
+    <string name="drawer_add_files">Добавить файлы</string>
+    <string name="drawer_add_files_desc">Импорт контента</string>
+    <string name="drawer_torrent">Торрент-загрузки</string>
+    <string name="drawer_torrent_desc">Загрузка по магнет-ссылкам</string>
+    <string name="drawer_cloud">Облачное хранилище</string>
+    <string name="drawer_cloud_desc">Drive и Dropbox</string>
+    <string name="drawer_library">Библиотека</string>
+    <string name="drawer_library_desc">Ваша коллекция</string>
+    <string name="drawer_appearance">Внешний вид</string>
+    <string name="drawer_appearance_desc">Настройки темы</string>
+    <string name="drawer_settings">Настройки</string>
+    <string name="drawer_settings_desc">Настроить приложение</string>
+    <string name="drawer_translate">Перевод</string>
+    <string name="drawer_translate_desc">Изменить язык</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks_title">Закладки</string>
+    <string name="bookmarks_none">Нет закладок</string>
+    <string name="bookmarks_add_hint">Добавьте из меню</string>
+    <string name="bookmark_label">Закладка %d</string>
+
+    <!-- Sleep Timer -->
+    <string name="sleep_off">Выкл</string>
+    <string name="sleep_minutes">%d минут</string>
+    <string name="sleep_end_of_chapter">Конец главы</string>
+    <string name="sleep_custom">Пользовательский</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_exit_title">Выйти из Reverie?</string>
+    <string name="dialog_exit_message">Вы уверены, что хотите выйти из приложения?</string>
+    <string name="dialog_exit">Выйти</string>
+    <string name="dialog_cancel">Отмена</string>
+    <string name="dialog_close">Закрыть</string>
+    <string name="dialog_done">Готово</string>
+    <string name="dialog_save">Сохранить</string>
+    <string name="dialog_delete">Удалить</string>
+    <string name="dialog_confirm">Подтвердить</string>
+    <string name="dialog_not_connected">Не подключено</string>
+    <string name="dialog_connect">Подключить</string>
+    <string name="dialog_book_not_found">Книга не найдена</string>
+    <string name="dialog_no_results">Ничего не найдено</string>
+    <string name="dialog_no_recent">Нет недавних книг</string>
+    <string name="dialog_open_library">Открыть всю библиотеку</string>
+
+    <!-- Resume Dialog -->
+    <string name="resume_title">Продолжить воспроизведение?</string>
+    <string name="resume_message">Продолжить с %s?</string>
+    <string name="resume_yes">Продолжить</string>
+    <string name="resume_start_over">Начать сначала</string>
+
+    <!-- Equalizer -->
+    <string name="eq_preamp">Предусилитель</string>
+    <string name="eq_reset">Сброс</string>
+    <string name="eq_save_preset">Сохранить пресет</string>
+    <string name="eq_category_audiobook">Аудиокнига</string>
+    <string name="eq_category_genre">Жанр</string>
+    <string name="eq_category_use_case">Сценарий использования</string>
+    <string name="eq_category_custom">Пользовательский</string>
+    <string name="eq_flat">Плоский</string>
+    <string name="eq_rock">Рок</string>
+    <string name="eq_pop">Поп</string>
+    <string name="eq_jazz">Джаз</string>
+    <string name="eq_classical">Классика</string>
+    <string name="eq_electronic">Электронная</string>
+    <string name="eq_hiphop">Хип-хоп</string>
+    <string name="eq_rnb">R&amp;B</string>
+    <string name="eq_metal">Метал</string>
+    <string name="eq_acoustic">Акустика</string>
+    <string name="eq_country">Кантри</string>
+    <string name="eq_speech_clarity">Чёткость речи</string>
+    <string name="eq_narrator">Чтец</string>
+    <string name="eq_podcast">Подкаст</string>
+    <string name="eq_audiobook_night">Аудиокнига (ночь)</string>
+    <string name="eq_bass_boost">Усиление басов</string>
+    <string name="eq_treble_boost">Усиление высоких</string>
+    <string name="eq_bass_reducer">Снижение басов</string>
+    <string name="eq_loudness">Громкость</string>
+    <string name="eq_late_night">Поздняя ночь</string>
+    <string name="eq_small_speakers">Малые динамики</string>
+    <string name="eq_headphones">Наушники</string>
+    <string name="eq_car_audio">Автомобиль</string>
+
+    <!-- Audio Effects -->
+    <string name="effect_amplifier">УСИЛИТЕЛЬ</string>
+    <string name="effect_amplifier_desc">Настройка усиления громкости</string>
+    <string name="effect_bass_boost">УСИЛЕНИЕ БАСОВ</string>
+    <string name="effect_bass_boost_desc">Улучшение низких частот</string>
+    <string name="effect_virtualizer">ВИРТУАЛИЗАЦИЯ</string>
+    <string name="effect_virtualizer_desc">3D пространственный звук</string>
+    <string name="effect_stereo">СТЕРЕОБАЛАНС</string>
+    <string name="effect_stereo_desc">Баланс левого/правого каналов</string>
+    <string name="effect_reverb">РЕВЕРБЕРАЦИЯ</string>
+    <string name="effect_reverb_desc">Эффект имитации помещения</string>
+    <string name="effect_normalization">НОРМАЛИЗАЦИЯ ГРОМКОСТИ</string>
+    <string name="effect_normalization_desc">Поддержание постоянной громкости</string>
+    <string name="effect_on">ВКЛ</string>
+    <string name="effect_off">ВЫКЛ</string>
+    <string name="reverb_small_room">Маленькая комната</string>
+    <string name="reverb_medium_room">Средняя комната</string>
+    <string name="reverb_large_hall">Большой зал</string>
+    <string name="reverb_concert_hall">Концертный зал</string>
+    <string name="reverb_cathedral">Собор</string>
+    <string name="reverb_studio">Студия</string>
+
+    <!-- Stats -->
+    <string name="stats_total_time">Общее время прослушивания</string>
+    <string name="stats_sessions">%d сеансов</string>
+    <string name="stats_today">Сегодня</string>
+    <string name="stats_this_week">На этой неделе</string>
+    <string name="stats_completed">Завершено</string>
+    <string name="stats_books">книг</string>
+    <string name="stats_total">всего</string>
+
+    <!-- Torrent -->
+    <string name="torrent_add">Добавить ТОРРЕНТ</string>
+    <string name="torrent_browse">Найти торрент-файлы</string>
+    <string name="torrent_select">Выбрать .torrent файлы</string>
+    <string name="torrent_magnet">Ввести магнет-ссылку</string>
+    <string name="torrent_magnet_hint">Вставьте магнет-ссылку для загрузки.</string>
+    <string name="torrent_magnet_placeholder">magnet:?xt=urn:btih...</string>
+    <string name="torrent_download">Загрузить</string>
+
+    <!-- Series -->
+    <string name="series_existing">Существующая</string>
+    <string name="series_new">Новая серия</string>
+    <string name="series_name">Название серии</string>
+    <string name="series_select">Выбрать серию</string>
+    <string name="series_book_number">Номер книги (необязательно)</string>
+    <string name="series_number_hint">например, 1 или 1.5</string>
+
+    <!-- Reader -->
+    <string name="reader_chapters">Главы</string>
+    <string name="reader_loading_epub">Загрузка EPUB...</string>
+    <string name="reader_loading_pdf">Загрузка PDF...</string>
+    <string name="reader_no_content">Нет контента для отображения</string>
+    <string name="reader_go_back">Назад</string>
+
+    <!-- Edit Book -->
+    <string name="edit_cover">ОБЛОЖКА</string>
+    <string name="edit_tracks">ТРЕКИ</string>
+    <string name="edit_tap_cover">Нажмите для изменения обложки</string>
+    <string name="edit_title">Название</string>
+    <string name="edit_author">Автор</string>
+    <string name="edit_series">Серия</string>
+    <string name="edit_format">Формат</string>
+    <string name="edit_duration">Длительность</string>
+    <string name="edit_fetching">Получение...</string>
+    <string name="edit_fetch_metadata">Получить метаданные онлайн</string>
+    <string name="edit_track_editor">Редактор треков</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Добро пожаловать в Reverie</string>
+    <string name="welcome_subtitle">Ваше аудио, переосмысленное.</string>
+
+    <!-- Cloud -->
+    <string name="cloud_connect_hint">Подключите облачное хранилище для прямого импорта.</string>
+    <string name="cloud_google_drive">Google Drive</string>
+    <string name="cloud_dropbox">Dropbox</string>
+    <string name="cloud_connected">Подключено</string>
+    <string name="cloud_disconnect">Отключить</string>
+
+    <!-- Languages -->
+    <string name="lang_system">Системный</string>
+    <string name="lang_english">Английский</string>
+    <string name="lang_spanish">Испанский</string>
+    <string name="lang_french">Французский</string>
+    <string name="lang_german">Немецкий</string>
+    <string name="lang_italian">Итальянский</string>
+    <string name="lang_portuguese">Португальский</string>
+    <string name="lang_japanese">Японский</string>
+    <string name="lang_korean">Корейский</string>
+    <string name="lang_chinese">Китайский</string>
+    <string name="lang_russian">Русский</string>
+    <string name="lang_arabic">Арабский</string>
+
+    <!-- Playback Speed -->
+    <string name="speed_preset_normal">Обычная</string>
+    <string name="speed_preset_slow">Медленная</string>
+    <string name="speed_preset_fast">Быстрая</string>
+    <string name="speed_preset_commute">Дорога</string>
+    <string name="speed_preset_bedtime">Перед сном</string>
+    <string name="speed_save_preset">Сохранить как пресет</string>
+
+    <!-- Common -->
+    <string name="loading">Загрузка...</string>
+    <string name="error">Ошибка</string>
+    <string name="retry">Повторить</string>
+    <string name="ok">ОК</string>
+    <string name="yes">Да</string>
+    <string name="no">Нет</string>
+    <string name="left">Левый</string>
+    <string name="right">Правый</string>
+    <string name="center">Центр</string>
+</resources>
