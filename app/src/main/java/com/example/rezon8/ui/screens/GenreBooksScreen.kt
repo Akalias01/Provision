@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,9 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
 
 /**
  * Genre Books Screen
@@ -38,12 +38,12 @@ fun GenreBooksScreen(
     genre: String,
     libraryViewModel: LibraryViewModel,
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = GlassColors.LithosAccent,
     onBack: () -> Unit,
     onBookClick: (String) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val allBooks by libraryViewModel.books.collectAsState()
 
     // Filter books by genre (case-insensitive)
@@ -120,7 +120,7 @@ fun GenreBooksScreen(
                         book = book,
                         accentColor = accentColor,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         onClick = { onBookClick(book.id) }
                     )
                 }
@@ -134,10 +134,10 @@ private fun GenreBookItem(
     book: Book,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     // Calculate progress
     val progress = if (book.duration > 0) {

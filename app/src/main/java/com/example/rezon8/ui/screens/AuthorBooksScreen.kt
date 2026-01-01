@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,9 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
+
+// Use LithosUI design system for theme-aware colors
 
 /**
  * Author Books Screen
@@ -37,12 +39,12 @@ fun AuthorBooksScreen(
     authorName: String,
     libraryViewModel: LibraryViewModel,
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     onBack: () -> Unit,
     onBookClick: (String) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val allBooks by libraryViewModel.books.collectAsState()
 
     // Filter books by author (case-insensitive)
@@ -81,7 +83,7 @@ fun AuthorBooksScreen(
                 )
             )
         },
-        containerColor = theme.background
+        containerColor = LithosUI.background(isDark, isOLED)
     ) { padding ->
         if (authorBooks.isEmpty()) {
             // Empty state
@@ -119,7 +121,7 @@ fun AuthorBooksScreen(
                         book = book,
                         accentColor = accentColor,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         onClick = { onBookClick(book.id) }
                     )
                 }
@@ -133,10 +135,10 @@ private fun AuthorBookItem(
     book: Book,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     // Calculate progress
     val progress = if (book.duration > 0) {
@@ -148,7 +150,7 @@ private fun AuthorBookItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassSecondary)
+            .background(if (isDark) LithosUI.CardBackground else LithosUI.CardBackgroundLight)
             .clickable(onClick = onClick)
             .padding(GlassSpacing.M),
         verticalAlignment = Alignment.CenterVertically
@@ -202,7 +204,7 @@ private fun AuthorBookItem(
                         .weight(1f)
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(theme.glassSecondary)
+                        .background(if (isDark) LithosUI.InactiveTrack else Color(0xFFE0E0E0))
                 ) {
                     Box(
                         modifier = Modifier

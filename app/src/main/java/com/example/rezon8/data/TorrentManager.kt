@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 import android.content.Context
 import android.media.RingtoneManager
@@ -57,7 +57,8 @@ class TorrentManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val libraryRepository: LibraryRepository,
     private val metadataRepository: MetadataRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val torrentDownloadDao: TorrentDownloadDao
 ) {
     companion object {
         private const val TAG = "TorrentManager"
@@ -189,6 +190,9 @@ class TorrentManager @Inject constructor(
                 // Watch for settings changes
                 observeSettings()
 
+                // Restore any saved downloads from previous session
+                restoreSavedDownloads()
+
             } catch (e: UnsatisfiedLinkError) {
                 // Native library not available for this architecture (e.g., x86 emulator)
                 Log.w(TAG, "LibTorrent native library not available for this architecture - torrent features disabled", e)
@@ -262,6 +266,143 @@ class TorrentManager @Inject constructor(
                 customSavePath = path
                 Log.d(TAG, "Save path updated: ${if (path.isNotEmpty()) path else "default"}")
             }
+        }
+    }
+
+    /**
+     * Restore saved downloads from the database.
+     * This is called after the torrent session is initialized to resume downloads
+     * that were in progress before app restart or reinstall.
+     */
+    private suspend fun restoreSavedDownloads() {
+        try {
+            val savedDownloads = torrentDownloadDao.getActiveDownloadsList()
+            if (savedDownloads.isEmpty()) {
+                Log.d(TAG, "No saved downloads to restore")
+                return
+            }
+
+            Log.d(TAG, "Restoring ${savedDownloads.size} saved downloads...")
+
+            savedDownloads.forEach { saved ->
+                try {
+                    when (saved.sourceType) {
+                        TorrentDownloadEntity.SOURCE_TYPE_MAGNET -> {
+                            Log.d(TAG, "Resuming magnet download: ${saved.name}")
+                            // Add to active downloads first (so UI shows it)
+                            addDownload(DownloadInfo(
+                                id = saved.id,
+                                name = saved.name,
+                                progress = saved.progress * 100f,
+                                totalSize = saved.totalSize,
+                                downloadedSize = saved.downloadedSize,
+                                state = TorrentState.DOWNLOADING_METADATA
+                            ))
+                            // Re-start the magnet download
+                            resumeMagnetDownload(saved.source, saved.id, saved.name)
+                        }
+                        TorrentDownloadEntity.SOURCE_TYPE_FILE -> {
+                            Log.d(TAG, "Resuming file download: ${saved.name}")
+                            val file = File(saved.source)
+                            if (file.exists()) {
+                                addDownload(DownloadInfo(
+                                    id = saved.id,
+                                    name = saved.name,
+                                    progress = saved.progress * 100f,
+                                    totalSize = saved.totalSize,
+                                    downloadedSize = saved.downloadedSize,
+                                    state = TorrentState.CHECKING
+                                ))
+                                resumeTorrentFileDownload(file, saved.id)
+                            } else {
+                                Log.w(TAG, "Torrent file no longer exists: ${saved.source}, removing from database")
+                                torrentDownloadDao.deleteById(saved.id)
+                            }
+                        }
+                        else -> {
+                            Log.w(TAG, "Unknown source type: ${saved.sourceType}")
+                            torrentDownloadDao.deleteById(saved.id)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to restore download: ${saved.name}", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error restoring saved downloads", e)
+        }
+    }
+
+    /**
+     * Resume a magnet download that was saved to the database.
+     */
+    private suspend fun resumeMagnetDownload(magnetUri: String, id: String, name: String) {
+        val session = sessionManager ?: return
+
+        try {
+            // Give DHT a moment to find peers
+            delay(1000)
+
+            val data = session.fetchMagnet(magnetUri, 120, saveDir)
+            if (data != null && data.isNotEmpty()) {
+                val ti = TorrentInfo.bdecode(data)
+                val handle = session.find(ti.infoHash())
+                if (handle != null) {
+                    torrentHandles[id] = handle
+
+                    // Check if torrent is already complete
+                    val status = handle.status()
+                    val isComplete = status.isFinished || status.isSeeding ||
+                        (status.progress() >= 0.999f && status.state() != TorrentStatus.State.CHECKING_FILES)
+
+                    if (isComplete) {
+                        Log.d(TAG, "Restored torrent already complete: $name")
+                        updateDownloadState(id, TorrentState.FINISHED)
+                        onDownloadComplete(id, ti.name())
+                    } else {
+                        startProgressMonitoring(id)
+                    }
+                }
+            } else {
+                Log.w(TAG, "Could not resume magnet (no peers): $name")
+                updateDownloadState(id, TorrentState.ERROR)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to resume magnet download", e)
+            updateDownloadState(id, TorrentState.ERROR)
+        }
+    }
+
+    /**
+     * Resume a torrent file download that was saved to the database.
+     */
+    private suspend fun resumeTorrentFileDownload(torrentFile: File, id: String) {
+        val session = sessionManager ?: return
+
+        try {
+            val ti = TorrentInfo(torrentFile)
+            session.download(ti, saveDir)
+
+            val handle = session.find(ti.infoHash())
+            if (handle != null) {
+                torrentHandles[id] = handle
+
+                // Check if already complete
+                val status = handle.status()
+                val isComplete = status.isFinished || status.isSeeding ||
+                    (status.progress() >= 0.999f && status.state() != TorrentStatus.State.CHECKING_FILES)
+
+                if (isComplete) {
+                    Log.d(TAG, "Restored torrent file already complete: ${ti.name()}")
+                    updateDownloadState(id, TorrentState.FINISHED)
+                    onDownloadComplete(id, ti.name())
+                } else {
+                    startProgressMonitoring(id)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to resume torrent file download", e)
+            updateDownloadState(id, TorrentState.ERROR)
         }
     }
 
@@ -516,6 +657,15 @@ class TorrentManager @Inject constructor(
                     state = TorrentState.DOWNLOADING_METADATA
                 ))
 
+                // Save to database for persistence across app restarts
+                torrentDownloadDao.insert(TorrentDownloadEntity(
+                    id = id,
+                    source = magnetUri,
+                    sourceType = TorrentDownloadEntity.SOURCE_TYPE_MAGNET,
+                    name = name,
+                    state = "DOWNLOADING_METADATA"
+                ))
+
                 // Wait for session to be ready (up to 10 seconds)
                 var waitCount = 0
                 while (sessionManager == null && waitCount < 100) {
@@ -767,6 +917,9 @@ class TorrentManager @Inject constructor(
      */
     private fun startProgressMonitoring(id: String) {
         scope.launch {
+            var iterationCount = 0
+            var lastSavedProgress = 0f
+
             while (torrentHandles.containsKey(id)) {
                 val handle = torrentHandles[id]
 
@@ -808,6 +961,19 @@ class TorrentManager @Inject constructor(
                         state = state
                     )
 
+                    // Periodically save progress to database (every 30 seconds or 5% progress change)
+                    iterationCount++
+                    if (iterationCount >= 30 || (progress - lastSavedProgress) >= 5f) {
+                        torrentDownloadDao.updateProgress(
+                            id = id,
+                            progress = progress / 100f,
+                            downloadedSize = downloadedSize,
+                            state = state.name
+                        )
+                        lastSavedProgress = progress
+                        iterationCount = 0
+                    }
+
                     if (state == TorrentState.FINISHED || state == TorrentState.SEEDING) {
                         break
                     }
@@ -822,6 +988,9 @@ class TorrentManager @Inject constructor(
 
     private suspend fun onDownloadComplete(id: String, name: String) {
         _isDownloading.value = _activeDownloads.value.any { !it.isFinished && it.id != id }
+
+        // Mark as complete in the database
+        torrentDownloadDao.markComplete(id)
 
         // Play notification sound
         try {
@@ -840,7 +1009,7 @@ class TorrentManager @Inject constructor(
 
         // If a custom SAF destination is set, copy files there and import from SAF
         val safDestUri = getCustomSafUri()
-        var scannedBooks: List<com.mossglen.reverie.data.Book> = emptyList()
+        var scannedBooks: List<com.mossglen.lithos.data.Book> = emptyList()
 
         if (safDestUri != null && downloadPath.exists()) {
             try {
@@ -1113,6 +1282,10 @@ class TorrentManager @Inject constructor(
             sessionManager?.remove(it)
         }
         removeDownload(id)
+        // Remove from database
+        scope.launch {
+            torrentDownloadDao.deleteById(id)
+        }
     }
 
     fun pauseDownload(id: String) {
@@ -1301,9 +1474,9 @@ class TorrentManager @Inject constructor(
      * Import files from a SAF destination after copying.
      * Scans the destination folder for audio files and imports them to the library.
      */
-    private suspend fun importFromSafDestination(destUri: Uri, name: String): List<com.mossglen.reverie.data.Book> {
+    private suspend fun importFromSafDestination(destUri: Uri, name: String): List<com.mossglen.lithos.data.Book> {
         return withContext(Dispatchers.IO) {
-            val importedBooks = mutableListOf<com.mossglen.reverie.data.Book>()
+            val importedBooks = mutableListOf<com.mossglen.lithos.data.Book>()
 
             try {
                 val destTree = DocumentFile.fromTreeUri(context, destUri)
@@ -1344,7 +1517,7 @@ class TorrentManager @Inject constructor(
     /**
      * Recursively import audio files from a SAF DocumentFile folder.
      */
-    private suspend fun importAudioFilesFromSaf(folder: DocumentFile, importedBooks: MutableList<com.mossglen.reverie.data.Book>) {
+    private suspend fun importAudioFilesFromSaf(folder: DocumentFile, importedBooks: MutableList<com.mossglen.lithos.data.Book>) {
         folder.listFiles().forEach { file ->
             if (file.isDirectory) {
                 importAudioFilesFromSaf(file, importedBooks)

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
@@ -24,9 +24,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
+
+// Lithos Amber Design Language Colors
+private val LithosAmber = Color(0xFFD48C2C)
+private val LithosMoss = Color(0xFF4A5D45)
+private val LithosSlate = Color(0xFF1A1D21)
+private val LithosGlassBackground = Color(0xD91A1D21) // rgba(26, 29, 33, 0.85)
 
 /**
  * Bookmarks Screen
@@ -39,13 +45,13 @@ import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
 fun BookmarksScreen(
     bookId: String,
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     onBack: () -> Unit,
     libraryViewModel: LibraryViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     val books by libraryViewModel.books.collectAsState()
@@ -98,7 +104,7 @@ fun BookmarksScreen(
                         Icon(
                             Icons.Rounded.Add,
                             contentDescription = "Add Bookmark",
-                            tint = accentColor
+                            tint = LithosAmber
                         )
                     }
                 },
@@ -107,7 +113,7 @@ fun BookmarksScreen(
                 )
             )
         },
-        containerColor = theme.background
+        containerColor = LithosSlate
     ) { padding ->
         if (book == null) {
             // Book not found
@@ -183,7 +189,7 @@ fun BookmarksScreen(
                         index = index + 1,
                         accentColor = accentColor,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             // Load book if not current, then seek to bookmark
@@ -212,7 +218,7 @@ fun BookmarksScreen(
         AddBookmarkDialog(
             currentPosition = if (currentBook?.id == bookId) position else book?.progress ?: 0L,
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             accentColor = accentColor,
             onConfirm = { bookmarkPosition, note ->
                 book?.let {
@@ -228,7 +234,7 @@ fun BookmarksScreen(
     bookmarkToDelete?.let { bookmarkPos ->
         DeleteBookmarkDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             accentColor = accentColor,
             onConfirm = {
                 book?.let {
@@ -246,7 +252,7 @@ fun BookmarksScreen(
             EditNoteDialog(
                 currentNote = it.bookmarkNotes[bookmarkPos] ?: "",
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 accentColor = accentColor,
                 onConfirm = { newNote ->
                     libraryViewModel.updateBookmarkNote(it.id, bookmarkPos, newNote)
@@ -270,12 +276,12 @@ private fun BookmarkItem(
     index: Int,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onEditNote: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     val progress = if (bookDuration > 0) {
@@ -286,7 +292,7 @@ private fun BookmarkItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassSecondary)
+            .background(LithosGlassBackground)
             .clickable(onClick = onClick)
             .padding(GlassSpacing.M),
         verticalAlignment = Alignment.CenterVertically
@@ -296,13 +302,13 @@ private fun BookmarkItem(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.2f)),
+                .background(LithosAmber.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Rounded.Bookmark,
                 contentDescription = null,
-                tint = accentColor,
+                tint = LithosAmber,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -323,7 +329,7 @@ private fun BookmarkItem(
                 Text(
                     text = "${(progress * 100).toInt()}%",
                     style = GlassTypography.Caption,
-                    color = accentColor,
+                    color = LithosAmber,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -368,13 +374,13 @@ private fun BookmarkItem(
                     .fillMaxWidth()
                     .height(3.dp)
                     .clip(RoundedCornerShape(1.5.dp))
-                    .background(theme.glassSecondary)
+                    .background(LithosSlate)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progress)
                         .fillMaxHeight()
-                        .background(accentColor)
+                        .background(LithosAmber)
                 )
             }
         }
@@ -426,18 +432,18 @@ private fun BookmarkItem(
 private fun AddBookmarkDialog(
     currentPosition: Long,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onConfirm: (Long, String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     var customPosition by remember { mutableStateOf(currentPosition) }
     var note by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = theme.glassSecondary,
+        containerColor = LithosGlassBackground,
         shape = RoundedCornerShape(GlassShapes.Medium),
         title = {
             Text(
@@ -460,7 +466,7 @@ private fun AddBookmarkDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(GlassShapes.Small))
-                        .background(theme.glassSecondary)
+                        .background(LithosSlate)
                         .padding(GlassSpacing.M),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -474,7 +480,7 @@ private fun AddBookmarkDialog(
                         text = formatDuration(currentPosition),
                         style = GlassTypography.Body,
                         fontWeight = FontWeight.SemiBold,
-                        color = accentColor
+                        color = LithosAmber
                     )
                 }
 
@@ -501,11 +507,11 @@ private fun AddBookmarkDialog(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = theme.textPrimary,
                         unfocusedTextColor = theme.textPrimary,
-                        focusedBorderColor = accentColor,
+                        focusedBorderColor = LithosAmber,
                         unfocusedBorderColor = theme.textTertiary.copy(alpha = 0.3f),
-                        focusedLabelColor = accentColor,
+                        focusedLabelColor = LithosAmber,
                         unfocusedLabelColor = theme.textSecondary,
-                        cursorColor = accentColor
+                        cursorColor = LithosAmber
                     ),
                     textStyle = GlassTypography.Body,
                     maxLines = 3
@@ -518,7 +524,7 @@ private fun AddBookmarkDialog(
             ) {
                 Text(
                     "Add",
-                    color = accentColor,
+                    color = LithosAmber,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -541,16 +547,16 @@ private fun AddBookmarkDialog(
 @Composable
 private fun DeleteBookmarkDialog(
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = theme.glassSecondary,
+        containerColor = LithosGlassBackground,
         shape = RoundedCornerShape(GlassShapes.Medium),
         title = {
             Text(
@@ -594,12 +600,12 @@ private fun DeleteBookmarkDialog(
 private fun EditNoteDialog(
     currentNote: String,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     var note by remember { mutableStateOf(currentNote) }
 
     AlertDialog(

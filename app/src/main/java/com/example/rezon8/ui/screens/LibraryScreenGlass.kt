@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -33,6 +33,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
@@ -63,7 +64,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import android.content.Intent
-import com.mossglen.reverie.R
+import android.widget.Toast
+import com.mossglen.lithos.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,18 +73,23 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.groupBySeries
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
-import com.mossglen.reverie.ui.components.*
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
-import com.mossglen.reverie.ui.viewmodel.LibraryViewMode
-import com.mossglen.reverie.ui.viewmodel.MasterFilter
-import com.mossglen.reverie.ui.viewmodel.SortOption
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.groupBySeries
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
+import com.mossglen.lithos.ui.components.*
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.theme.LithosAmber
+import com.mossglen.lithos.ui.theme.LithosMoss
+import com.mossglen.lithos.ui.theme.LithosSlate
+import com.mossglen.lithos.ui.theme.LithosGlass
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.ui.viewmodel.LibraryViewMode
+import com.mossglen.lithos.ui.viewmodel.SortOption
 import androidx.hilt.navigation.compose.hiltViewModel as hiltViewModelCompose
-import com.mossglen.reverie.ui.viewmodel.SeriesViewModel
+import com.mossglen.lithos.ui.viewmodel.SeriesViewModel
+import com.mossglen.lithos.ui.viewmodel.CoverArtViewModel
+import com.mossglen.lithos.ui.viewmodel.TtsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -90,7 +97,16 @@ import kotlin.math.roundToInt
 /**
  * REVERIE Glass - Library Screen
  *
- * Modern library with:
+ * Lithos Amber Design Language:
+ * - NO neon/glowing effects - use matte finishes
+ * - Progress bars use Amber #D48C2C
+ * - Active/selected states use Amber #D48C2C
+ * - Filter/tab indicators use Amber #D48C2C
+ * - Glass backgrounds: frosted glass rgba(26, 29, 33, 0.85) with blur(20dp)
+ * - Play buttons ONLY use Moss #4A5D45
+ * - Background: Slate #1A1D21
+ *
+ * Features:
  * - Pull-to-refresh
  * - Swipeable tabs (HorizontalPager) - 4 tabs: Not Started, In Progress, Finished, All
  * - Master Filter (Audio vs Read)
@@ -98,7 +114,6 @@ import kotlin.math.roundToInt
  * - Sort Dialog with options
  * - Long-press book menu with Edit, Mark As, Delete, Share
  * - Haptic feedback
- * - Glass visual effects
  */
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -106,9 +121,11 @@ import kotlin.math.roundToInt
 fun LibraryScreenGlass(
     libraryViewModel: LibraryViewModel = hiltViewModel(),
     seriesViewModel: SeriesViewModel = hiltViewModelCompose(),
+    coverArtViewModel: CoverArtViewModel = hiltViewModelCompose(),
+    ttsViewModel: TtsViewModel = hiltViewModelCompose(),
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     scrollToTopTrigger: Int = 0,
     onBookClick: (String) -> Unit,
     onPlayBook: (Book) -> Unit = {},
@@ -117,14 +134,38 @@ fun LibraryScreenGlass(
     onSearchClick: () -> Unit = {},
     onSeriesClick: (String) -> Unit = {},
     onAuthorClick: (String) -> Unit = {},
-    onGenreClick: (String) -> Unit = {}
+    onGenreClick: (String) -> Unit = {},
+    onScrollUp: () -> Unit = {},
+    onScrollDown: () -> Unit = {}
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val libraryData by libraryViewModel.libraryData.collectAsState()
 
     // Scroll states for scroll-to-top functionality
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
+
+    // Track scroll direction for pill auto-hide
+    var lastScrollIndex by remember { mutableStateOf(0) }
+    var lastScrollOffset by remember { mutableStateOf(0) }
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        val currentIndex = listState.firstVisibleItemIndex
+        val currentOffset = listState.firstVisibleItemScrollOffset
+        val scrollDelta = (currentIndex * 1000 + currentOffset) - (lastScrollIndex * 1000 + lastScrollOffset)
+
+        // Use threshold to avoid jitter
+        if (kotlin.math.abs(scrollDelta) > 50) {
+            if (scrollDelta > 0) {
+                // Scrolling down (browsing) - hide pill
+                onScrollUp()
+            } else {
+                // Scrolling up (looking for controls) - show pill
+                onScrollDown()
+            }
+        }
+        lastScrollIndex = currentIndex
+        lastScrollOffset = currentOffset
+    }
 
     // Scroll to top when trigger changes
     LaunchedEffect(scrollToTopTrigger) {
@@ -134,53 +175,11 @@ fun LibraryScreenGlass(
         }
     }
     val currentSort by libraryViewModel.sortOption.collectAsState()
-    val currentMasterFilter by libraryViewModel.masterFilter.collectAsState()
 
-    // ===== ELEGANT CROSSFADE FOR AUDIO/READ TOGGLE =====
-    // Per manifest: "Invisible Perfection" - smooth, natural transitions
-    var previousFilter by remember { mutableStateOf(currentMasterFilter) }
+    // Lithos design: Slate background for audiobook-only library
+    val libraryBackground = if (isDark) LithosSlate else Color(0xFFF0F0F4)
+    val accentTint = LithosAmber.copy(alpha = 0.03f)  // Amber hint
 
-    // Smooth fade animation (no jarring flip/scale)
-    val contentAlpha = remember { Animatable(1f) }
-
-    // Background color transition: distinct moods for audio vs ebooks
-    // Audio: True OLED black for dark mode (pixels off = battery savings)
-    // Read: Warm, paper-like, softer - Moss green accent
-    val audioBackground = if (isDark) Color.Black else Color(0xFFF0F0F4)
-    val readBackground = if (isDark) Color.Black else Color(0xFFFDF8F0)  // OLED black for ebooks too
-
-    // Animated accent hint for the mode (subtle tint overlay)
-    val audioAccentTint = GlassColors.ReverieAccent.copy(alpha = 0.03f)  // Whisky hint
-    val readAccentTint = Color(0xFF7A9E6A).copy(alpha = 0.04f)  // Moss green hint
-
-    val animatedBackground by animateColorAsState(
-        targetValue = if (currentMasterFilter == MasterFilter.AUDIO) audioBackground else readBackground,
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
-        label = "backgroundTransition"
-    )
-
-    val animatedAccentTint by animateColorAsState(
-        targetValue = if (currentMasterFilter == MasterFilter.AUDIO) audioAccentTint else readAccentTint,
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
-        label = "accentTint"
-    )
-
-    // Smooth fade when switching modes (no bouncy scale)
-    LaunchedEffect(currentMasterFilter) {
-        if (previousFilter != currentMasterFilter) {
-            // Quick fade out
-            contentAlpha.animateTo(
-                targetValue = 0f,
-                animationSpec = tween(durationMillis = 120, easing = FastOutSlowInEasing)
-            )
-            // Smooth fade in
-            contentAlpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
-            )
-            previousFilter = currentMasterFilter
-        }
-    }
     val showHeaders by libraryViewModel.showHeaders.collectAsState()
     val allSeries by seriesViewModel.allSeries.collectAsState()
     val scope = rememberCoroutineScope()
@@ -209,6 +208,7 @@ fun LibraryScreenGlass(
     var bookForMenu by remember { mutableStateOf<Book?>(null) }
     var showMarkAsMenu by remember { mutableStateOf(false) }
     var bookToDelete by remember { mutableStateOf<Book?>(null) }
+    var bookForCoverPicker by remember { mutableStateOf<Book?>(null) }
 
     // Half-sheet preview state (UI3)
     var bookForPreview by remember { mutableStateOf<Book?>(null) }
@@ -227,7 +227,7 @@ fun LibraryScreenGlass(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(animatedBackground)
+            .background(libraryBackground)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -252,12 +252,17 @@ fun LibraryScreenGlass(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(GlassSpacing.XS)) {
-                    // Search button - navigates to universal Search
+                    // View Mode Toggle - cycles through LIST -> GRID -> RECENTS
                     GlassIconButton(
-                        icon = Icons.Default.Search,
+                        icon = when (currentViewMode) {
+                            LibraryViewMode.LIST -> Icons.AutoMirrored.Filled.ViewList
+                            LibraryViewMode.GRID -> Icons.Default.GridView
+                            LibraryViewMode.RECENTS -> Icons.Default.History
+                            LibraryViewMode.SERIES -> Icons.AutoMirrored.Filled.ViewList
+                        },
                         onClick = {
                             view.performHaptic(HapticType.LightTap)
-                            onSearchClick()
+                            libraryViewModel.cycleViewMode()
                         },
                         isDark = isDark,
                         hasBackground = true,
@@ -293,7 +298,7 @@ fun LibraryScreenGlass(
                 }
             }
 
-            // Status Tabs with counts - compact, glass styling
+            // Status Tabs with counts - Lithos Amber design: matte finish
             ScrollableTabRow(
                 selectedTabIndex = pagerState.currentPage,
                 modifier = Modifier
@@ -317,92 +322,27 @@ fun LibraryScreenGlass(
                             }
                         },
                         modifier = Modifier
-                            .padding(horizontal = 1.dp, vertical = 1.dp)
+                            .height(32.dp)  // Compact height
+                            .padding(horizontal = 1.dp)
                             .clip(RoundedCornerShape(GlassShapes.Small))
                             .then(
                                 if (isSelected) {
-                                    Modifier.background(
-                                        if (isDark) Color.White.copy(alpha = 0.12f)
-                                        else Color.Black.copy(alpha = 0.08f)
-                                    )
+                                    // Lithos Amber: subtle amber tint for selected state
+                                    Modifier.background(LithosAmber.copy(alpha = 0.15f))
                                 } else Modifier
                             )
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
                         text = {
                             Text(
                                 text = "$title ($count)",
-                                style = GlassTypography.Label,
+                                style = GlassTypography.Label.copy(fontSize = 12.sp),
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isSelected) theme.textPrimary else theme.textSecondary
+                                // Lithos Amber: selected tabs use amber color
+                                color = if (isSelected) LithosAmber else theme.textSecondary
                             )
                         }
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Master Filter (Audio vs Read) + View Mode Toggle - compact row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp)
-                    .padding(horizontal = GlassSpacing.M),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Master Filter Toggle
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(GlassShapes.Small))
-                        .background(
-                            if (isDark) Color.White.copy(alpha = 0.06f)
-                            else Color.Black.copy(alpha = 0.05f)
-                        )
-                        .padding(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    GlassFilterChip(
-                        icon = Icons.Rounded.Headphones,
-                        label = stringResource(R.string.library_listen),
-                        isSelected = currentMasterFilter == MasterFilter.AUDIO,
-                        isDark = isDark,
-                        onClick = {
-                            // Stronger haptic for mode switch with flip animation
-                            view.performHaptic(HapticType.MediumTap)
-                            libraryViewModel.setMasterFilter(MasterFilter.AUDIO)
-                        }
-                    )
-                    GlassFilterChip(
-                        icon = Icons.Outlined.MenuBook,
-                        label = stringResource(R.string.library_read),
-                        isSelected = currentMasterFilter == MasterFilter.READ,
-                        isDark = isDark,
-                        onClick = {
-                            // Stronger haptic for mode switch with flip animation
-                            view.performHaptic(HapticType.MediumTap)
-                            libraryViewModel.setMasterFilter(MasterFilter.READ)
-                        }
-                    )
-                }
-
-                // View Mode Toggle - cycles through LIST -> GRID -> RECENTS
-                GlassIconButton(
-                    icon = when (currentViewMode) {
-                        LibraryViewMode.LIST -> Icons.AutoMirrored.Filled.ViewList
-                        LibraryViewMode.GRID -> Icons.Default.GridView
-                        LibraryViewMode.RECENTS -> Icons.Default.History
-                        LibraryViewMode.SERIES -> Icons.AutoMirrored.Filled.ViewList // Fallback
-                    },
-                    onClick = {
-                        view.performHaptic(HapticType.LightTap)
-                        libraryViewModel.cycleViewMode()
-                    },
-                    isDark = isDark,
-                    hasBackground = true,
-                    size = 36.dp,
-                    iconSize = 20.dp
-                )
             }
 
             Spacer(modifier = Modifier.height(GlassSpacing.S))
@@ -418,11 +358,7 @@ fun LibraryScreenGlass(
                     state = pagerState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .graphicsLayer {
-                            // Smooth fade transition when switching modes
-                            alpha = contentAlpha.value
-                        }
-                        .background(animatedAccentTint)  // Subtle mode-specific tint
+                        .background(accentTint)  // Subtle amber tint
                 ) { page ->
                     val pageBooks = if (page < libraryData.size) libraryData[page] else emptyList()
 
@@ -438,7 +374,6 @@ fun LibraryScreenGlass(
                         EmptyLibraryState(
                             isDark = isDark,
                             filterName = tabTitles[page],
-                            masterFilter = currentMasterFilter,
                             isLibraryEmpty = totalBooks == 0,
                             onAddClick = onAddClick
                         )
@@ -462,6 +397,7 @@ fun LibraryScreenGlass(
                                         BookGridItem(
                                             book = book,
                                             isDark = isDark,
+                                            hasAudioReady = ttsViewModel.hasPreGeneratedAudio(book.id),
                                             onCoverClick = {
                                                 // Tap cover = play directly
                                                 onPlayBook(book)
@@ -480,16 +416,10 @@ fun LibraryScreenGlass(
                                 }
                             }
                             LibraryViewMode.SERIES -> {
-                                // Filter series by master filter and current tab
+                                // Filter series for audiobooks only
                                 val filteredSeries = allSeries.filter { series ->
-                                    // Apply master filter
-                                    val seriesBooks = when (currentMasterFilter) {
-                                        MasterFilter.AUDIO -> series.books.filter { it.format == "AUDIO" }
-                                        MasterFilter.READ -> series.books.filter {
-                                            it.format == "TEXT" || it.format == "DOCUMENT" ||
-                                            it.format == "PDF" || it.format == "EPUB"
-                                        }
-                                    }
+                                    // Only show audiobooks
+                                    val seriesBooks = series.books.filter { it.format == "AUDIO" }
 
                                     // Apply tab filter (same as books)
                                     val tabFilteredBooks = when (page) {
@@ -502,14 +432,8 @@ fun LibraryScreenGlass(
 
                                     tabFilteredBooks.isNotEmpty()
                                 }.map { series ->
-                                    // Create filtered series with only relevant books
-                                    val seriesBooks = when (currentMasterFilter) {
-                                        MasterFilter.AUDIO -> series.books.filter { it.format == "AUDIO" }
-                                        MasterFilter.READ -> series.books.filter {
-                                            it.format == "TEXT" || it.format == "DOCUMENT" ||
-                                            it.format == "PDF" || it.format == "EPUB"
-                                        }
-                                    }
+                                    // Create filtered series with only audiobooks
+                                    val seriesBooks = series.books.filter { it.format == "AUDIO" }
                                     val tabFilteredBooks = when (page) {
                                         0 -> seriesBooks.filter { it.progress == 0L && !it.isFinished }
                                         1 -> seriesBooks.filter { it.progress > 0L && !it.isFinished }
@@ -517,7 +441,7 @@ fun LibraryScreenGlass(
                                         3 -> seriesBooks
                                         else -> seriesBooks
                                     }
-                                    com.mossglen.reverie.data.Series(series.name, tabFilteredBooks)
+                                    com.mossglen.lithos.data.Series(series.name, tabFilteredBooks)
                                 }
 
                                 SeriesListView(
@@ -554,6 +478,7 @@ fun LibraryScreenGlass(
                                         BookListItem(
                                             book = book,
                                             isDark = isDark,
+                                            hasAudioReady = ttsViewModel.hasPreGeneratedAudio(book.id),
                                             onClick = {
                                                 // UI3: Show half-sheet preview instead of navigating
                                                 bookForPreview = book
@@ -599,8 +524,8 @@ fun LibraryScreenGlass(
                                                 view.performHaptic(HapticType.MediumTap)
                                             },
                                             onChangeCover = {
-                                                // TODO: Implement change cover functionality
                                                 view.performHaptic(HapticType.MediumTap)
+                                                bookForCoverPicker = book
                                             }
                                         )
                                     }
@@ -669,8 +594,8 @@ fun LibraryScreenGlass(
 
             AlertDialog(
                 onDismissRequest = { bookToDelete = null },
-                containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-                shape = RoundedCornerShape(GlassShapes.Medium),
+                containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+                shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
                 icon = {
                     Icon(
                         Icons.Default.Delete,
@@ -793,8 +718,9 @@ fun LibraryScreenGlass(
             BookDetailMorphingSheet(
                 book = book,
                 isVisible = true,
-                accentColor = if (isReverieDark) accentColor else theme.interactive,
-                isReverieDark = isReverieDark,
+                accentColor = if (isOLED) accentColor else theme.interactive,
+                isDark = isDark,
+                isOLED = isOLED,
                 onDismiss = { bookForPreview = null },
                 onPlayBook = {
                     onPlayBook(book)
@@ -811,7 +737,27 @@ fun LibraryScreenGlass(
                 onGenreClick = { genre ->
                     bookForPreview = null
                     onGenreClick(genre)
-                }
+                },
+                // Synopsis scroll -> pill auto-hide
+                onScrollDown = onScrollUp,  // Scroll down in sheet = hide pill (same as main list)
+                onScrollUp = onScrollDown   // Scroll up in sheet = show pill
+            )
+        }
+
+        // Cover Art Picker Dialog
+        bookForCoverPicker?.let { book ->
+            CoverArtPickerDialog(
+                currentCoverUrl = book.coverUrl,
+                bookTitle = book.title,
+                bookAuthor = book.author,
+                accentColor = accentColor,
+                isOLED = isOLED,
+                onDismiss = { bookForCoverPicker = null },
+                onCoverSelected = { newCoverUrl ->
+                    coverArtViewModel.updateBookCover(book.id, newCoverUrl)
+                    Toast.makeText(context, "Cover updated", Toast.LENGTH_SHORT).show()
+                },
+                viewModel = coverArtViewModel
             )
         }
     }
@@ -848,8 +794,8 @@ private fun BookPreviewSheetContent(
                 contentDescription = book.title,
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(RoundedCornerShape(GlassShapes.Medium))
-                    .background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA)),
+                    .clip(RoundedCornerShape(LithosComponents.Cards.cornerRadius))
+                    .background(if (isDark) LithosUI.CardBackground else LithosUI.CardBackgroundLight),
                 contentScale = ContentScale.Crop
             )
 
@@ -894,7 +840,7 @@ private fun BookPreviewSheetContent(
                         Text(
                             text = "${(book.progressPercent() * 100).toInt()}%",
                             style = GlassTypography.Caption,
-                            color = theme.interactive
+                            color = LithosAmber  // Lithos Amber for progress percentage
                         )
                     }
                     if (book.isFinished) {
@@ -907,7 +853,7 @@ private fun BookPreviewSheetContent(
                             Icons.Default.CheckCircle,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = GlassColors.Success
+                            tint = LithosMoss  // Lithos Moss for success/checkmark
                         )
                     }
                 }
@@ -927,21 +873,21 @@ private fun BookPreviewSheetContent(
 
         Spacer(modifier = Modifier.height(GlassSpacing.L))
 
-        // Action Buttons Row
+        // Action Buttons Row - Lithos design
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(GlassSpacing.S)
         ) {
-            // Play Button (Primary)
+            // Play Button (Primary) - Lithos Moss for play buttons only
             Button(
                 onClick = onPlayClick,
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp),
+                    .height(LithosComponents.Buttons.height),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = theme.interactive
+                    containerColor = LithosMoss  // Lithos: Moss for play buttons
                 ),
-                shape = RoundedCornerShape(GlassShapes.Medium)
+                shape = RoundedCornerShape(LithosComponents.Buttons.cornerRadius)
             ) {
                 Icon(
                     Icons.Default.PlayArrow,
@@ -963,9 +909,9 @@ private fun BookPreviewSheetContent(
                 onClick = onDetailsClick,
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp),
+                    .height(LithosComponents.Buttons.height),
                 border = BorderStroke(1.dp, theme.textSecondary.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(GlassShapes.Medium)
+                shape = RoundedCornerShape(LithosComponents.Buttons.cornerRadius)
             ) {
                 Icon(
                     Icons.Default.Info,
@@ -1013,6 +959,7 @@ private fun formatDuration(ms: Long): String {
 private fun BookGridItem(
     book: Book,
     isDark: Boolean,
+    hasAudioReady: Boolean = false,  // Pre-generated TTS audio available
     onCoverClick: () -> Unit,  // Tap cover = play
     onTextClick: () -> Unit,   // Tap text = show half sheet
     onLongPress: () -> Unit    // Long press = show menu (with delete option)
@@ -1033,7 +980,7 @@ private fun BookGridItem(
         targetValue = if (isCoverPressed) 0.95f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
+            stiffness = Spring.StiffnessLow
         ),
         label = "scale"
     )
@@ -1064,7 +1011,7 @@ private fun BookGridItem(
                     contentScale = ContentScale.Crop
                 )
 
-                // Progress indicator at bottom
+                // Progress indicator at bottom - Lithos Amber design
                 val progressFloat = if (book.duration > 0) {
                     (book.progress.toFloat() / book.duration.toFloat()).coerceIn(0f, 1f)
                 } else 0f
@@ -1080,7 +1027,7 @@ private fun BookGridItem(
                             modifier = Modifier
                                 .fillMaxWidth(progressFloat)
                                 .fillMaxHeight()
-                                .background(theme.interactive)
+                                .background(LithosAmber)  // Lithos Amber for progress
                         )
                     }
                 }
@@ -1127,6 +1074,40 @@ private fun BookGridItem(
                         )
                     }
                 }
+
+                // Audio Ready indicator at top-left (for pre-generated TTS)
+                // Lithos Amber: matte finish, no glow
+                if (hasAudioReady) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(LithosAmber.copy(alpha = 0.9f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.VolumeUp,
+                                contentDescription = "Audio Ready",
+                                tint = Color.White,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text(
+                                text = "AI",
+                                style = TextStyle(
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(GlassSpacing.S))
@@ -1166,7 +1147,7 @@ private fun BookGridItem(
 }
 
 // ============================================================================
-// GLASS FILTER CHIP
+// GLASS FILTER CHIP - Lithos Amber Design
 // ============================================================================
 
 @Composable
@@ -1184,10 +1165,8 @@ private fun GlassFilterChip(
             .clip(RoundedCornerShape(GlassShapes.Small))
             .then(
                 if (isSelected) {
-                    Modifier.background(
-                        if (isDark) Color.White.copy(alpha = 0.15f)
-                        else Color.Black.copy(alpha = 0.10f)
-                    )
+                    // Lithos Amber: subtle amber tint for selected, matte finish
+                    Modifier.background(LithosAmber.copy(alpha = 0.18f))
                 } else Modifier
             )
             .clickable { onClick() }
@@ -1198,13 +1177,15 @@ private fun GlassFilterChip(
         Icon(
             icon,
             contentDescription = null,
-            tint = if (isSelected) theme.textPrimary else theme.textTertiary,
+            // Lithos Amber: selected icons use amber color
+            tint = if (isSelected) LithosAmber else theme.textTertiary,
             modifier = Modifier.size(16.dp)
         )
         Text(
             text = label,
             style = GlassTypography.Label,
-            color = if (isSelected) theme.textPrimary else theme.textTertiary,
+            // Lithos Amber: selected text uses amber color
+            color = if (isSelected) LithosAmber else theme.textTertiary,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
         )
     }
@@ -1219,6 +1200,7 @@ private fun GlassFilterChip(
 private fun BookListItem(
     book: Book,
     isDark: Boolean,
+    hasAudioReady: Boolean = false,  // Pre-generated TTS audio available
     onClick: () -> Unit,
     onPlayClick: () -> Unit,
     onLongPress: () -> Unit,
@@ -1245,7 +1227,7 @@ private fun BookListItem(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
+            stiffness = Spring.StiffnessLow
         ),
         label = "scale"
     )
@@ -1279,15 +1261,51 @@ private fun BookListItem(
             .padding(GlassSpacing.S),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Cover Art - 80dp
-        AsyncImage(
-            model = book.coverUrl,
-            contentDescription = book.title,
-            modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(6.dp)),
-            contentScale = ContentScale.Crop
-        )
+        // Cover Art - 80dp with audio ready indicator
+        Box {
+            AsyncImage(
+                model = book.coverUrl,
+                contentDescription = book.title,
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(6.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            // Audio Ready indicator at top-left
+            // Lithos Amber: matte finish, no glow
+            if (hasAudioReady) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(4.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(LithosAmber.copy(alpha = 0.9f))
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.VolumeUp,
+                            contentDescription = "Audio Ready",
+                            tint = Color.White,
+                            modifier = Modifier.size(8.dp)
+                        )
+                        Text(
+                            text = "AI",
+                            style = TextStyle(
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.width(GlassSpacing.S))
 
@@ -1314,6 +1332,7 @@ private fun BookListItem(
             Spacer(modifier = Modifier.height(4.dp))
 
             // Progress bar - between author and time left
+            // Lithos Amber design: thin 3dp stroke, matte finish
             val progressFloat = if (book.duration > 0) book.progress.toFloat() / book.duration else 0f
             Box(
                 modifier = Modifier
@@ -1330,7 +1349,7 @@ private fun BookListItem(
                         .fillMaxWidth(progressFloat.coerceIn(0f, 1f))
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(1.5.dp))
-                        .background(theme.interactive)
+                        .background(LithosAmber)  // Lithos Amber for progress
                 )
             }
 
@@ -1340,19 +1359,19 @@ private fun BookListItem(
             Text(
                 text = remainingText,
                 style = GlassTypography.Caption,
-                color = if (book.isFinished) GlassColors.Success else theme.textSecondary,
+                color = if (book.isFinished) LithosMoss else theme.textSecondary,  // Lithos Moss for finished
                 maxLines = 1
             )
         }
 
         Spacer(modifier = Modifier.width(GlassSpacing.S))
 
-        // Play button - translucent circle style
+        // Play button - Lithos Moss (play buttons only use Moss)
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.5f))
+                .background(LithosMoss)  // Lithos design: Moss for play buttons only
                 .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onPlayClick()
@@ -1392,11 +1411,12 @@ private fun BookListItem(
                 onDismissRequest = { showMenu = false },
                 modifier = Modifier
                     .background(
-                        if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7),
-                        RoundedCornerShape(12.dp)
-                    )
+                        if (isDark) LithosUI.CardBackground else LithosUI.SheetBackgroundLight,
+                        RoundedCornerShape(LithosComponents.Cards.chipRadius)
+                    ),
+                containerColor = if (isDark) LithosUI.CardBackground else LithosUI.SheetBackgroundLight
             ) {
-                // 1. Play
+                // 1. Play - Lithos Moss for play buttons
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.player_play), color = theme.textPrimary) },
                     onClick = {
@@ -1404,7 +1424,7 @@ private fun BookListItem(
                         onPlayClick()
                     },
                     leadingIcon = {
-                        Icon(Icons.Filled.PlayArrow, null, tint = theme.interactive)
+                        Icon(Icons.Filled.PlayArrow, null, tint = LithosMoss)
                     }
                 )
 
@@ -1469,7 +1489,7 @@ private fun BookListItem(
                             Icon(
                                 if (book.isFinished) Icons.Default.RadioButtonUnchecked else Icons.Default.CheckCircle,
                                 null,
-                                tint = if (book.isFinished) theme.textSecondary else GlassColors.Success
+                                tint = if (book.isFinished) theme.textSecondary else LithosMoss  // Lithos Moss for success
                             )
                         }
                     )
@@ -1559,8 +1579,8 @@ private fun BookMenuDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = book.title,
@@ -1623,7 +1643,7 @@ private fun BookMenuDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.content_desc_back),
                             tint = theme.textSecondary,
                             modifier = Modifier.size(20.dp)
@@ -1711,8 +1731,8 @@ private fun SortDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = stringResource(R.string.library_sort),
@@ -1767,6 +1787,7 @@ private fun SortDialog(
     )
 }
 
+// Lithos Amber design for sort options
 @Composable
 private fun SortOptionItem(
     label: String,
@@ -1783,8 +1804,8 @@ private fun SortOptionItem(
             .clip(RoundedCornerShape(GlassShapes.Small))
             .then(
                 if (isSelected) Modifier.background(
-                    if (theme.isDark) Color.White.copy(alpha = 0.1f)
-                    else Color.Black.copy(alpha = 0.08f)
+                    // Lithos Amber: subtle amber tint for selected
+                    LithosAmber.copy(alpha = 0.12f)
                 )
                 else Modifier
             )
@@ -1796,14 +1817,16 @@ private fun SortOptionItem(
         Text(
             text = label,
             style = GlassTypography.Body,
-            color = if (isSelected) theme.textPrimary else theme.textPrimary,
+            // Lithos Amber: selected text uses amber color
+            color = if (isSelected) LithosAmber else theme.textPrimary,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
         )
         RadioButton(
             selected = isSelected,
             onClick = null,
             colors = RadioButtonDefaults.colors(
-                selectedColor = theme.textPrimary,
+                // Lithos Amber: radio buttons use amber when selected
+                selectedColor = LithosAmber,
                 unselectedColor = theme.textTertiary
             )
         )
@@ -1811,13 +1834,13 @@ private fun SortOptionItem(
 }
 
 // ============================================================================
-// BRAND GRADIENT
+// BRAND GRADIENT - Lithos Amber (matte, no glow)
 // ============================================================================
 
 private val BrandGradient = Brush.verticalGradient(
     colors = listOf(
-        Color(0xFF87481F),  // Dark copper top
-        Color(0xFF6D3A19)   // Deeper copper bottom
+        LithosAmber,           // Lithos Amber top
+        Color(0xFFB57420)      // LithosAmberDark bottom
     )
 )
 
@@ -1829,7 +1852,6 @@ private val BrandGradient = Brush.verticalGradient(
 private fun EmptyLibraryState(
     isDark: Boolean,
     filterName: String,
-    masterFilter: MasterFilter,
     isLibraryEmpty: Boolean,
     onAddClick: () -> Unit
 ) {
@@ -1844,8 +1866,6 @@ private fun EmptyLibraryState(
             modifier = Modifier.padding(horizontal = GlassSpacing.XL)
         ) {
             if (isLibraryEmpty) {
-                // No branding - will revisit later
-
                 Text(
                     text = stringResource(R.string.library_empty_add_first),
                     style = GlassTypography.Title,
@@ -1894,9 +1914,9 @@ private fun EmptyLibraryState(
                     }
                 }
             } else {
-                // Filtered empty state - minimal (library has books, just not in this category)
+                // Filtered empty state - minimal (library has audiobooks, just not in this category)
                 Icon(
-                    if (masterFilter == MasterFilter.AUDIO) Icons.Rounded.Headphones else Icons.Outlined.MenuBook,
+                    Icons.Rounded.Headphones,
                     contentDescription = null,
                     tint = theme.textTertiary,
                     modifier = Modifier.size(48.dp)

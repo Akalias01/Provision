@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 import android.content.Context
 import android.media.audiofx.BassBoost

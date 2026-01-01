@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.components
+package com.mossglen.lithos.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*

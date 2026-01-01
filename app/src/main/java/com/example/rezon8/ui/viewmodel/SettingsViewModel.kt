@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.viewmodel
+package com.mossglen.lithos.ui.viewmodel
 
 import android.app.LocaleManager
 import android.content.Context
@@ -11,8 +11,9 @@ import androidx.core.os.LocaleListCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mossglen.reverie.data.AudioEffectManager
-import com.mossglen.reverie.data.SettingsRepository
+import com.mossglen.lithos.data.AudioEffectManager
+import com.mossglen.lithos.data.CoverArtRepository
+import com.mossglen.lithos.data.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
     val audioEffectManager: AudioEffectManager,
-    private val libraryRepository: com.mossglen.reverie.data.LibraryRepository,
+    private val libraryRepository: com.mossglen.lithos.data.LibraryRepository,
+    private val coverArtRepository: CoverArtRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -102,6 +104,14 @@ class SettingsViewModel @Inject constructor(
 
     fun setSleepTimerMinutes(minutes: Int) {
         viewModelScope.launch { repository.setSleepTimerMinutes(minutes) }
+    }
+
+    // Smart Auto-Rewind (rewinds based on pause duration)
+    val smartAutoRewindEnabled = repository.smartAutoRewindEnabled
+        .stateIn(viewModelScope, SharingStarted.Lazily, true)
+
+    fun setSmartAutoRewindEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.setSmartAutoRewindEnabled(enabled) }
     }
 
     // Debug Settings
@@ -504,5 +514,24 @@ class SettingsViewModel @Inject constructor(
                 android.util.Log.e("SettingsViewModel", "Failed to set app locale: $localeTag", e)
             }
         }
+    }
+
+    // ========================================================================
+    // Cover Art Settings
+    // ========================================================================
+
+    /**
+     * Re-check all books for non-square cover art and replace with square versions.
+     *
+     * @param onProgress Callback for progress updates (current, total)
+     * @return Number of covers replaced
+     */
+    suspend fun recheckAllCovers(
+        onProgress: ((current: Int, total: Int) -> Unit)? = null
+    ): Int = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Starting cover art recheck...")
+        val result = coverArtRepository.recheckAllCovers(onProgress)
+        Log.d(TAG, "Cover art recheck complete: $result covers replaced")
+        result
     }
 }

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui
+package com.mossglen.lithos.ui
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
@@ -47,16 +47,16 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import coil.compose.AsyncImage
-import com.mossglen.reverie.IncomingTorrentData
-import com.mossglen.reverie.IncomingFileData
-import com.mossglen.reverie.R
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.Chapter
-import com.mossglen.reverie.navigation.*
-import com.mossglen.reverie.ui.components.*
-import com.mossglen.reverie.ui.screens.*
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.*
+import com.mossglen.lithos.IncomingTorrentData
+import com.mossglen.lithos.IncomingFileData
+import com.mossglen.lithos.R
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.Chapter
+import com.mossglen.lithos.navigation.*
+import com.mossglen.lithos.ui.components.*
+import com.mossglen.lithos.ui.screens.*
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
@@ -109,27 +109,27 @@ fun MainLayoutGlass(
     // Theme - use the isDark parameter passed from MainActivity
     val isDarkTheme = isDark
     val themeMode by themeViewModel.themeMode
-    val isReverieDark = themeMode == ThemeMode.REVERIE_DARK
-    val theme = glassTheme(isDarkTheme, isReverieDark)
+    val isOLED = themeMode == ThemeMode.LITHOS_DARK
+    val theme = glassTheme(isDarkTheme, isOLED)
 
     // Haze state for true iOS 26 / Android 16 glass blur effect
     val hazeState = remember { HazeState() }
 
     // Accent color - uses selected variant for Reverie Dark, blue for standard
-    val reverieAccentVariant by themeViewModel.reverieAccentVariant
-    val accentColor = if (isReverieDark) {
-        themeViewModel.getReverieAccentColor()
+    val lithosAccentVariant by themeViewModel.lithosAccentVariant
+    val accentColor = if (isOLED) {
+        themeViewModel.getLithosAccentColor()
     } else {
         GlassColors.Interactive
     }
 
     // Highlight color for selections - warm slate or subtle copper based on variant
-    val highlightColor = if (isReverieDark) {
-        themeViewModel.getReverieHighlightColor()
+    val highlightColor = if (isOLED) {
+        themeViewModel.getLithosHighlightColor()
     } else {
         Color.White.copy(alpha = 0.1f)
     }
-    val useBorderHighlight = isReverieDark && themeViewModel.useBorderHighlight()
+    val useBorderHighlight = isOLED && themeViewModel.useBorderHighlight()
 
     val books by libraryViewModel.books.collectAsState()
     val dynamicPlayerColors by settingsViewModel.dynamicPlayerColors.collectAsState()
@@ -163,6 +163,24 @@ fun MainLayoutGlass(
     var libraryScrollTrigger by remember { mutableIntStateOf(0) }
     var settingsScrollTrigger by remember { mutableIntStateOf(0) }
 
+    // Pill auto-hide on scroll (like reader)
+    var showPill by remember { mutableStateOf(true) }
+    var lastPillScrollTime by remember { mutableStateOf(0L) }
+
+    // Show pill after 2 seconds of scroll inactivity
+    LaunchedEffect(showPill) {
+        if (!showPill) {
+            while (true) {
+                kotlinx.coroutines.delay(500)
+                val timeSinceScroll = System.currentTimeMillis() - lastPillScrollTime
+                if (timeSinceScroll > 2000) {
+                    showPill = true
+                    break
+                }
+            }
+        }
+    }
+
     // Reset back pressed state after 2 seconds
     LaunchedEffect(backPressedOnce) {
         if (backPressedOnce) {
@@ -193,7 +211,6 @@ fun MainLayoutGlass(
     val isOnSettings = currentDestination?.hasRoute<Settings>() == true
     val isOnWelcome = currentDestination?.hasRoute<Welcome>() == true
     val isOnBookDetail = currentDestination?.hasRoute<BookDetail>() == true
-    val isOnReader = currentDestination?.hasRoute<Reader>() == true
     val isOnDownloads = currentDestination?.hasRoute<Downloads>() == true
 
     // Reset dismissed state when book changes or new playback starts
@@ -244,11 +261,8 @@ fun MainLayoutGlass(
                     // Import the file to library
                     val book = libraryViewModel.importFileAndReturn(data.uri)
                     if (book != null) {
-                        // Navigate to reader for readable formats
-                        when (book.format) {
-                            "EPUB", "PDF", "TEXT" -> navController.navigate(Reader(book.id))
-                            else -> navController.navigate(BookDetail(book.id))
-                        }
+                        // Navigate to book detail
+                        navController.navigate(BookDetail(book.id))
                     } else {
                         // If import failed, just go to library
                         navController.navigate(Library)
@@ -368,24 +382,15 @@ fun MainLayoutGlass(
             composable<Home> {
                 HomeScreenGlass(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     scrollToTopTrigger = homeScrollTrigger,
                     onBookClick = { bookId ->
-                        val book = books.find { it.id == bookId }
-                        if (book != null) {
-                            when (book.format) {
-                                "PDF", "EPUB", "TEXT" -> navController.navigate(Reader(bookId))
-                                else -> navController.navigate(BookDetail(bookId))
-                            }
-                        }
+                        navController.navigate(BookDetail(bookId))
                     },
                     onPlayBook = { book ->
-                        // Route based on format - EPUB/PDF/TEXT go to reader, AUDIO to player
-                        when (book.format) {
-                            "EPUB", "PDF", "TEXT" -> navController.navigate(Reader(book.id))
-                            else -> playerViewModel.checkAndShowResumeDialog(book)
-                        }
+                        playerViewModel.checkAndShowResumeDialog(book)
+                        isPlayerExpanded = true  // Open full player directly
                     },
                     onSeriesClick = { seriesName ->
                         navController.navigate(SeriesDetail(seriesName))
@@ -407,28 +412,18 @@ fun MainLayoutGlass(
             composable<Now> {
                 NowScreenGlass(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onPlayBook = { book ->
-                        when (book.format) {
-                            "EPUB", "PDF", "TEXT" -> navController.navigate(Reader(book.id))
-                            else -> playerViewModel.checkAndShowResumeDialog(book)
-                        }
+                        playerViewModel.checkAndShowResumeDialog(book)
+                        isPlayerExpanded = true  // Open full player directly
                     },
                     onBookClick = { bookId ->
-                        val book = books.find { it.id == bookId }
-                        if (book != null) {
-                            when (book.format) {
-                                "PDF", "EPUB", "TEXT" -> navController.navigate(Reader(bookId))
-                                else -> navController.navigate(BookDetail(bookId))
-                            }
-                        }
+                        navController.navigate(BookDetail(bookId))
                     },
                     onRecentBookClick = { book ->
-                        when (book.format) {
-                            "EPUB", "PDF", "TEXT" -> navController.navigate(Reader(book.id))
-                            else -> playerViewModel.checkAndShowResumeDialog(book)
-                        }
+                        playerViewModel.checkAndShowResumeDialog(book)
+                        isPlayerExpanded = true  // Open full player directly
                     },
                     onSettingsClick = {
                         navController.navigate(Settings)
@@ -441,6 +436,13 @@ fun MainLayoutGlass(
                     },
                     onStatsClick = {
                         navController.navigate(Journey)
+                    },
+                    onScrollUp = {
+                        showPill = false
+                        lastPillScrollTime = System.currentTimeMillis()
+                    },
+                    onScrollDown = {
+                        showPill = true
                     }
                 )
             }
@@ -448,7 +450,7 @@ fun MainLayoutGlass(
             composable<Journey> {
                 JourneyScreenGlass(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onSettingsClick = {
                         navController.navigate(Settings)
@@ -466,24 +468,15 @@ fun MainLayoutGlass(
                 LibraryScreenGlass(
                     libraryViewModel = libraryViewModel,
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     scrollToTopTrigger = libraryScrollTrigger,
                     onBookClick = { bookId ->
-                        val book = books.find { it.id == bookId }
-                        if (book != null) {
-                            when (book.format) {
-                                "PDF", "EPUB", "TEXT" -> navController.navigate(Reader(bookId))
-                                else -> navController.navigate(BookDetail(bookId))
-                            }
-                        }
+                        navController.navigate(BookDetail(bookId))
                     },
                     onPlayBook = { book ->
-                        // Route based on format - EPUB/PDF/TEXT go to reader, AUDIO to player
-                        when (book.format) {
-                            "EPUB", "PDF", "TEXT" -> navController.navigate(Reader(book.id))
-                            else -> playerViewModel.checkAndShowResumeDialog(book)
-                        }
+                        playerViewModel.checkAndShowResumeDialog(book)
+                        isPlayerExpanded = true  // Open full player directly
                     },
                     onEditBook = { bookId ->
                         navController.navigate(EditBook(bookId))
@@ -498,6 +491,13 @@ fun MainLayoutGlass(
                     },
                     onGenreClick = { genre ->
                         navController.navigate(GenreBooks(genre))
+                    },
+                    onScrollUp = {
+                        showPill = false
+                        lastPillScrollTime = System.currentTimeMillis()
+                    },
+                    onScrollDown = {
+                        showPill = true
                     }
                 )
             }
@@ -507,13 +507,7 @@ fun MainLayoutGlass(
                     libraryViewModel = libraryViewModel,
                     isDark = isDarkTheme,
                     onBookClick = { bookId ->
-                        val book = books.find { it.id == bookId }
-                        if (book != null) {
-                            when (book.format) {
-                                "PDF", "EPUB", "TEXT" -> navController.navigate(Reader(bookId))
-                                else -> navController.navigate(BookDetail(bookId))
-                            }
-                        }
+                        navController.navigate(BookDetail(bookId))
                     },
                     onSettingsClick = {
                         navController.navigate(Settings) {
@@ -541,7 +535,7 @@ fun MainLayoutGlass(
             composable<Profile> {
                 ProfileScreenGlass(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onSettingsClick = { navController.navigate(Settings) },
                     onStatsClick = { navController.navigate(ListeningStats) },
@@ -575,7 +569,7 @@ fun MainLayoutGlass(
             composable<Downloads> {
                 DownloadsScreen(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onBack = { navController.popBackStack() }
                 )
@@ -586,22 +580,18 @@ fun MainLayoutGlass(
                 BookDetailScreen(
                     bookId = route.bookId,
                     accentColor = accentColor,
-                    isReverieDark = isReverieDark,
+                    isDark = isDarkTheme,
+                    isOLED = isOLED,
                     onBack = { navController.popBackStack() },
                     onPlayBook = { book ->
-                        // Route based on format - EPUB/PDF/TEXT go to reader, AUDIO to player
-                        when (book.format) {
-                            "EPUB", "PDF", "TEXT" -> navController.navigate(Reader(book.id))
-                            else -> {
-                                // Play/pause without expanding - user can tap mini player to expand
-                                if (currentBook?.id == book.id) {
-                                    // Same book - just toggle playback
-                                    playerViewModel.togglePlayback()
-                                } else {
-                                    // Different book - check for resume dialog
-                                    playerViewModel.checkAndShowResumeDialog(book)
-                                }
-                            }
+                        // Play/pause without expanding - user can tap mini player to expand
+                        if (currentBook?.id == book.id) {
+                            // Same book - just toggle playback
+                            playerViewModel.togglePlayback()
+                        } else {
+                            // Different book - check for resume dialog
+                            playerViewModel.checkAndShowResumeDialog(book)
+                            isPlayerExpanded = true  // Open full player directly
                         }
                     },
                     onAuthorClick = { authorName ->
@@ -613,21 +603,12 @@ fun MainLayoutGlass(
                 )
             }
 
-            composable<Reader> { backStackEntry ->
-                val route: Reader = backStackEntry.toRoute()
-                ReaderScreen(
-                    bookId = route.bookId,
-                    accentColor = accentColor,
-                    onBack = { navController.popBackStack() }
-                )
-            }
-
             composable<EditBook> { backStackEntry ->
                 val route: EditBook = backStackEntry.toRoute()
                 EditBookScreen(
                     bookId = route.bookId,
                     accentColor = accentColor,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -637,7 +618,7 @@ fun MainLayoutGlass(
                 SplitBookScreen(
                     bookId = route.bookId,
                     accentColor = accentColor,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     onBack = { navController.popBackStack() },
                     onSplitComplete = {
                         // Navigate back to library after successful split
@@ -663,7 +644,7 @@ fun MainLayoutGlass(
             composable<CloudSync> {
                 CloudFileBrowserScreen(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     reverieAccentColor = accentColor,
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -672,7 +653,7 @@ fun MainLayoutGlass(
             composable<ListeningStats> {
                 ListeningStatsScreen(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onBack = {
                         navController.popBackStack()
@@ -690,7 +671,7 @@ fun MainLayoutGlass(
                     authorName = route.authorName,
                     libraryViewModel = libraryViewModel,
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onBack = {
                         navController.popBackStack()
@@ -700,13 +681,7 @@ fun MainLayoutGlass(
                         }
                     },
                     onBookClick = { bookId ->
-                        val book = books.find { it.id == bookId }
-                        if (book != null) {
-                            when (book.format) {
-                                "PDF", "EPUB", "TEXT" -> navController.navigate(Reader(bookId))
-                                else -> navController.navigate(BookDetail(bookId))
-                            }
-                        }
+                        navController.navigate(BookDetail(bookId))
                     }
                 )
             }
@@ -717,17 +692,11 @@ fun MainLayoutGlass(
                     genre = route.genre,
                     libraryViewModel = libraryViewModel,
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onBack = { navController.popBackStack() },
                     onBookClick = { bookId ->
-                        val book = books.find { it.id == bookId }
-                        if (book != null) {
-                            when (book.format) {
-                                "PDF", "EPUB", "TEXT" -> navController.navigate(Reader(bookId))
-                                else -> navController.navigate(BookDetail(bookId))
-                            }
-                        }
+                        navController.navigate(BookDetail(bookId))
                     }
                 )
             }
@@ -735,7 +704,7 @@ fun MainLayoutGlass(
             composable<Equalizer> {
                 EqualizerScreen(
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onBack = { navController.popBackStack() }
                 )
@@ -746,7 +715,7 @@ fun MainLayoutGlass(
                 ChapterListScreen(
                     bookId = route.bookId,
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onBack = { navController.popBackStack() },
                     onChapterClick = { chapter ->
@@ -761,7 +730,7 @@ fun MainLayoutGlass(
                 BookmarksScreen(
                     bookId = route.bookId,
                     isDark = isDarkTheme,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onBack = { navController.popBackStack() }
                 )
@@ -780,20 +749,11 @@ fun MainLayoutGlass(
                         }
                     },
                     onBookClick = { bookId ->
-                        val book = books.find { it.id == bookId }
-                        if (book != null) {
-                            when (book.format) {
-                                "PDF", "EPUB", "TEXT" -> navController.navigate(Reader(bookId))
-                                else -> navController.navigate(BookDetail(bookId))
-                            }
-                        }
+                        navController.navigate(BookDetail(bookId))
                     },
                     onPlayBook = { book ->
-                        // Route based on format - EPUB/PDF/TEXT go to reader, AUDIO to player
-                        when (book.format) {
-                            "EPUB", "PDF", "TEXT" -> navController.navigate(Reader(book.id))
-                            else -> playerViewModel.checkAndShowResumeDialog(book)
-                        }
+                        playerViewModel.checkAndShowResumeDialog(book)
+                        isPlayerExpanded = true  // Open full player directly
                     }
                 )
             }
@@ -871,7 +831,7 @@ fun MainLayoutGlass(
                         progress = miniPlayerProgress,
                         playbackSpeed = playbackSpeed,
                         isDark = isDarkTheme,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         reverieAccentColor = accentColor,
                         hazeState = hazeState,
                         onPlayPause = { playerViewModel.togglePlayback() },
@@ -890,8 +850,9 @@ fun MainLayoutGlass(
         }
 
         // Bottom Navigation - 5-icon layout: Library, Search, Resume, Progress, Settings
+        // Auto-hides on scroll up (like reader), reappears after 2s inactivity or scroll down
         AnimatedVisibility(
-            visible = !isPlayerExpanded && !isOnBookDetail && !isOnReader,
+            visible = !isPlayerExpanded && !isOnBookDetail && showPill,
             modifier = Modifier
                 .align(Alignment.BottomCenter),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -909,7 +870,7 @@ fun MainLayoutGlass(
                 } else if (resumeBook != null && resumeBook.progress > 0 && resumeBook.duration > 0) {
                     (resumeBook.progress.toFloat() / resumeBook.duration.toFloat()).coerceIn(0f, 1f)
                 } else 0f,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = accentColor,
                 onNavItemSelected = { item ->
                     android.util.Log.d("Navigation", ">>> onNavItemSelected: label=${item.label}, route=${item.route}")
@@ -939,23 +900,16 @@ fun MainLayoutGlass(
                 onLibraryScrollToTop = { libraryScrollTrigger++ },
                 onSettingsScrollToTop = { settingsScrollTrigger++ },
                 onResumeClick = {
-                    // Smart Resume: Route based on format
-                    // EPUB/PDF/TEXT → ReaderScreen, AUDIO → Player
+                    // Resume audiobook playback
                     resumeBook?.let { book ->
-                        val isEbook = book.format in listOf("EPUB", "PDF", "TEXT", "DOCUMENT")
-                        if (isEbook) {
-                            // Navigate to reader for ebooks - don't activate player
-                            navController.navigate(Reader(book.id))
-                        } else {
-                            // Audio book - load and expand player
-                            if (currentBook?.id != book.id) {
-                                playerViewModel.loadBook(book)
-                            }
-                            if (!isPlaying) {
-                                playerViewModel.togglePlayback()
-                            }
-                            isPlayerExpanded = true
+                        // Load and expand player
+                        if (currentBook?.id != book.id) {
+                            playerViewModel.loadBook(book)
                         }
+                        if (!isPlaying) {
+                            playerViewModel.togglePlayback()
+                        }
+                        isPlayerExpanded = true
                     }
                 },
                 onProgressClick = {
@@ -983,7 +937,7 @@ fun MainLayoutGlass(
                 book = resumeBook,
                 currentPosition = if (currentBook?.id == resumeBook.id) position else resumeBook.progress,
                 playbackSpeed = playbackSpeed,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 accentColor = accentColor,
                 isDark = isDarkTheme,
                 onChapterSelected = { chapter ->
@@ -1046,7 +1000,7 @@ fun MainLayoutGlass(
                     PlayerScreenGlass(
                         playerViewModel = playerViewModel,
                         isDark = isDarkTheme,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         reverieAccentColor = accentColor,
                         highlightColor = highlightColor,
                         useBorderHighlight = useBorderHighlight,
@@ -1158,13 +1112,13 @@ fun GlassBottomBarTypeSafe(
     currentDestination: androidx.navigation.NavDestination?,
     onItemSelected: (GlassNavItem<*>) -> Unit,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = GlassColors.LithosAccent,
     modifier: Modifier = Modifier
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     // Use dynamic Reverie accent in Reverie Dark mode
-    val accentColor = if (isReverieDark) reverieAccentColor else theme.interactive
+    val accentColor = if (isOLED) reverieAccentColor else theme.interactive
 
     Row(
         modifier = modifier
@@ -1271,8 +1225,8 @@ fun GlassMiniPlayer(
     progress: Float,
     playbackSpeed: Float = 1.0f,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = GlassColors.LithosAccent,
     hazeState: HazeState? = null,  // For glass blur effect
     onPlayPause: () -> Unit,
     onSpeedClick: () -> Unit = {},
@@ -1346,7 +1300,7 @@ fun GlassMiniPlayer(
                     progress = progress,
                     playbackSpeed = playbackSpeed,
                     isDark = isDark,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     reverieAccentColor = reverieAccentColor,
                     onPlayPause = onPlayPause,
                     onSpeedClick = onSpeedClick,
@@ -1494,7 +1448,7 @@ private fun ExpandedMiniPlayerPill(
     progress: Float,
     playbackSpeed: Float,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     reverieAccentColor: Color,
     onPlayPause: () -> Unit,
     onSpeedClick: () -> Unit,
@@ -1502,7 +1456,7 @@ private fun ExpandedMiniPlayerPill(
     onDismiss: () -> Unit = {},
     onCollapse: () -> Unit = {}  // Tap cover to shrink
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = androidx.compose.ui.platform.LocalView.current
     val density = LocalDensity.current
 
@@ -1568,6 +1522,13 @@ private fun ExpandedMiniPlayerPill(
         Color(0xFFF2F2F7).copy(alpha = 0.92f)
     }
 
+    // Subtle pill border - matches eReader pill style for premium feel
+    val pillBorderColor = if (isDark) {
+        Color.White.copy(alpha = 0.12f)  // Subtle neutral border
+    } else {
+        Color.Black.copy(alpha = 0.08f)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1580,6 +1541,11 @@ private fun ExpandedMiniPlayerPill(
             }
             .clip(RoundedCornerShape(32.dp))
             .background(glassBackground)
+            .border(
+                width = 0.5.dp,
+                color = pillBorderColor,
+                shape = RoundedCornerShape(32.dp)
+            )
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragStart = {
@@ -1700,7 +1666,7 @@ private fun ExpandedMiniPlayerPill(
                     speed = playbackSpeed,
                     onClick = onSpeedClick,
                     isDark = isDark,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     reverieAccentColor = reverieAccentColor
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1711,7 +1677,7 @@ private fun ExpandedMiniPlayerPill(
                 isPlaying = isPlaying,
                 onClick = onPlayPause,
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor
             )
         }
@@ -1748,13 +1714,13 @@ private fun PremiumMiniPlayButton(
     isPlaying: Boolean,
     onClick: () -> Unit,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = GlassColors.LithosAccent
 ) {
     val view = androidx.compose.ui.platform.LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.85f else 1f,
@@ -1773,7 +1739,7 @@ private fun PremiumMiniPlayButton(
     }
 
     // Theme-aware icon color: contrasts with background
-    val iconColor = if (isReverieDark) {
+    val iconColor = if (isOLED) {
         reverieAccentColor
     } else if (isDark) {
         theme.interactive
@@ -1813,8 +1779,8 @@ private fun MiniSpeedButton(
     speed: Float,
     onClick: () -> Unit,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = GlassColors.LithosAccent
 ) {
     val view = androidx.compose.ui.platform.LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -1829,8 +1795,8 @@ private fun MiniSpeedButton(
         label = "scale"
     )
 
-    val buttonBg = if (isReverieDark) Color(0xFF1C1C1E).copy(alpha = 0.6f) else Color(0xFF2C2C2E).copy(alpha = 0.6f)
-    val textColor = if (isReverieDark) reverieAccentColor else Color.White
+    val buttonBg = if (isOLED) Color(0xFF1C1C1E).copy(alpha = 0.6f) else Color(0xFF2C2C2E).copy(alpha = 0.6f)
+    val textColor = if (isOLED) reverieAccentColor else Color.White
 
     Box(
         modifier = Modifier
@@ -2080,56 +2046,65 @@ fun SearchScreenGlass(
                 .statusBarsPadding() // Proper status bar handling
                 .padding(horizontal = GlassSpacing.M),
             contentPadding = PaddingValues(
-                // More top padding when showing search results to prevent cutoff
-                top = if (isSearching) 48.dp else 24.dp,
+                // Generous top padding when showing search results to prevent cutoff
+                top = if (isSearching) 72.dp else 24.dp,
                 bottom = 200.dp // Space for search bar + nav bar (increased)
             )
         ) {
-            // Header - only shows when not searching
-            if (!isSearching) {
-                item(key = "header") {
+            // Header and hints - fades out when searching (not sliding)
+            item(key = "header_content") {
+                AnimatedVisibility(
+                    visible = !isSearching,
+                    enter = fadeIn(animationSpec = tween(200)),
+                    exit = fadeOut(animationSpec = tween(150))
+                ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp, bottom = 8.dp)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = stringResource(R.string.nav_search),
-                            style = GlassTypography.Display,
-                            color = theme.textPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Find books, authors, and settings",
-                            style = GlassTypography.Caption,
-                            color = theme.textSecondary
-                        )
-                    }
-                }
-                item(key = "hints_label") {
-                    Text(
-                        text = "Try searching for...",
-                        style = GlassTypography.Caption.copy(fontWeight = FontWeight.Medium),
-                        color = theme.textSecondary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
-                    )
-                }
-                item(key = "chips") {
-                    FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("Books", "Authors", "Settings", "Equalizer", "Downloads", "Theme").forEach { hint ->
-                            SuggestionChip(
-                                onClick = { searchQuery = hint.lowercase() },
-                                label = { Text(hint, style = GlassTypography.Caption) },
-                                colors = SuggestionChipDefaults.suggestionChipColors(
-                                    containerColor = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA),
-                                    labelColor = theme.textPrimary
-                                ),
-                                border = null
+                        // Header
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.nav_search),
+                                style = GlassTypography.Display,
+                                color = theme.textPrimary
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Find books, authors, and settings",
+                                style = GlassTypography.Caption,
+                                color = theme.textSecondary
+                            )
+                        }
+
+                        // Hints label
+                        Text(
+                            text = "Try searching for...",
+                            style = GlassTypography.Caption.copy(fontWeight = FontWeight.Medium),
+                            color = theme.textSecondary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
+                        )
+
+                        // Suggestion chips
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("Books", "Authors", "Settings", "Equalizer", "Downloads", "Theme").forEach { hint ->
+                                SuggestionChip(
+                                    onClick = { searchQuery = hint.lowercase() },
+                                    label = { Text(hint, style = GlassTypography.Caption) },
+                                    colors = SuggestionChipDefaults.suggestionChipColors(
+                                        containerColor = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA),
+                                        labelColor = theme.textPrimary
+                                    ),
+                                    border = null
+                                )
+                            }
                         }
                     }
                 }
@@ -2283,8 +2258,8 @@ fun GlassBottomBar5Icon(
     currentBook: Book?,
     isPlaying: Boolean,
     bookProgress: Float,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = GlassColors.LithosAccent,
     onNavItemSelected: (GlassNavItem<*>) -> Unit,
     onNavigateBackToSection: (route: Any) -> Unit = {},
     onHomeScrollToTop: () -> Unit = {},
@@ -2296,8 +2271,8 @@ fun GlassBottomBar5Icon(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val accentColor = if (isReverieDark) reverieAccentColor else theme.interactive
+    val theme = glassTheme(isDark, isOLED)
+    val accentColor = if (isOLED) reverieAccentColor else theme.interactive
 
     // Helper function to check if on a sub-route of a section
     fun isOnSubRoute(sectionRoute: Any): Boolean {
@@ -2313,11 +2288,10 @@ fun GlassBottomBar5Icon(
                 currentDestination?.hasRoute<ListeningStats>() == true
             }
             is Library -> {
-                // Library sub-routes: BookDetail, EditBook, SplitBook, Reader, SeriesDetail, AuthorBooks
+                // Library sub-routes: BookDetail, EditBook, SplitBook, SeriesDetail, AuthorBooks
                 currentDestination?.hasRoute<BookDetail>() == true ||
                 currentDestination?.hasRoute<EditBook>() == true ||
                 currentDestination?.hasRoute<SplitBook>() == true ||
-                currentDestination?.hasRoute<Reader>() == true ||
                 currentDestination?.hasRoute<SeriesDetail>() == true ||
                 currentDestination?.hasRoute<AuthorBooks>() == true
             }
@@ -2339,11 +2313,18 @@ fun GlassBottomBar5Icon(
         Color(0xFFF2F2F7).copy(alpha = 0.95f)
     }
 
+    // Subtle pill border - matches eReader pill style for premium feel
+    val pillBorderColor = if (isDark) {
+        Color.White.copy(alpha = 0.12f)  // Subtle neutral border
+    } else {
+        Color.Black.copy(alpha = 0.08f)
+    }
+
     // Divider color matching full player style
     val dividerColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f)
 
     // Truly floating pill - no background bar, content scrolls underneath
-    // The pill itself has glass background via pillBackground
+    // The pill itself has glass background via pillBackground with subtle border
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -2356,11 +2337,18 @@ fun GlassBottomBar5Icon(
                 .padding(horizontal = GlassSpacing.M)
                 .clip(RoundedCornerShape(GlassShapes.Large))
                 .background(pillBackground)
+                .border(
+                    width = 0.5.dp,
+                    color = pillBorderColor,
+                    shape = RoundedCornerShape(GlassShapes.Large)
+                )
                 .padding(horizontal = GlassSpacing.S, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
         // Now nav item - The listening sanctuary
+        // ALWAYS navigate to Now when clicked, regardless of current location
+        // This ensures sub-pages (Journey, etc.) properly return to Now
         val nowItem = standardNavItems[0]
         val isNowSelected = currentDestination?.hasRoute<Now>() == true
         GlassNavItemCompact(
@@ -2368,10 +2356,11 @@ fun GlassBottomBar5Icon(
             label = nowItem.label,
             isSelected = isNowSelected,
             onClick = {
+                // Always navigate first to ensure we get to Now
+                onNavItemSelected(nowItem)
+                // Then scroll to top if we were already there
                 if (isNowSelected) {
                     onHomeScrollToTop()
-                } else {
-                    onNavItemSelected(nowItem)
                 }
             },
             isDark = isDark,
@@ -2387,6 +2376,8 @@ fun GlassBottomBar5Icon(
         )
 
         // Browse/Library nav item - Pure browsing experience
+        // ALWAYS navigate to Library when clicked, regardless of current location
+        // This ensures sub-pages (BookDetail, SeriesDetail, etc.) properly return to Library
         val libraryItem = standardNavItems[1]
         val isLibrarySelected = currentDestination?.hasRoute<Library>() == true
         GlassNavItemCompact(
@@ -2394,10 +2385,11 @@ fun GlassBottomBar5Icon(
             label = libraryItem.label,
             isSelected = isLibrarySelected,
             onClick = {
+                // Always navigate first to ensure we get to Library
+                onNavItemSelected(libraryItem)
+                // Then scroll to top if we were already there
                 if (isLibrarySelected) {
                     onLibraryScrollToTop()
-                } else {
-                    onNavItemSelected(libraryItem)
                 }
             },
             isDark = isDark,
@@ -2418,7 +2410,7 @@ fun GlassBottomBar5Icon(
             isCurrentlyPlaying = currentBook != null && isPlaying,
             onClick = onResumeClick,
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             accentColor = accentColor
         )
 
@@ -2540,11 +2532,11 @@ private fun RowScope.SmartResumeNavItem(
     isCurrentlyPlaying: Boolean,
     onClick: () -> Unit,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     accentColor: Color = GlassColors.Interactive
 ) {
     val view = androidx.compose.ui.platform.LocalView.current
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -2621,11 +2613,11 @@ private fun RowScope.RadialProgressNavItem(
     hasBook: Boolean,
     onClick: () -> Unit,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     accentColor: Color = GlassColors.Interactive
 ) {
     val view = androidx.compose.ui.platform.LocalView.current
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -2730,14 +2722,14 @@ fun ChapterNavigationSheet(
     book: Book,
     currentPosition: Long,
     playbackSpeed: Float = 1.0f,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     accentColor: Color = GlassColors.Interactive,
     isDark: Boolean,
     onChapterSelected: (Chapter) -> Unit,
     onBookmarkSelected: (Long) -> Unit = {},
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val chapters = book.chapters
     val bookmarks = book.bookmarks
     val bookmarkNotes = book.bookmarkNotes
@@ -2926,7 +2918,7 @@ fun ChapterNavigationSheet(
                                     isCompleted = isCompleted && !isCurrent,
                                     accentColor = accentColor,
                                     isDark = isDark,
-                                    isReverieDark = isReverieDark,
+                                    isOLED = isOLED,
                                     onClick = { onChapterSelected(chapter) }
                                 )
                             }
@@ -2977,7 +2969,7 @@ fun ChapterNavigationSheet(
                                     isCurrent = currentPosition >= positionMs - 5000 && currentPosition <= positionMs + 5000,
                                     accentColor = accentColor,
                                     isDark = isDark,
-                                    isReverieDark = isReverieDark,
+                                    isOLED = isOLED,
                                     onClick = { onBookmarkSelected(positionMs) }
                                 )
                             }
@@ -3051,11 +3043,11 @@ private fun BookmarkNavItem(
     isCurrent: Boolean,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val highlightColor = if (isReverieDark) GlassColors.WarmSlate else Color.White.copy(alpha = 0.1f)
+    val theme = glassTheme(isDark, isOLED)
+    val highlightColor = if (isOLED) GlassColors.WarmSlate else Color.White.copy(alpha = 0.1f)
 
     Row(
         modifier = Modifier
@@ -3116,11 +3108,11 @@ private fun ChapterNavItem(
     isCompleted: Boolean,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val highlightColor = if (isReverieDark) GlassColors.WarmSlate else Color.White.copy(alpha = 0.1f)
+    val theme = glassTheme(isDark, isOLED)
+    val highlightColor = if (isOLED) GlassColors.WarmSlate else Color.White.copy(alpha = 0.1f)
 
     Row(
         modifier = Modifier

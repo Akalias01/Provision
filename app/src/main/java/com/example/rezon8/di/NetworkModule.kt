@@ -1,8 +1,8 @@
-package com.mossglen.reverie.di
+package com.mossglen.lithos.di
 
-import com.mossglen.reverie.data.remote.GoogleBooksApi
-import com.mossglen.reverie.data.remote.OpenLibraryApi
-import com.mossglen.reverie.data.remote.iTunesApi
+import com.mossglen.lithos.data.remote.GoogleBooksApi
+import com.mossglen.lithos.data.remote.OpenLibraryApi
+import com.mossglen.lithos.data.remote.iTunesApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

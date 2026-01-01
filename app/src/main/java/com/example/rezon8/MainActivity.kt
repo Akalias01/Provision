@@ -1,4 +1,4 @@
-package com.mossglen.reverie
+package com.mossglen.lithos
 
 import android.content.ComponentName
 import android.content.Intent
@@ -18,10 +18,10 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.mossglen.reverie.service.ReveriePlaybackService
-import com.mossglen.reverie.ui.MainLayoutGlass
-import com.mossglen.reverie.ui.screens.SplashScreen
-import com.mossglen.reverie.ui.viewmodel.ThemeViewModel
+import com.mossglen.lithos.service.LithosPlaybackService
+import com.mossglen.lithos.ui.MainLayoutGlass
+import com.mossglen.lithos.ui.screens.SplashScreen
+import com.mossglen.lithos.ui.viewmodel.ThemeViewModel
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -173,7 +173,7 @@ class MainActivity : ComponentActivity() {
      * This is required for Android Auto to detect the app.
      */
     private fun startMediaService() {
-        val sessionToken = SessionToken(this, ComponentName(this, ReveriePlaybackService::class.java))
+        val sessionToken = SessionToken(this, ComponentName(this, LithosPlaybackService::class.java))
         val controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
 
         controllerFuture.addListener({

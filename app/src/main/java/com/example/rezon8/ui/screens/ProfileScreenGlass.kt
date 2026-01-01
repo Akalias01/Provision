@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -28,10 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.ListeningStatsViewModel
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.ListeningStatsViewModel
 
 /**
  * REVERIE Glass - Profile Screen
@@ -49,7 +49,7 @@ import com.mossglen.reverie.ui.viewmodel.ListeningStatsViewModel
 fun ProfileScreenGlass(
     statsViewModel: ListeningStatsViewModel = hiltViewModel(),
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     accentColor: Color = GlassColors.Interactive,
     onSettingsClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
@@ -59,7 +59,7 @@ fun ProfileScreenGlass(
     onCloudClick: () -> Unit = {},
     onEqualizerClick: () -> Unit = {}
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val scrollState = rememberScrollState()
 
@@ -286,7 +286,7 @@ private fun GoalSettingDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color.White,
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.ElevatedBackgroundLight,
         title = {
             Text(
                 "Set Daily Goal",

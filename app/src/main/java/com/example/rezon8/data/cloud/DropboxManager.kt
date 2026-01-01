@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data.cloud
+package com.mossglen.lithos.data.cloud
 
 import android.content.Context
 import android.util.Log
@@ -34,7 +34,7 @@ class DropboxManager @Inject constructor(
     companion object {
         private const val TAG = "DropboxManager"
         private const val APP_KEY = "YOUR_DROPBOX_APP_KEY" // Replace with actual app key
-        private const val FOLDER_PATH = "/REVERIE_Backups"
+        private const val FOLDER_PATH = "/Lithos_Backups"
         private const val PREFS_NAME = "dropbox_prefs"
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
@@ -80,7 +80,7 @@ class DropboxManager @Inject constructor(
                 return@withContext false
             }
 
-            val config = DbxRequestConfig.newBuilder("REVERIE/1.0").build()
+            val config = DbxRequestConfig.newBuilder("Lithos/1.0").build()
             dropboxClient = DbxClientV2(config, credential)
 
             // Verify connection by getting account info

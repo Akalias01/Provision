@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data.remote
+package com.mossglen.lithos.data.remote
 
 import retrofit2.http.GET
 import retrofit2.http.Path

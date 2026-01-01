@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
@@ -44,11 +44,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.Chapter
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.Chapter
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
 import kotlin.math.roundToInt
+
+// Lithos Amber Design Language Colors
+private val LithosAmber = Color(0xFFD48C2C)
+private val LithosMoss = Color(0xFF4A5D45)
+private val LithosSlate = Color(0xFF1A1D21)
+private val LithosGlassBackground = Color(0xD91A1D21) // rgba(26, 29, 33, 0.85)
 
 /**
  * SplitBookScreen - Premium UI for splitting audiobooks into segments.
@@ -65,13 +71,13 @@ import kotlin.math.roundToInt
 fun SplitBookScreen(
     bookId: String,
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     onBack: () -> Unit,
     onSplitComplete: () -> Unit,
     libraryViewModel: LibraryViewModel = hiltViewModel()
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val density = LocalDensity.current
 
@@ -98,7 +104,7 @@ fun SplitBookScreen(
     BackHandler { onBack() }
 
     if (book == null) {
-        Box(Modifier.fillMaxSize().background(theme.background), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().background(LithosSlate), contentAlignment = Alignment.Center) {
             Text("Book not found", color = theme.textSecondary)
         }
         return
@@ -119,7 +125,7 @@ fun SplitBookScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(theme.background)
+            .background(LithosSlate)
     ) {
         Column(
             modifier = Modifier
@@ -153,7 +159,7 @@ fun SplitBookScreen(
                                 splitPoints = emptyList()
                             }
                         ) {
-                            Text("Reset", color = accentColor)
+                            Text("Reset", color = LithosAmber)
                         }
                     }
                 },
@@ -173,6 +179,22 @@ fun SplitBookScreen(
                 item {
                     BookInfoCard(
                         book = book,
+                        theme = theme,
+                        accentColor = accentColor
+                    )
+                }
+
+                // Format Support Banner
+                item {
+                    val fileExtension = book.filePath
+                        .substringAfterLast('.', "")
+                        .substringBefore('?')
+                        .lowercase()
+                    val isSupported = fileExtension in listOf("m4b", "m4a", "mp4", "m4p")
+
+                    FormatSupportBanner(
+                        isSupported = isSupported,
+                        fileExtension = fileExtension,
                         theme = theme,
                         accentColor = accentColor
                     )
@@ -273,7 +295,7 @@ fun SplitBookScreen(
                         .fillMaxWidth()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, theme.background)
+                                colors = listOf(Color.Transparent, LithosSlate)
                             )
                         )
                         .padding(GlassSpacing.M)
@@ -289,21 +311,21 @@ fun SplitBookScreen(
                             .height(56.dp),
                         shape = RoundedCornerShape(GlassShapes.Medium),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = GlassColors.ButtonBackground
+                            containerColor = LithosGlassBackground
                         )
                     ) {
                         Icon(
                             Icons.Rounded.CallSplit,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp),
-                            tint = accentColor
+                            tint = LithosAmber
                         )
                         Spacer(Modifier.width(GlassSpacing.XS))
                         Text(
                             "Split into ${segments.size} Parts",
                             style = GlassTypography.Label,
                             fontWeight = FontWeight.SemiBold,
-                            color = accentColor
+                            color = LithosAmber
                         )
                     }
                 }
@@ -392,7 +414,7 @@ private fun BookInfoCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.interactive)
+            .background(LithosGlassBackground)
             .padding(GlassSpacing.M),
         horizontalArrangement = Arrangement.spacedBy(GlassSpacing.M)
     ) {
@@ -426,7 +448,7 @@ private fun BookInfoCard(
             Text(
                 formatDuration(book.duration),
                 style = GlassTypography.Caption,
-                color = accentColor
+                color = LithosAmber
             )
         }
     }
@@ -450,7 +472,7 @@ private fun TimelineSection(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.interactive)
+            .background(LithosGlassBackground)
             .padding(GlassSpacing.M),
         verticalArrangement = Arrangement.spacedBy(GlassSpacing.S)
     ) {
@@ -483,24 +505,17 @@ private fun TimelineSection(
                     .height(8.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(theme.glassBorder)
+                    .background(LithosSlate)
             )
 
-            // Progress fill (entire duration)
+            // Progress fill (entire duration) - matte finish
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                accentColor.copy(alpha = 0.3f),
-                                accentColor.copy(alpha = 0.5f)
-                            )
-                        )
-                    )
+                    .background(LithosAmber.copy(alpha = 0.4f))
             )
 
             // Chapter markers
@@ -604,14 +619,14 @@ private fun SplitPointMarker(
             modifier = Modifier
                 .width(2.dp)
                 .fillMaxHeight()
-                .background(accentColor)
+                .background(LithosAmber)
         )
         // Handle circle
         Box(
             modifier = Modifier
                 .size(16.dp)
                 .clip(CircleShape)
-                .background(accentColor)
+                .background(LithosAmber)
                 .border(2.dp, Color.White, CircleShape)
         )
     }
@@ -633,10 +648,10 @@ private fun SegmentCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.interactive)
+            .background(LithosGlassBackground)
             .border(
                 width = 1.dp,
-                color = theme.glassBorder,
+                color = LithosSlate,
                 shape = RoundedCornerShape(GlassShapes.Medium)
             )
             .padding(GlassSpacing.M),
@@ -648,13 +663,13 @@ private fun SegmentCard(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.15f)),
+                .background(LithosAmber.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 "${index + 1}",
                 style = GlassTypography.Label,
-                color = accentColor,
+                color = LithosAmber,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -669,11 +684,11 @@ private fun SegmentCard(
                     value = editedTitle,
                     onValueChange = { editedTitle = it },
                     textStyle = GlassTypography.Body.copy(color = theme.textPrimary),
-                    cursorBrush = SolidColor(accentColor),
+                    cursorBrush = SolidColor(LithosAmber),
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            theme.glassBorder,
+                            LithosSlate,
                             RoundedCornerShape(8.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -701,7 +716,7 @@ private fun SegmentCard(
         Text(
             formatDuration(segment.second - segment.first),
             style = GlassTypography.Caption,
-            color = accentColor
+            color = LithosAmber
         )
 
         // Edit button
@@ -734,7 +749,7 @@ private fun AddSplitPointButton(
             .clip(RoundedCornerShape(GlassShapes.Medium))
             .border(
                 width = 1.dp,
-                color = accentColor.copy(alpha = 0.3f),
+                color = LithosAmber.copy(alpha = 0.3f),
                 shape = RoundedCornerShape(GlassShapes.Medium)
             )
             .clickable(onClick = onClick)
@@ -745,14 +760,14 @@ private fun AddSplitPointButton(
         Icon(
             Icons.Rounded.Add,
             contentDescription = null,
-            tint = accentColor,
+            tint = LithosAmber,
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(GlassSpacing.XS))
         Text(
             "Add Split Point",
             style = GlassTypography.Label,
-            color = accentColor
+            color = LithosAmber
         )
     }
 }
@@ -770,7 +785,7 @@ private fun SplitConfirmationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = theme.interactive,
+        containerColor = LithosGlassBackground,
         titleContentColor = theme.textPrimary,
         textContentColor = theme.textSecondary,
         title = {
@@ -802,8 +817,8 @@ private fun SplitConfirmationDialog(
                         checked = keepOriginal,
                         onCheckedChange = { keepOriginal = it },
                         colors = CheckboxDefaults.colors(
-                            checkedColor = accentColor,
-                            uncheckedColor = theme.glassBorder
+                            checkedColor = LithosAmber,
+                            uncheckedColor = LithosSlate
                         )
                     )
                     Column {
@@ -824,9 +839,9 @@ private fun SplitConfirmationDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirm(keepOriginal) },
-                colors = ButtonDefaults.buttonColors(containerColor = GlassColors.ButtonBackground)
+                colors = ButtonDefaults.buttonColors(containerColor = LithosGlassBackground)
             ) {
-                Text("Split Book", color = accentColor)
+                Text("Split Book", color = LithosAmber)
             }
         },
         dismissButton = {
@@ -876,5 +891,87 @@ private fun formatDuration(ms: Long): String {
         String.format("%d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format("%d:%02d", minutes, seconds)
+    }
+}
+
+@Composable
+private fun FormatSupportBanner(
+    isSupported: Boolean,
+    fileExtension: String,
+    theme: GlassThemeData,
+    accentColor: Color
+) {
+    val backgroundColor = if (isSupported) {
+        LithosAmber.copy(alpha = 0.1f)
+    } else {
+        Color(0xFFFF6B6B).copy(alpha = 0.15f)
+    }
+
+    val borderColor = if (isSupported) {
+        LithosAmber.copy(alpha = 0.3f)
+    } else {
+        Color(0xFFFF6B6B).copy(alpha = 0.4f)
+    }
+
+    val icon = if (isSupported) {
+        Icons.Rounded.CheckCircle
+    } else {
+        Icons.Rounded.Warning
+    }
+
+    val iconTint = if (isSupported) {
+        LithosAmber
+    } else {
+        Color(0xFFFF6B6B)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(GlassShapes.Medium))
+            .background(backgroundColor)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(GlassShapes.Medium)
+            )
+            .padding(GlassSpacing.M),
+        horizontalArrangement = Arrangement.spacedBy(GlassSpacing.S),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Column(modifier = Modifier.weight(1f)) {
+            if (isSupported) {
+                Text(
+                    "Format Supported",
+                    style = GlassTypography.Label,
+                    color = LithosAmber,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "${fileExtension.uppercase()} files support lossless splitting",
+                    style = GlassTypography.Caption,
+                    color = theme.textSecondary
+                )
+            } else {
+                Text(
+                    "Format Not Supported",
+                    style = GlassTypography.Label,
+                    color = Color(0xFFFF6B6B),
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "${fileExtension.uppercase()} files cannot be split. Supported: M4B, M4A, MP4",
+                    style = GlassTypography.Caption,
+                    color = theme.textSecondary
+                )
+            }
+        }
     }
 }

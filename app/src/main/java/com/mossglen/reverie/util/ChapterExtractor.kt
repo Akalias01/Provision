@@ -1,10 +1,10 @@
-package com.mossglen.reverie.util
+package com.mossglen.lithos.util
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.util.Log
-import com.mossglen.reverie.data.Chapter
+import com.mossglen.lithos.data.Chapter
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.Tag
 import org.jaudiotagger.tag.TagField
@@ -120,10 +120,11 @@ object ChapterExtractor {
         Log.d(TAG, "Extracting M4B chapters from: ${file.name}")
 
         try {
-            // Method 1: Try streaming approach for chpl atom (most common for podcasts/simple audiobooks)
-            val chaptersFromChpl = parseChplAtomStreaming(file)
+            // Method 1: Try proper hierarchical chpl atom parsing (moov/udta/chpl)
+            // This is the Nero chapter format used by many audiobook tools
+            val chaptersFromChpl = parseChplAtomHierarchical(file)
             if (chaptersFromChpl.isNotEmpty()) {
-                Log.d(TAG, "Found ${chaptersFromChpl.size} chapters from chpl atom")
+                Log.d(TAG, "Found ${chaptersFromChpl.size} chapters from chpl atom (hierarchical)")
                 return chaptersFromChpl
             }
 
@@ -134,11 +135,11 @@ object ChapterExtractor {
                 return chaptersFromTrack
             }
 
-            // Method 3: Try parsing Nero chapters (alternative format)
-            val chaptersFromNero = parseNeroChapters(file)
-            if (chaptersFromNero.isNotEmpty()) {
-                Log.d(TAG, "Found ${chaptersFromNero.size} chapters from Nero format")
-                return chaptersFromNero
+            // Method 3: Fallback - try streaming approach for chpl atom
+            val chaptersFromStreaming = parseChplAtomStreaming(file)
+            if (chaptersFromStreaming.isNotEmpty()) {
+                Log.d(TAG, "Found ${chaptersFromStreaming.size} chapters from chpl atom (streaming)")
+                return chaptersFromStreaming
             }
 
             Log.d(TAG, "No M4B chapters found using any method")
@@ -146,6 +147,150 @@ object ChapterExtractor {
         } catch (e: Exception) {
             Log.e(TAG, "Error extracting M4B chapters", e)
             return emptyList()
+        }
+    }
+
+    /**
+     * Parse chpl atom using proper hierarchical navigation: moov -> udta -> chpl
+     * This is more reliable than byte-searching as it properly navigates the atom structure
+     */
+    private fun parseChplAtomHierarchical(file: File): List<Chapter> {
+        try {
+            java.io.RandomAccessFile(file, "r").use { raf ->
+                Log.d(TAG, "Parsing M4B file hierarchically: ${file.name}, size: ${file.length()}")
+
+                // Step 1: Find moov atom at top level
+                val moovOffset = findTopLevelAtom(raf, "moov")
+                if (moovOffset < 0) {
+                    Log.d(TAG, "No moov atom found at file start, checking end of file")
+                    // Some M4B files have moov at the end
+                    val moovOffsetEnd = findTopLevelAtomFromEnd(raf, "moov")
+                    if (moovOffsetEnd < 0) {
+                        Log.d(TAG, "No moov atom found")
+                        return emptyList()
+                    }
+                    return parseChplFromMoov(raf, moovOffsetEnd)
+                }
+
+                return parseChplFromMoov(raf, moovOffset)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in hierarchical chpl parsing", e)
+            return emptyList()
+        }
+    }
+
+    /**
+     * Parse chpl atom from within a moov atom
+     */
+    private fun parseChplFromMoov(raf: java.io.RandomAccessFile, moovOffset: Long): List<Chapter> {
+        try {
+            // Read moov atom header
+            raf.seek(moovOffset)
+            val moovHeader = ByteArray(8)
+            raf.readFully(moovHeader)
+
+            val moovSize = readAtomSize(moovHeader, 0, raf, moovOffset)
+            Log.d(TAG, "moov atom at $moovOffset, size: $moovSize")
+
+            if (moovSize <= 8) {
+                Log.e(TAG, "Invalid moov size: $moovSize")
+                return emptyList()
+            }
+
+            // Step 2: Find udta atom within moov
+            val udtaOffset = findAtomInRange(raf, "udta", moovOffset + 8, moovOffset + moovSize)
+            if (udtaOffset < 0) {
+                Log.d(TAG, "No udta atom found in moov")
+                return emptyList()
+            }
+
+            raf.seek(udtaOffset)
+            val udtaHeader = ByteArray(8)
+            raf.readFully(udtaHeader)
+            val udtaSize = readAtomSize(udtaHeader, 0, raf, udtaOffset)
+            Log.d(TAG, "udta atom at $udtaOffset, size: $udtaSize")
+
+            // Step 3: Find chpl atom within udta
+            val chplOffset = findAtomInRange(raf, "chpl", udtaOffset + 8, udtaOffset + udtaSize)
+            if (chplOffset < 0) {
+                Log.d(TAG, "No chpl atom found in udta")
+                return emptyList()
+            }
+
+            Log.d(TAG, "Found chpl atom at $chplOffset")
+            return parseChplAtomAt(raf, chplOffset)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing chpl from moov", e)
+            return emptyList()
+        }
+    }
+
+    /**
+     * Find a top-level atom starting from the end of file
+     * Some M4B files have moov atom at the end after mdat
+     */
+    private fun findTopLevelAtomFromEnd(raf: java.io.RandomAccessFile, atomName: String): Long {
+        // Scan backwards from end for common structure
+        // Typically: ftyp, mdat (large), moov OR ftyp, moov, mdat
+        val atoms = mutableListOf<Pair<Long, String>>()
+        var pos = 0L
+
+        try {
+            while (pos < raf.length() - 8) {
+                raf.seek(pos)
+                val header = ByteArray(8)
+                raf.readFully(header)
+
+                val size = readAtomSize(header, 0, raf, pos)
+                val name = String(header, 4, 4, Charsets.US_ASCII)
+
+                if (size < 8 || !isValidAtomName(name)) {
+                    pos += 1
+                    continue
+                }
+
+                atoms.add(Pair(pos, name))
+
+                if (name == atomName) {
+                    return pos
+                }
+
+                pos += size
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scanning for atoms from end", e)
+        }
+
+        return -1
+    }
+
+    /**
+     * Check if atom name contains only valid characters (printable ASCII)
+     */
+    private fun isValidAtomName(name: String): Boolean {
+        return name.length == 4 && name.all { it in ' '..'~' }
+    }
+
+    /**
+     * Read atom size, handling extended size (size == 1) case
+     */
+    private fun readAtomSize(header: ByteArray, offset: Int, raf: java.io.RandomAccessFile, atomOffset: Long): Long {
+        val size32 = ByteBuffer.wrap(header, offset, 4).order(ByteOrder.BIG_ENDIAN).int.toLong() and 0xFFFFFFFFL
+
+        return when {
+            size32 == 1L -> {
+                // Extended size - next 8 bytes contain actual size
+                raf.seek(atomOffset + 8)
+                val extSize = ByteArray(8)
+                raf.readFully(extSize)
+                ByteBuffer.wrap(extSize).order(ByteOrder.BIG_ENDIAN).long
+            }
+            size32 == 0L -> {
+                // Size extends to end of file
+                raf.length() - atomOffset
+            }
+            else -> size32
         }
     }
 
@@ -438,40 +583,6 @@ object ChapterExtractor {
     }
 
     /**
-     * Parse Nero chapter format (in udta atom)
-     */
-    private fun parseNeroChapters(file: File): List<Chapter> {
-        try {
-            java.io.RandomAccessFile(file, "r").use { raf ->
-                // Find moov/udta/chpl path
-                val moovOffset = findTopLevelAtom(raf, "moov")
-                if (moovOffset < 0) return emptyList()
-
-                raf.seek(moovOffset)
-                val moovHeader = ByteArray(8)
-                raf.readFully(moovHeader)
-                val moovSize = ByteBuffer.wrap(moovHeader, 0, 4).order(ByteOrder.BIG_ENDIAN).int.toLong()
-
-                val udtaOffset = findAtomInRange(raf, "udta", moovOffset + 8, moovOffset + moovSize)
-                if (udtaOffset < 0) return emptyList()
-
-                raf.seek(udtaOffset)
-                val udtaHeader = ByteArray(8)
-                raf.readFully(udtaHeader)
-                val udtaSize = ByteBuffer.wrap(udtaHeader, 0, 4).order(ByteOrder.BIG_ENDIAN).int.toLong()
-
-                val chplOffset = findAtomInRange(raf, "chpl", udtaOffset + 8, udtaOffset + udtaSize)
-                if (chplOffset > 0) {
-                    return parseChplAtomAt(raf, chplOffset)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error parsing Nero chapters", e)
-        }
-        return emptyList()
-    }
-
-    /**
      * Find a top-level atom in the file
      */
     private fun findTopLevelAtom(raf: java.io.RandomAccessFile, atomName: String): Long {
@@ -631,6 +742,19 @@ object ChapterExtractor {
 
     /**
      * Parse chpl atom at given offset
+     *
+     * chpl atom structure (Nero chapter format):
+     * - 4 bytes: atom size
+     * - 4 bytes: atom type ('chpl')
+     * - 1 byte: version (0 or 1)
+     * - 3 bytes: flags (usually 0)
+     * - 4 bytes: reserved (version 0) OR unknown (version 1)
+     * - 1 byte: chapter count (version 0) OR 4 bytes: chapter count (version 1)
+     *
+     * For each chapter:
+     * - 8 bytes: start time in 100-nanosecond units
+     * - 1 byte: title length
+     * - N bytes: title (UTF-8)
      */
     private fun parseChplAtomAt(raf: java.io.RandomAccessFile, offset: Long): List<Chapter> {
         val chapters = mutableListOf<Chapter>()
@@ -638,48 +762,95 @@ object ChapterExtractor {
         try {
             raf.seek(offset)
 
-            // Read atom header
+            // Read atom header (8 bytes: 4 size + 4 type)
             val header = ByteArray(8)
             raf.readFully(header)
 
-            val atomSize = ByteBuffer.wrap(header, 0, 4).order(ByteOrder.BIG_ENDIAN).getInt()
+            val atomSize = ByteBuffer.wrap(header, 0, 4).order(ByteOrder.BIG_ENDIAN).int.toLong() and 0xFFFFFFFFL
+            val atomType = String(header, 4, 4, Charsets.US_ASCII)
 
-            // Read version and flags
-            val versionFlags = ByteArray(4)
-            raf.readFully(versionFlags)
+            Log.d(TAG, "Parsing chpl atom: type=$atomType, size=$atomSize at offset $offset")
 
-            // Skip reserved
-            raf.skipBytes(4)
+            if (atomType != "chpl") {
+                Log.e(TAG, "Expected chpl atom but found: $atomType")
+                return emptyList()
+            }
 
-            // Read chapter count
-            val chapterCount = raf.read() and 0xFF
+            // Read version (1 byte) and flags (3 bytes)
+            val version = raf.read() and 0xFF
+            val flags = ByteArray(3)
+            raf.readFully(flags)
+
+            Log.d(TAG, "chpl version: $version")
+
+            val chapterCount: Int
+
+            if (version == 0) {
+                // Version 0: 4 bytes reserved, then 1 byte chapter count
+                raf.skipBytes(4) // reserved
+                chapterCount = raf.read() and 0xFF
+            } else {
+                // Version 1 or higher: Try reading 4 bytes for chapter count
+                // Some implementations skip the reserved bytes entirely
+                val countBytes = ByteArray(4)
+                raf.readFully(countBytes)
+                val potentialCount = ByteBuffer.wrap(countBytes).order(ByteOrder.BIG_ENDIAN).int
+
+                // Sanity check - if count seems too large, try 1-byte interpretation
+                chapterCount = if (potentialCount > 1000 || potentialCount < 0) {
+                    // Fallback: skip 4 reserved bytes and read 1 byte count
+                    raf.seek(offset + 12 + 4) // header + version/flags + reserved
+                    raf.read() and 0xFF
+                } else {
+                    potentialCount
+                }
+            }
+
             Log.d(TAG, "Chapter count from chpl: $chapterCount")
 
+            if (chapterCount <= 0 || chapterCount > 1000) {
+                Log.w(TAG, "Invalid chapter count: $chapterCount")
+                return emptyList()
+            }
+
             for (i in 0 until chapterCount) {
-                // Read start time (8 bytes, 100-nanosecond units)
-                val timeBytes = ByteArray(8)
-                raf.readFully(timeBytes)
-                val startTime100ns = ByteBuffer.wrap(timeBytes).order(ByteOrder.BIG_ENDIAN).getLong()
-                val startMs = startTime100ns / 10_000
+                try {
+                    // Read start time (8 bytes, 100-nanosecond units)
+                    val timeBytes = ByteArray(8)
+                    raf.readFully(timeBytes)
+                    val startTime100ns = ByteBuffer.wrap(timeBytes).order(ByteOrder.BIG_ENDIAN).long
+                    val startMs = startTime100ns / 10_000
 
-                // Read title length
-                val titleLength = raf.read() and 0xFF
+                    // Read title length (1 byte)
+                    val titleLength = raf.read() and 0xFF
 
-                // Read title
-                val title = if (titleLength > 0) {
-                    val titleBytes = ByteArray(titleLength)
-                    raf.readFully(titleBytes)
-                    String(titleBytes, Charsets.UTF_8)
-                } else {
-                    "Chapter ${i + 1}"
+                    // Sanity check title length
+                    if (titleLength > 500) {
+                        Log.w(TAG, "Suspicious title length: $titleLength, stopping")
+                        break
+                    }
+
+                    // Read title
+                    val title = if (titleLength > 0) {
+                        val titleBytes = ByteArray(titleLength)
+                        raf.readFully(titleBytes)
+                        String(titleBytes, Charsets.UTF_8)
+                    } else {
+                        "Chapter ${i + 1}"
+                    }
+
+                    Log.d(TAG, "Chapter $i: '$title' at ${startMs}ms")
+
+                    chapters.add(Chapter(
+                        title = title.trim().ifEmpty { "Chapter ${i + 1}" },
+                        startMs = startMs,
+                        endMs = 0L,
+                        filePath = null
+                    ))
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error parsing chapter $i", e)
+                    break
                 }
-
-                chapters.add(Chapter(
-                    title = title.trim(),
-                    startMs = startMs,
-                    endMs = 0L,
-                    filePath = null
-                ))
             }
 
             // Calculate end times
@@ -687,6 +858,7 @@ object ChapterExtractor {
                 chapters[i] = chapters[i].copy(endMs = chapters[i + 1].startMs)
             }
 
+            Log.d(TAG, "Successfully parsed ${chapters.size} chapters from chpl atom")
             return chapters
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing chpl atom at offset $offset", e)

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.tts
+package com.mossglen.lithos.tts
 
 import android.content.Context
 

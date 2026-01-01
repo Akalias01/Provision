@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Reverie</string>
+    <string name="app_name">Lithos</string>
 
     <!-- Navigation - UI3 Adaptive Context -->
     <string name="nav_now">Ahora</string>
@@ -139,7 +139,7 @@
     <string name="sleep_custom">Personalizado</string>
 
     <!-- Dialogs -->
-    <string name="dialog_exit_title">¿Salir de Reverie?</string>
+    <string name="dialog_exit_title">¿Salir de Lithos?</string>
     <string name="dialog_exit_message">¿Estás seguro de que quieres salir de la aplicación?</string>
     <string name="dialog_exit">Salir</string>
     <string name="dialog_cancel">Cancelar</string>
@@ -262,7 +262,7 @@
     <string name="edit_track_editor">Editor de Pistas</string>
 
     <!-- Welcome -->
-    <string name="welcome_title">Bienvenido a Reverie</string>
+    <string name="welcome_title">Bienvenido a Lithos</string>
     <string name="welcome_subtitle">Tu audio, reimaginado.</string>
 
     <!-- Cloud -->

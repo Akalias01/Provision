@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.components
+package com.mossglen.lithos.ui.components
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -25,17 +25,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mossglen.lithos.ui.theme.LithosSlate
+import com.mossglen.lithos.ui.theme.LithosBlack
+import com.mossglen.lithos.ui.theme.LithosOat
+import com.mossglen.lithos.ui.theme.LithosSurfaceDark
 import kotlin.math.roundToInt
 
 /**
- * Premium REVERIE Dialog with swipe-to-dismiss and fluid animations
+ * Premium LITHOS Dialog with swipe-to-dismiss and fluid animations
+ *
+ * Supports all 3 Lithos modes:
+ * - Light: Oat background (#F2F0E9)
+ * - Standard: Slate background (#1A1D21)
+ * - OLED Black: True black (#000000)
  */
 @Composable
-fun ReverieDialog(
+fun LithosDialog(
     title: String,
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val theme = com.mossglen.lithos.ui.theme.glassTheme(isDark, isOLED)
+    val dialogBackground = when {
+        isOLED -> LithosBlack             // True black for OLED
+        isDark -> LithosSurfaceDark       // Elevated slate for dark mode
+        else -> LithosOat                 // Light mode
+    }
     // Animation states
     var isVisible by remember { mutableStateOf(false) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
@@ -91,7 +108,7 @@ fun ReverieDialog(
                     .scale(dialogScale * (1f - dismissProgress * 0.05f))
                     .alpha(dialogAlpha * (1f - dismissProgress * 0.3f))
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFF1C1C1E))
+                    .background(dialogBackground)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -122,7 +139,7 @@ fun ReverieDialog(
                 // Title
                 Text(
                     text = title,
-                    color = Color.White,
+                    color = theme.textPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
@@ -146,12 +163,24 @@ fun ReverieDialog(
 
 /**
  * Full-screen dialog/sheet with swipe-to-dismiss (like the EQ dialog)
+ *
+ * Supports all 3 Lithos modes:
+ * - Light: Oat background (#F2F0E9)
+ * - Standard: Slate background (#1A1D21)
+ * - OLED Black: True black (#000000)
  */
 @Composable
-fun ReverieFullScreenDialog(
+fun LithosFullScreenDialog(
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     content: @Composable () -> Unit
 ) {
+    val sheetBackground = when {
+        isOLED -> LithosBlack       // True black for OLED
+        isDark -> LithosSlate       // Standard dark (full screen uses base slate)
+        else -> LithosOat           // Light mode
+    }
     var isVisible by remember { mutableStateOf(false) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     val dismissThreshold = 150f
@@ -192,7 +221,7 @@ fun ReverieFullScreenDialog(
                 .scale(sheetScale * (1f - dismissProgress * 0.03f))
                 .alpha(sheetAlpha * (1f - dismissProgress * 0.2f))
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(Color(0xFF0D0D0D))
+                .background(sheetBackground)
                 .pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onDragEnd = {
@@ -223,15 +252,18 @@ fun DialogItem(
     text: String,
     accentColor: Color,
     onClick: () -> Unit
-) = ReverieDialogItem(icon, text, accentColor, onClick)
+) = LithosDialogItem(icon = icon, text = text, accentColor = accentColor, onClick = onClick)
 
 @Composable
-fun ReverieDialogItem(
+fun LithosDialogItem(
     icon: ImageVector,
     text: String,
     accentColor: Color,
+    isDark: Boolean = true,
     onClick: () -> Unit
 ) {
+    val textColor = if (isDark) Color.White else Color(0xFF1A1D21)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -257,7 +289,7 @@ fun ReverieDialogItem(
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = text,
-            color = Color.White,
+            color = textColor,
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium
         )

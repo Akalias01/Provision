@@ -1,4 +1,4 @@
-package com.mossglen.reverie.util
+package com.mossglen.lithos.util
 
 import android.util.Log
 

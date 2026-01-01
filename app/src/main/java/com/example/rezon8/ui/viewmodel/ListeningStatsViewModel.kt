@@ -1,11 +1,11 @@
-package com.mossglen.reverie.ui.viewmodel
+package com.mossglen.lithos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mossglen.reverie.data.Achievement
-import com.mossglen.reverie.data.ListeningStats
-import com.mossglen.reverie.data.ListeningStatsRepository
-import com.mossglen.reverie.data.SettingsRepository
+import com.mossglen.lithos.data.Achievement
+import com.mossglen.lithos.data.ListeningStats
+import com.mossglen.lithos.data.ListeningStatsRepository
+import com.mossglen.lithos.data.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

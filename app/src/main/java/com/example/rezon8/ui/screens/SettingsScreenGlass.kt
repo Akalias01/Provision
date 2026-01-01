@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.Manifest
 import android.app.Activity
@@ -8,6 +8,7 @@ import android.os.Build
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -38,21 +39,22 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.mossglen.reverie.R
+import androidx.compose.ui.unit.sp
+import com.mossglen.lithos.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
-import com.mossglen.reverie.ui.components.*
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.ReverieAccentVariant
-import com.mossglen.reverie.ui.viewmodel.SettingsViewModel
-import com.mossglen.reverie.ui.viewmodel.ThemeMode
-import com.mossglen.reverie.ui.viewmodel.ThemeViewModel
-
+import com.mossglen.lithos.ui.components.*
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.LithosAccentVariant
+import com.mossglen.lithos.ui.viewmodel.SettingsViewModel
+import com.mossglen.lithos.ui.viewmodel.ThemeMode
+import com.mossglen.lithos.ui.viewmodel.ThemeViewModel
 /**
- * REVERIE Glass - Settings Screen
+ * LITHOS - Settings Screen
  *
- * Clean, grouped settings with glass cards.
- * iOS Settings-inspired layout.
+ * Premium settings interface matching Profile page style.
+ * Icon-based menu items with clean visual hierarchy.
+ * Sections ordered by frequency of use.
  */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,18 +82,19 @@ fun SettingsScreenGlass(
 
     // Theme state from ViewModel
     val themeMode by themeViewModel.themeMode
-    val isReverieDark = themeMode == ThemeMode.REVERIE_DARK
-    val reverieAccentVariant by themeViewModel.reverieAccentVariant
-    val theme = glassTheme(isDark, isReverieDark)
+    val isOLED = themeMode == ThemeMode.LITHOS_DARK
+    val lithosAccentVariant by themeViewModel.lithosAccentVariant
+    val theme = glassTheme(isDark, isOLED)
 
     // Accent color - uses selected variant for Reverie Dark, blue for standard
-    val accentColor = if (isReverieDark) themeViewModel.getReverieAccentColor() else GlassColors.Interactive
+    val accentColor = if (isOLED) themeViewModel.getLithosAccentColor() else GlassColors.Interactive
 
     // Settings state from ViewModel
     val wifiOnly by settingsViewModel.wifiOnly.collectAsState()
     val skipForward by settingsViewModel.skipForward.collectAsState()
     val skipBackward by settingsViewModel.skipBackward.collectAsState()
     val keepServiceActive by settingsViewModel.keepServiceActive.collectAsState()
+    val smartAutoRewindEnabled by settingsViewModel.smartAutoRewindEnabled.collectAsState()
     val audioCodec by settingsViewModel.audioCodec.collectAsState()
     val dynamicPlayerColors by settingsViewModel.dynamicPlayerColors.collectAsState()
 
@@ -101,6 +104,23 @@ fun SettingsScreenGlass(
 
     // Language state
     val appLanguage by settingsViewModel.appLanguage.collectAsState()
+
+    // Map language codes to display names (localized + native)
+    val languageDisplayName = when (appLanguage) {
+        "system" -> stringResource(R.string.lang_system)
+        "en" -> "English"
+        "es" -> "Español"
+        "fr" -> "Français"
+        "de" -> "Deutsch"
+        "it" -> "Italiano"
+        "pt" -> "Português"
+        "ja" -> "日本語"
+        "ko" -> "한국어"
+        "zh" -> "中文"
+        "ru" -> "Русский"
+        "ar" -> "العربية"
+        else -> appLanguage // Fallback to code if unknown
+    }
 
     // Torrent save path state
     val torrentSavePath by settingsViewModel.torrentSavePath.collectAsState()
@@ -213,254 +233,389 @@ fun SettingsScreenGlass(
             )
         }
 
-        // Scrollable content
+        // Scrollable content - Profile-style menu items
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = GlassSpacing.M)
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 120.dp) // Space for nav bar
         ) {
-            // APPEARANCE Section
-            GlassSectionHeader(title = stringResource(R.string.settings_appearance), isDark = isDark)
+            // ══════════════════════════════════════════════════════════════
+            // APPEARANCE Section (Most Used)
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_appearance),
+                isDark = isDark
+            )
 
-            SettingsCard(isDark = isDark) {
-                SettingsRow(
-                    title = stringResource(R.string.settings_theme),
-                    value = themeMode.displayName,
-                    isDark = isDark,
-                    onClick = { showThemeModeDialog = true }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_language),
-                    value = appLanguage,
-                    isDark = isDark,
-                    onClick = { showLanguageDialog = true }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsToggle(
-                    title = stringResource(R.string.settings_dynamic_colors),
-                    subtitle = stringResource(R.string.detail_change_cover),
-                    isEnabled = dynamicPlayerColors,
-                    isDark = isDark,
-                    accentColor = accentColor,
-                    isReverieDark = isReverieDark,
-                    onToggle = { settingsViewModel.setDynamicPlayerColors(it) }
-                )
-            }
+            SettingsMenuItem(
+                icon = Icons.Outlined.Palette,
+                title = stringResource(R.string.settings_theme),
+                subtitle = themeMode.displayName,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showThemeModeDialog = true
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
 
+            SettingsMenuItem(
+                icon = Icons.Outlined.Language,
+                title = stringResource(R.string.settings_language),
+                subtitle = languageDisplayName,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showLanguageDialog = true
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            SettingsMenuToggle(
+                icon = Icons.Outlined.AutoAwesome,
+                title = stringResource(R.string.settings_dynamic_colors),
+                subtitle = stringResource(R.string.detail_change_cover),
+                isEnabled = dynamicPlayerColors,
+                onToggle = { settingsViewModel.setDynamicPlayerColors(it) },
+                isDark = isDark,
+                accentColor = accentColor,
+                isOLED = isOLED
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ══════════════════════════════════════════════════════════════
             // PLAYBACK Section
-            GlassSectionHeader(title = stringResource(R.string.settings_player), isDark = isDark)
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_player),
+                isDark = isDark
+            )
 
-            SettingsCard(isDark = isDark) {
-                SettingsRow(
-                    title = stringResource(R.string.settings_skip_forward),
-                    value = stringResource(R.string.settings_seconds, skipForward),
-                    isDark = isDark,
-                    onClick = { showSkipDurationDialog = true }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_skip_backward),
-                    value = stringResource(R.string.settings_seconds, skipBackward),
-                    isDark = isDark,
-                    onClick = { showSkipDurationDialog = true }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsToggle(
-                    title = stringResource(R.string.settings_persistent),
-                    subtitle = stringResource(R.string.settings_persistent_desc),
-                    isEnabled = keepServiceActive,
-                    isDark = isDark,
-                    accentColor = accentColor,
-                    isReverieDark = isReverieDark,
-                    onToggle = { settingsViewModel.setKeepServiceActive(it) }
-                )
-            }
+            SettingsMenuItem(
+                icon = Icons.Outlined.Speed,
+                title = stringResource(R.string.settings_skip_duration_title),
+                subtitle = stringResource(R.string.settings_seconds, skipForward) + " / " + stringResource(R.string.settings_seconds, skipBackward),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showSkipDurationDialog = true
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
 
-            // DOWNLOADS Section
-            GlassSectionHeader(title = stringResource(R.string.settings_downloads), isDark = isDark)
+            SettingsMenuToggle(
+                icon = Icons.Outlined.PlayCircle,
+                title = stringResource(R.string.settings_persistent),
+                subtitle = stringResource(R.string.settings_persistent_desc),
+                isEnabled = keepServiceActive,
+                onToggle = { settingsViewModel.setKeepServiceActive(it) },
+                isDark = isDark,
+                accentColor = accentColor,
+                isOLED = isOLED
+            )
 
-            SettingsCard(isDark = isDark) {
-                SettingsToggle(
-                    title = stringResource(R.string.settings_wifi_only),
-                    subtitle = stringResource(R.string.settings_wifi_only),
-                    isEnabled = wifiOnly,
-                    isDark = isDark,
-                    accentColor = accentColor,
-                    isReverieDark = isReverieDark,
-                    onToggle = { settingsViewModel.setWifiOnly(it) }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_storage_location),
-                    value = storageDisplayName ?: stringResource(R.string.settings_storage_internal),
-                    isDark = isDark,
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        // Android 13+ (TIRAMISU): No permission needed for SAF picker
-                        // Android 10-12: Request READ_EXTERNAL_STORAGE first
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            storageFolderLauncher.launch(null)
-                        } else {
-                            storagePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                        }
-                    }
-                )
-            }
+            SettingsMenuToggle(
+                icon = Icons.Outlined.History,
+                title = stringResource(R.string.settings_smart_rewind),
+                subtitle = stringResource(R.string.settings_smart_rewind_desc),
+                isEnabled = smartAutoRewindEnabled,
+                onToggle = { settingsViewModel.setSmartAutoRewindEnabled(it) },
+                isDark = isDark,
+                accentColor = accentColor,
+                isOLED = isOLED
+            )
 
-            // TORRENT & CLOUD Section
-            GlassSectionHeader(title = stringResource(R.string.settings_cloud_torrents), isDark = isDark)
+            Spacer(modifier = Modifier.height(24.dp))
 
-            SettingsCard(isDark = isDark) {
-                SettingsRow(
-                    title = stringResource(R.string.settings_torrent_downloads),
-                    subtitle = stringResource(R.string.settings_torrent_desc),
-                    isDark = isDark,
-                    showChevron = true,
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onNavigateToDownloads()
-                    }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_cloud_files),
-                    subtitle = stringResource(R.string.settings_cloud_files_desc),
-                    isDark = isDark,
-                    showChevron = true,
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onNavigateToCloudFiles()
-                    }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_listening_stats),
-                    subtitle = stringResource(R.string.settings_stats_desc),
-                    isDark = isDark,
-                    showChevron = true,
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onNavigateToStats()
-                    }
-                )
-            }
-
-            // LIBRARY Section
-            GlassSectionHeader(title = stringResource(R.string.settings_library), isDark = isDark)
-
-            SettingsCard(isDark = isDark) {
-                SettingsToggle(
-                    title = stringResource(R.string.settings_scan_on_startup),
-                    subtitle = stringResource(R.string.settings_scan_desc),
-                    isEnabled = scanOnStartup,
-                    isDark = isDark,
-                    accentColor = accentColor,
-                    isReverieDark = isReverieDark,
-                    onToggle = { scanOnStartup = it }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_manage_folders),
-                    isDark = isDark,
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        showFoldersDialog = true
-                    }
-                )
-            }
-
-            // KIDS MODE Section
-            GlassSectionHeader(title = stringResource(R.string.settings_kids_mode), isDark = isDark)
-
-            SettingsCard(isDark = isDark) {
-                SettingsToggle(
-                    title = stringResource(R.string.settings_kids_enabled),
-                    subtitle = if (kidsModeEnabled) stringResource(R.string.settings_kids_restricted) else stringResource(R.string.settings_kids_restrict),
-                    isEnabled = kidsModeEnabled,
-                    isDark = isDark,
-                    accentColor = accentColor,
-                    isReverieDark = isReverieDark,
-                    onToggle = { enabled ->
-                        if (enabled) {
-                            // Show PIN setup dialog when enabling
-                            if (kidsModePin.isEmpty()) {
-                                showKidsModeDialog = true
-                            } else {
-                                settingsViewModel.setKidsModeEnabled(true)
-                            }
-                        } else {
-                            // Require PIN to disable
-                            showKidsModeDialog = true
-                        }
-                    }
-                )
-                if (kidsModeEnabled) {
-                    GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                    SettingsRow(
-                        title = stringResource(R.string.settings_kids_change_pin),
-                        subtitle = stringResource(R.string.settings_kids_update_pin),
-                        isDark = isDark,
-                        onClick = { showKidsModeDialog = true }
-                    )
-                }
-            }
-
+            // ══════════════════════════════════════════════════════════════
             // AUDIO Section
-            GlassSectionHeader(title = stringResource(R.string.settings_audio), isDark = isDark)
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_audio),
+                isDark = isDark
+            )
 
-            SettingsCard(isDark = isDark) {
-                SettingsRow(
-                    title = stringResource(R.string.settings_equalizer),
-                    value = stringResource(R.string.settings_equalizer_desc),
-                    isDark = isDark,
+            SettingsMenuItem(
+                icon = Icons.Outlined.Equalizer,
+                title = stringResource(R.string.settings_equalizer),
+                subtitle = stringResource(R.string.settings_equalizer_desc),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onOpenEqualizer()
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.Memory,
+                title = stringResource(R.string.settings_decoder),
+                subtitle = audioCodec,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showCodecDialog = true
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ══════════════════════════════════════════════════════════════
+            // LIBRARY Section
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_library),
+                isDark = isDark
+            )
+
+            SettingsMenuToggle(
+                icon = Icons.Outlined.Refresh,
+                title = stringResource(R.string.settings_scan_on_startup),
+                subtitle = stringResource(R.string.settings_scan_desc),
+                isEnabled = scanOnStartup,
+                onToggle = { scanOnStartup = it },
+                isDark = isDark,
+                accentColor = accentColor,
+                isOLED = isOLED
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.Folder,
+                title = stringResource(R.string.settings_manage_folders),
+                subtitle = stringResource(R.string.folder_dialog_title),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    showFoldersDialog = true
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            // Cover Art Refresh Button
+            var isRefreshingCovers by remember { mutableStateOf(false) }
+            var coverRefreshProgress by remember { mutableStateOf(Pair(0, 0)) }
+            var coverRefreshResult by remember { mutableStateOf<String?>(null) }
+            val coverRefreshScope = rememberCoroutineScope()
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.Image,
+                title = stringResource(R.string.settings_refresh_covers),
+                subtitle = if (isRefreshingCovers) {
+                    stringResource(R.string.settings_refresh_covers_progress, coverRefreshProgress.first, coverRefreshProgress.second)
+                } else {
+                    coverRefreshResult ?: stringResource(R.string.settings_refresh_covers_desc)
+                },
+                onClick = {
+                    if (!isRefreshingCovers) {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        isRefreshingCovers = true
+                        coverRefreshResult = null
+                        coverRefreshScope.launch {
+                            try {
+                                val replaced = settingsViewModel.recheckAllCovers { current, total ->
+                                    coverRefreshProgress = Pair(current, total)
+                                }
+                                coverRefreshResult = context.getString(R.string.settings_refresh_covers_result, replaced)
+                            } catch (e: Exception) {
+                                coverRefreshResult = context.getString(R.string.settings_refresh_covers_error)
+                            } finally {
+                                isRefreshingCovers = false
+                            }
+                        }
+                    }
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ══════════════════════════════════════════════════════════════
+            // DOWNLOADS Section
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_downloads),
+                isDark = isDark
+            )
+
+            SettingsMenuToggle(
+                icon = Icons.Outlined.Wifi,
+                title = stringResource(R.string.settings_wifi_only),
+                subtitle = stringResource(R.string.settings_wifi_only),
+                isEnabled = wifiOnly,
+                onToggle = { settingsViewModel.setWifiOnly(it) },
+                isDark = isDark,
+                accentColor = accentColor,
+                isOLED = isOLED
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.Storage,
+                title = stringResource(R.string.settings_storage_location),
+                subtitle = storageDisplayName ?: stringResource(R.string.settings_storage_internal),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        storageFolderLauncher.launch(null)
+                    } else {
+                        storagePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ══════════════════════════════════════════════════════════════
+            // CLOUD & TORRENTS Section
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_cloud_torrents),
+                isDark = isDark
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.Download,
+                title = stringResource(R.string.settings_torrent_downloads),
+                subtitle = stringResource(R.string.settings_torrent_desc),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onNavigateToDownloads()
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.Cloud,
+                title = stringResource(R.string.settings_cloud_files),
+                subtitle = stringResource(R.string.settings_cloud_files_desc),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onNavigateToCloudFiles()
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.BarChart,
+                title = stringResource(R.string.settings_listening_stats),
+                subtitle = stringResource(R.string.settings_stats_desc),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onNavigateToStats()
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ══════════════════════════════════════════════════════════════
+            // KIDS MODE Section (Less Frequently Used)
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_kids_mode),
+                isDark = isDark
+            )
+
+            SettingsMenuToggle(
+                icon = Icons.Outlined.ChildCare,
+                title = stringResource(R.string.settings_kids_enabled),
+                subtitle = if (kidsModeEnabled) stringResource(R.string.settings_kids_restricted) else stringResource(R.string.settings_kids_restrict),
+                isEnabled = kidsModeEnabled,
+                onToggle = { enabled ->
+                    if (enabled) {
+                        if (kidsModePin.isEmpty()) {
+                            showKidsModeDialog = true
+                        } else {
+                            settingsViewModel.setKidsModeEnabled(true)
+                        }
+                    } else {
+                        showKidsModeDialog = true
+                    }
+                },
+                isDark = isDark,
+                accentColor = accentColor,
+                isOLED = isOLED
+            )
+
+            if (kidsModeEnabled) {
+                SettingsMenuItem(
+                    icon = Icons.Outlined.Lock,
+                    title = stringResource(R.string.settings_kids_change_pin),
+                    subtitle = stringResource(R.string.settings_kids_update_pin),
                     onClick = {
                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onOpenEqualizer()
-                    }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_decoder),
-                    value = audioCodec,
+                        showKidsModeDialog = true
+                    },
                     isDark = isDark,
-                    onClick = { showCodecDialog = true }
+                    accentColor = accentColor
                 )
             }
 
-            // ABOUT Section
-            GlassSectionHeader(title = stringResource(R.string.settings_about), isDark = isDark)
+            Spacer(modifier = Modifier.height(24.dp))
 
-            SettingsCard(isDark = isDark) {
-                SettingsRow(
-                    title = stringResource(R.string.settings_version),
-                    value = "3.1.12",
-                    isDark = isDark,
-                    showChevron = false,
-                    onClick = null
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_privacy),
-                    isDark = isDark,
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        android.widget.Toast.makeText(view.context, view.context.getString(R.string.toast_privacy_coming_soon), android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                )
-                GlassDivider(isDark = isDark, startIndent = GlassSpacing.M)
-                SettingsRow(
-                    title = stringResource(R.string.settings_terms),
-                    isDark = isDark,
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        android.widget.Toast.makeText(view.context, view.context.getString(R.string.toast_terms_coming_soon), android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
+            // ══════════════════════════════════════════════════════════════
+            // ABOUT Section (Least Used - Bottom)
+            // ══════════════════════════════════════════════════════════════
+            SettingsSectionHeader(
+                title = stringResource(R.string.settings_about),
+                isDark = isDark
+            )
 
-            Spacer(modifier = Modifier.height(GlassSpacing.XXXL))
+            SettingsMenuItem(
+                icon = Icons.Outlined.Info,
+                title = stringResource(R.string.settings_version),
+                subtitle = "3.1.36",
+                onClick = null,
+                isDark = isDark,
+                accentColor = accentColor,
+                showChevron = false
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.PrivacyTip,
+                title = stringResource(R.string.settings_privacy),
+                subtitle = stringResource(R.string.toast_privacy_coming_soon),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    android.widget.Toast.makeText(view.context, view.context.getString(R.string.toast_privacy_coming_soon), android.widget.Toast.LENGTH_SHORT).show()
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            SettingsMenuItem(
+                icon = Icons.Outlined.Description,
+                title = stringResource(R.string.settings_terms),
+                subtitle = stringResource(R.string.toast_terms_coming_soon),
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    android.widget.Toast.makeText(view.context, view.context.getString(R.string.toast_terms_coming_soon), android.widget.Toast.LENGTH_SHORT).show()
+                },
+                isDark = isDark,
+                accentColor = accentColor
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Footer
+            Text(
+                text = "Lithos by Mossglen",
+                style = GlassTypography.Caption.copy(fontSize = 12.sp),
+                color = theme.textSecondary.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 
@@ -468,15 +623,15 @@ fun SettingsScreenGlass(
     if (showThemeModeDialog) {
         ThemeModeDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             currentMode = themeMode,
-            currentAccentVariant = reverieAccentVariant,
+            currentAccentVariant = lithosAccentVariant,
             onModeSelected = { mode ->
                 themeViewModel.setThemeMode(mode)
                 showThemeModeDialog = false
             },
             onAccentSelected = { variant ->
-                themeViewModel.setReverieAccentVariant(variant)
+                themeViewModel.setLithosAccentVariant(variant)
             },
             onDismiss = { showThemeModeDialog = false }
         )
@@ -486,7 +641,7 @@ fun SettingsScreenGlass(
     if (showSkipDurationDialog) {
         SkipDurationDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             currentSkipForward = skipForward,
             currentSkipBackward = skipBackward,
             onDismiss = { showSkipDurationDialog = false },
@@ -502,7 +657,7 @@ fun SettingsScreenGlass(
     if (showCodecDialog) {
         AudioCodecDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             currentCodec = audioCodec,
             onCodecSelected = { codec ->
                 settingsViewModel.setAudioCodec(codec)
@@ -516,7 +671,7 @@ fun SettingsScreenGlass(
     if (showKidsModeDialog) {
         KidsModeDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             isEnabled = kidsModeEnabled,
             hasExistingPin = kidsModePin.isNotEmpty(),
             onSetPin = { newPin ->
@@ -539,7 +694,7 @@ fun SettingsScreenGlass(
     if (showLanguageDialog) {
         LanguageDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             currentLanguage = appLanguage,
             onLanguageSelected = { language ->
                 settingsViewModel.setAppLanguage(language)
@@ -553,7 +708,7 @@ fun SettingsScreenGlass(
     if (showFoldersDialog) {
         ManageFoldersDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             settingsViewModel = settingsViewModel,
             onDismiss = { showFoldersDialog = false }
         )
@@ -561,54 +716,52 @@ fun SettingsScreenGlass(
 }
 
 // ============================================================================
-// SETTINGS CARD
+// SETTINGS SECTION HEADER - Profile-style section title
 // ============================================================================
 
 @Composable
-private fun SettingsCard(
-    isDark: Boolean,
-    content: @Composable ColumnScope.() -> Unit
+private fun SettingsSectionHeader(
+    title: String,
+    isDark: Boolean
 ) {
     val theme = glassTheme(isDark)
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(GlassShapes.Small))
-            .background(theme.glassCard)
-            .border(
-                width = 0.5.dp,
-                color = theme.glassBorder,
-                shape = RoundedCornerShape(GlassShapes.Small)
-            ),
-        content = content
+    Text(
+        text = title.uppercase(),
+        style = GlassTypography.Caption.copy(
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 1.sp
+        ),
+        color = theme.textSecondary.copy(alpha = 0.7f),
+        modifier = Modifier.padding(bottom = 12.dp)
     )
 }
 
 // ============================================================================
-// SETTINGS ROW
+// SETTINGS MENU ITEM - Profile-style menu item with icon
 // ============================================================================
 
 @Composable
-private fun SettingsRow(
+private fun SettingsMenuItem(
+    icon: ImageVector,
     title: String,
-    subtitle: String? = null,
-    value: String? = null,
+    subtitle: String,
+    onClick: (() -> Unit)?,
     isDark: Boolean,
-    showChevron: Boolean = true,
-    onClick: (() -> Unit)?
+    accentColor: Color = GlassColors.Interactive,
+    showChevron: Boolean = true
 ) {
-    val view = LocalView.current
     val theme = glassTheme(isDark)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     // Premium spring scale animation
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && onClick != null) 0.97f else 1f,
+        targetValue = if (isPressed && onClick != null) 0.98f else 1f,
         animationSpec = spring(
-            dampingRatio = 0.5f,
-            stiffness = 500f
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
         ),
         label = "scale"
     )
@@ -620,83 +773,96 @@ private fun SettingsRow(
                 scaleX = scale
                 scaleY = scale
             }
+            .clip(RoundedCornerShape(12.dp))
             .then(
                 if (onClick != null) {
                     Modifier.clickable(
                         interactionSource = interactionSource,
-                        indication = null
-                    ) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onClick()
-                    }
+                        indication = null,
+                        onClick = onClick
+                    )
                 } else Modifier
             )
-            .padding(horizontal = GlassSpacing.M, vertical = GlassSpacing.S + GlassSpacing.XXS),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(vertical = 14.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Icon container - matching Profile page style
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(
+                    if (isDark) Color.White.copy(alpha = 0.08f)
+                    else Color.Black.copy(alpha = 0.05f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Text
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = GlassTypography.Body,
+                style = GlassTypography.Body.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                ),
                 color = theme.textPrimary
             )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = GlassTypography.Caption,
-                    color = theme.textSecondary
-                )
-            }
+            Text(
+                text = subtitle,
+                style = GlassTypography.Caption.copy(fontSize = 13.sp),
+                color = theme.textSecondary.copy(alpha = 0.7f)
+            )
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (value != null) {
-                Text(
-                    text = value,
-                    style = GlassTypography.Body,
-                    color = theme.textSecondary
-                )
-            }
-            if (showChevron && onClick != null) {
-                Spacer(modifier = Modifier.width(GlassSpacing.XXS))
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = theme.textTertiary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+        // Chevron
+        if (showChevron && onClick != null) {
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = theme.textSecondary.copy(alpha = 0.4f),
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
 
 // ============================================================================
-// SETTINGS TOGGLE
+// SETTINGS MENU TOGGLE - Profile-style toggle with icon
 // ============================================================================
 
 @Composable
-private fun SettingsToggle(
+private fun SettingsMenuToggle(
+    icon: ImageVector,
     title: String,
-    subtitle: String? = null,
+    subtitle: String,
     isEnabled: Boolean,
+    onToggle: (Boolean) -> Unit,
     isDark: Boolean,
     accentColor: Color = GlassColors.Interactive,
-    isReverieDark: Boolean = false,
-    onToggle: (Boolean) -> Unit
+    isOLED: Boolean = false
 ) {
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
-    val theme = glassTheme(isDark, isReverieDark)
     var checked by remember { mutableStateOf(isEnabled) }
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     // Premium spring scale animation
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.97f else 1f,
+        targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(
-            dampingRatio = 0.5f,
-            stiffness = 500f
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
         ),
         label = "scale"
     )
@@ -708,6 +874,7 @@ private fun SettingsToggle(
                 scaleX = scale
                 scaleY = scale
             }
+            .clip(RoundedCornerShape(12.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -716,26 +883,48 @@ private fun SettingsToggle(
                 checked = !checked
                 onToggle(checked)
             }
-            .padding(horizontal = GlassSpacing.M, vertical = GlassSpacing.S),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(vertical = 14.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Icon container - matching Profile page style
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(
+                    if (isDark) Color.White.copy(alpha = 0.08f)
+                    else Color.Black.copy(alpha = 0.05f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Text
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = GlassTypography.Body,
+                style = GlassTypography.Body.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                ),
                 color = theme.textPrimary
             )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = GlassTypography.Caption,
-                    color = theme.textSecondary
-                )
-            }
+            Text(
+                text = subtitle,
+                style = GlassTypography.Caption.copy(fontSize = 13.sp),
+                color = theme.textSecondary.copy(alpha = 0.7f)
+            )
         }
 
-        // Clean iOS-style toggle - no border wrapper, white thumb always
+        // Clean iOS-style toggle
         Switch(
             checked = checked,
             onCheckedChange = {
@@ -744,13 +933,10 @@ private fun SettingsToggle(
                 onToggle(it)
             },
             colors = SwitchDefaults.colors(
-                // White thumb in both states for consistency
                 checkedThumbColor = Color.White,
                 uncheckedThumbColor = Color.White,
-                // Accent color when ON, subtle grey when OFF
                 checkedTrackColor = accentColor,
-                uncheckedTrackColor = if (isReverieDark) Color.White.copy(alpha = 0.12f) else theme.glassBorder,
-                // Border colors for the track
+                uncheckedTrackColor = if (isOLED) Color.White.copy(alpha = 0.12f) else theme.glassBorder,
                 checkedBorderColor = Color.Transparent,
                 uncheckedBorderColor = Color.Transparent
             )
@@ -765,21 +951,21 @@ private fun SettingsToggle(
 @Composable
 private fun ThemeModeDialog(
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     currentMode: ThemeMode,
-    currentAccentVariant: ReverieAccentVariant = ReverieAccentVariant.COPPER_BORDER,
+    currentAccentVariant: LithosAccentVariant = LithosAccentVariant.COPPER_BORDER,
     onModeSelected: (ThemeMode) -> Unit,
-    onAccentSelected: (ReverieAccentVariant) -> Unit = {},
+    onAccentSelected: (LithosAccentVariant) -> Unit = {},
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val currentAccentColor = currentAccentVariant.accentColor
     val currentHighlightColor = currentAccentVariant.highlightColor
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = stringResource(R.string.settings_theme_title),
@@ -798,7 +984,7 @@ private fun ThemeModeDialog(
                 ThemeMode.entries.forEach { mode ->
                     val isSelected = currentMode == mode
                     // Special accent color for Reverie Dark when selected
-                    val modeAccentColor = if (mode == ThemeMode.REVERIE_DARK) {
+                    val modeAccentColor = if (mode == ThemeMode.LITHOS_DARK) {
                         currentAccentColor
                     } else {
                         theme.textPrimary
@@ -810,7 +996,7 @@ private fun ThemeModeDialog(
                             .then(
                                 if (isSelected) {
                                     Modifier.background(
-                                        if (mode == ThemeMode.REVERIE_DARK) {
+                                        if (mode == ThemeMode.LITHOS_DARK) {
                                             currentHighlightColor  // Use the proper highlight color (warm slate or subtle copper)
                                         } else if (isDark) {
                                             Color.White.copy(alpha = 0.1f)
@@ -829,7 +1015,7 @@ private fun ThemeModeDialog(
                             Text(
                                 text = mode.displayName,
                                 style = GlassTypography.Body,
-                                color = if (isSelected && mode == ThemeMode.REVERIE_DARK) modeAccentColor else theme.textPrimary,
+                                color = if (isSelected && mode == ThemeMode.LITHOS_DARK) modeAccentColor else theme.textPrimary,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                             Text(
@@ -842,7 +1028,7 @@ private fun ThemeModeDialog(
                             Icon(
                                 Icons.Default.Check,
                                 contentDescription = null,
-                                tint = if (mode == ThemeMode.REVERIE_DARK) modeAccentColor else theme.textPrimary,
+                                tint = if (mode == ThemeMode.LITHOS_DARK) modeAccentColor else theme.textPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -850,7 +1036,7 @@ private fun ThemeModeDialog(
                 }
 
                 // Accent Color Picker (only show when Reverie Dark is selected)
-                if (currentMode == ThemeMode.REVERIE_DARK) {
+                if (currentMode == ThemeMode.LITHOS_DARK) {
                     Spacer(modifier = Modifier.height(GlassSpacing.M))
                     HorizontalDivider(color = theme.glassBorder)
                     Spacer(modifier = Modifier.height(GlassSpacing.M))
@@ -874,7 +1060,7 @@ private fun ThemeModeDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(GlassSpacing.S)
                     ) {
-                        ReverieAccentVariant.entries.forEach { variant ->
+                        LithosAccentVariant.entries.forEach { variant ->
                             val isAccentSelected = currentAccentVariant == variant
                             Column(
                                 modifier = Modifier
@@ -901,7 +1087,7 @@ private fun ThemeModeDialog(
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(
                                             if (variant.useBorderHighlight) {
-                                                Color(0xFF1C1C1E)
+                                                LithosUI.SheetBackground
                                             } else {
                                                 variant.highlightColor
                                             }
@@ -940,19 +1126,19 @@ private fun ThemeModeDialog(
 @Composable
 private fun SkipDurationDialog(
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     currentSkipForward: Int,
     currentSkipBackward: Int,
     onDismiss: () -> Unit,
     onDurationSelected: (Int) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val durations = listOf(10, 15, 30, 45, 60)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = stringResource(R.string.settings_skip_duration_title),
@@ -1008,12 +1194,12 @@ private fun SkipDurationDialog(
 @Composable
 private fun AudioCodecDialog(
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     currentCodec: String,
     onCodecSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     // Codec data: ID, Display Name Resource, Description Resource, Formats Resource
     data class CodecInfo(val id: String, val nameRes: Int, val descRes: Int, val formatsRes: Int)
@@ -1026,8 +1212,8 @@ private fun AudioCodecDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = stringResource(R.string.settings_audio_decoder_title),
@@ -1127,7 +1313,7 @@ private fun AudioCodecDialog(
 @Composable
 private fun KidsModeDialog(
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     isEnabled: Boolean,
     hasExistingPin: Boolean,
     onSetPin: (String) -> Unit,
@@ -1135,7 +1321,7 @@ private fun KidsModeDialog(
     onVerifyPin: suspend (String) -> Boolean,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val scope = rememberCoroutineScope()
     val view = LocalView.current
 
@@ -1146,8 +1332,8 @@ private fun KidsModeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = when {
@@ -1279,33 +1465,34 @@ private fun KidsModeDialog(
 @Composable
 private fun LanguageDialog(
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     currentLanguage: String,
     onLanguageSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
-    // Available languages
+    // Available languages: code -> (localized name, native name)
+    // Use fixed codes for persistence, display localized names
     val languages = listOf(
-        stringResource(R.string.lang_system) to stringResource(R.string.lang_system),
-        stringResource(R.string.lang_english) to stringResource(R.string.lang_english),
-        stringResource(R.string.lang_spanish) to "Español",
-        stringResource(R.string.lang_french) to "Français",
-        stringResource(R.string.lang_german) to "Deutsch",
-        stringResource(R.string.lang_italian) to "Italiano",
-        stringResource(R.string.lang_portuguese) to "Português",
-        stringResource(R.string.lang_japanese) to "日本語",
-        stringResource(R.string.lang_korean) to "한국어",
-        stringResource(R.string.lang_chinese) to "中文",
-        stringResource(R.string.lang_russian) to "Русский",
-        stringResource(R.string.lang_arabic) to "العربية"
+        "system" to (stringResource(R.string.lang_system) to stringResource(R.string.lang_system)),
+        "en" to (stringResource(R.string.lang_english) to "English"),
+        "es" to (stringResource(R.string.lang_spanish) to "Español"),
+        "fr" to (stringResource(R.string.lang_french) to "Français"),
+        "de" to (stringResource(R.string.lang_german) to "Deutsch"),
+        "it" to (stringResource(R.string.lang_italian) to "Italiano"),
+        "pt" to (stringResource(R.string.lang_portuguese) to "Português"),
+        "ja" to (stringResource(R.string.lang_japanese) to "日本語"),
+        "ko" to (stringResource(R.string.lang_korean) to "한국어"),
+        "zh" to (stringResource(R.string.lang_chinese) to "中文"),
+        "ru" to (stringResource(R.string.lang_russian) to "Русский"),
+        "ar" to (stringResource(R.string.lang_arabic) to "العربية")
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = stringResource(R.string.settings_language_title),
@@ -1323,7 +1510,8 @@ private fun LanguageDialog(
                     color = theme.textSecondary,
                     modifier = Modifier.padding(bottom = GlassSpacing.S)
                 )
-                languages.forEach { (code, displayName) ->
+                languages.forEach { (code, names) ->
+                    val (localizedName, nativeName) = names
                     val isSelected = currentLanguage == code
                     Row(
                         modifier = Modifier
@@ -1344,14 +1532,14 @@ private fun LanguageDialog(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = code,
+                                text = localizedName,
                                 style = GlassTypography.Body,
                                 color = if (isSelected) theme.interactive else theme.textPrimary,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
-                            if (displayName != code) {
+                            if (nativeName != localizedName) {
                                 Text(
-                                    text = displayName,
+                                    text = nativeName,
                                     style = GlassTypography.Caption,
                                     color = theme.textSecondary
                                 )
@@ -1376,11 +1564,11 @@ private fun LanguageDialog(
 @Composable
 private fun ManageFoldersDialog(
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     settingsViewModel: SettingsViewModel,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
@@ -1467,8 +1655,8 @@ private fun ManageFoldersDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
-        shape = RoundedCornerShape(GlassShapes.Medium),
+        containerColor = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight,
+        shape = RoundedCornerShape(LithosComponents.Cards.dialogRadius),
         title = {
             Text(
                 text = stringResource(R.string.folder_dialog_title),
@@ -1521,7 +1709,7 @@ private fun ManageFoldersDialog(
                         FolderListItem(
                             folderUri = folderUri,
                             isDark = isDark,
-                            isReverieDark = isReverieDark,
+                            isOLED = isOLED,
                             onRemove = {
                                 settingsViewModel.removeLibraryFolder(folderUri)
                                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -1616,20 +1804,21 @@ private fun ManageFoldersDialog(
 private fun FolderListItem(
     folderUri: String,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onRemove: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val context = LocalContext.current
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
+    // Premium spring scale animation - using manifest standards
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
         animationSpec = spring(
-            dampingRatio = 0.8f,
-            stiffness = 500f
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
         ),
         label = "scale"
     )

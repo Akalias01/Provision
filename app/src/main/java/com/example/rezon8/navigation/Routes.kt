@@ -1,12 +1,11 @@
-package com.mossglen.reverie.navigation
+package com.mossglen.lithos.navigation
 
 import kotlinx.serialization.Serializable
 
 /**
- * REVERIE - Type-Safe Navigation Routes
+ * LITHOS - Type-Safe Navigation Routes (Audiobook Player)
  *
  * Using Kotlin Serialization for compile-time route safety.
- * No more string-based routes like "book_detail/{bookId}".
  *
  * Benefits:
  * - Compile-time argument validation
@@ -54,9 +53,6 @@ data object Downloads
 data class BookDetail(val bookId: String)
 
 @Serializable
-data class Reader(val bookId: String)
-
-@Serializable
 data class EditBook(val bookId: String)
 
 // ============================================================================
@@ -66,10 +62,6 @@ data class EditBook(val bookId: String)
 @Serializable
 data object NowPlaying
 
-// ============================================================================
-// FUTURE DESTINATIONS (Ready for expansion)
-// ============================================================================
-
 @Serializable
 data class ChapterList(val bookId: String)
 
@@ -77,13 +69,23 @@ data class ChapterList(val bookId: String)
 data class Bookmarks(val bookId: String)
 
 @Serializable
-data object CloudSync
-
-@Serializable
 data object Equalizer
 
 @Serializable
 data object ListeningStats
+
+@Serializable
+data class SplitBook(val bookId: String)
+
+@Serializable
+data object CarMode  // Driving-safe simplified interface
+
+// ============================================================================
+// BROWSING DESTINATIONS
+// ============================================================================
+
+@Serializable
+data object CloudSync
 
 @Serializable
 data class AuthorBooks(val authorName: String)
@@ -93,9 +95,3 @@ data class SeriesDetail(val seriesName: String)
 
 @Serializable
 data class GenreBooks(val genre: String)
-
-@Serializable
-data class SplitBook(val bookId: String)
-
-@Serializable
-data object CarMode  // Driving-safe simplified interface

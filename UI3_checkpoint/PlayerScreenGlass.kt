@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.*
@@ -75,10 +75,10 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.mossglen.reverie.R
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.R
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -92,8 +92,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.data.AudioEffectManager
-import com.mossglen.reverie.ui.viewmodel.SettingsViewModel
+import com.mossglen.lithos.data.AudioEffectManager
+import com.mossglen.lithos.ui.viewmodel.SettingsViewModel
 
 /**
  * REVERIE Premium Player
@@ -1542,7 +1542,7 @@ private fun PlayPauseButton(
 @Composable
 private fun NavigationRing(
     progress: Float,
-    chapters: List<com.mossglen.reverie.data.Chapter>,
+    chapters: List<com.mossglen.lithos.data.Chapter>,
     bookmarks: List<Long>,
     duration: Long,
     timeRemainingMs: Long,
@@ -2228,7 +2228,7 @@ private fun SpeedChip(
 @Composable
 private fun PremiumSpeedDialog(
     currentSpeed: Float,
-    customPresets: List<com.mossglen.reverie.data.SettingsRepository.CustomSpeedPreset>,
+    customPresets: List<com.mossglen.lithos.data.SettingsRepository.CustomSpeedPreset>,
     isReverieDark: Boolean = false,
     reverieAccentColor: Color = GlassColors.ReverieAccent,
     highlightColor: Color = GlassColors.WarmSlate,
@@ -2237,8 +2237,8 @@ private fun PremiumSpeedDialog(
     onDeletePreset: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val defaultPresets = com.mossglen.reverie.data.PlaybackSpeedPresets.defaults
-    val allSpeeds = com.mossglen.reverie.data.PlaybackSpeedPresets.allSpeeds
+    val defaultPresets = com.mossglen.lithos.data.PlaybackSpeedPresets.defaults
+    val allSpeeds = com.mossglen.lithos.data.PlaybackSpeedPresets.allSpeeds
 
     val dialogBg = Color(0xFF1C1C1E)
     val accentColor = if (isReverieDark) reverieAccentColor else Color.White
@@ -2607,7 +2607,7 @@ private fun SavePresetDialog(
 
 @Composable
 private fun ChaptersBookmarksDialog(
-    chapters: List<com.mossglen.reverie.data.Chapter>,
+    chapters: List<com.mossglen.lithos.data.Chapter>,
     currentChapter: Int,
     hasRealChapters: Boolean,
     totalChapters: Int,
@@ -3876,7 +3876,7 @@ private fun AudioSettingsDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBookDialog(
-    book: com.mossglen.reverie.data.Book,
+    book: com.mossglen.lithos.data.Book,
     isReverieDark: Boolean,
     reverieAccentColor: Color = GlassColors.ReverieAccent,
     onSave: (title: String, author: String, narrator: String, date: String) -> Unit,

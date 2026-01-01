@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.theme
+package com.mossglen.lithos.ui.theme
 
 import android.app.Activity
 import android.os.Build
@@ -11,33 +11,67 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+/**
+ * LITHOS AMBER Color Schemes
+ *
+ * These provide Material 3 compatibility while maintaining the Lithos design language.
+ * For the full Lithos design system, use LithosTheme directly.
+ */
+
+private val LithosDarkColorScheme = darkColorScheme(
+    primary = LithosAmber,
+    onPrimary = LithosTextPrimary,
+    primaryContainer = LithosAmberDark,
+    onPrimaryContainer = LithosTextPrimary,
+    secondary = LithosMoss,
+    onSecondary = LithosTextPrimary,
+    secondaryContainer = LithosMossDark,
+    onSecondaryContainer = LithosTextPrimary,
+    tertiary = LithosAmberLight,
+    background = LithosSlate,
+    onBackground = LithosTextPrimary,
+    surface = LithosSurfaceDark,
+    onSurface = LithosTextPrimary,
+    surfaceVariant = LithosSurfaceDarkElevated,
+    onSurfaceVariant = LithosTextSecondary,
+    error = LithosError,
+    onError = LithosTextPrimary
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val LithosLightColorScheme = lightColorScheme(
+    primary = LithosAmberDark,
+    onPrimary = LithosOat,
+    primaryContainer = LithosAmber,
+    onPrimaryContainer = LithosTextPrimaryLight,
+    secondary = LithosMossDark,
+    onSecondary = LithosOat,
+    secondaryContainer = LithosMoss,
+    onSecondaryContainer = LithosTextPrimaryLight,
+    tertiary = LithosAmber,
+    background = LithosOat,
+    onBackground = LithosTextPrimaryLight,
+    surface = LithosSurfaceLight,
+    onSurface = LithosTextPrimaryLight,
+    surfaceVariant = LithosSurfaceLightElevated,
+    onSurfaceVariant = LithosTextSecondaryLight,
+    error = LithosError,
+    onError = LithosOat
 )
 
+/**
+ * REZON8 Theme - Main app theme using Lithos Amber design system
+ *
+ * This is a wrapper around LithosTheme for compatibility with existing code
+ * that expects a "Rezon8Theme" composable.
+ *
+ * @param darkTheme Whether to use dark mode (defaults to system setting)
+ * @param dynamicColor Whether to use Material You dynamic colors (Android 12+)
+ * @param content The composable content to wrap
+ */
 @Composable
-fun ReverieTheme(
+fun Rezon8Theme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,  // Disabled to maintain Lithos design consistency
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -45,14 +79,37 @@ fun ReverieTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> LithosDarkColorScheme
+        else -> LithosLightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
+    // Use LithosTheme for the full design system
+    LithosTheme(
+        isDark = darkTheme,
+        isOLED = false,
+        dynamicColor = dynamicColor
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
+}
+
+/**
+ * Legacy alias for backwards compatibility
+ * Existing code using ReverieTheme will continue to work
+ */
+@Composable
+fun ReverieTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    Rezon8Theme(
+        darkTheme = darkTheme,
+        dynamicColor = dynamicColor,
         content = content
     )
 }

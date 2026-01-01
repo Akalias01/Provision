@@ -1,19 +1,22 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
-import com.mossglen.reverie.data.remote.GoogleBooksApi
-import com.mossglen.reverie.data.remote.OpenLibraryApi
-import com.mossglen.reverie.data.remote.iTunesApi
-import com.mossglen.reverie.util.CrashReporter
+import com.mossglen.lithos.data.remote.GoogleBooksApi
+import com.mossglen.lithos.data.remote.OpenLibraryApi
+import com.mossglen.lithos.data.remote.iTunesApi
+import com.mossglen.lithos.util.CrashReporter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -97,46 +100,260 @@ class CoverArtRepository @Inject constructor(
         val title: String,
         val author: String?,
         val coverUrl: String,
-        val source: String // "GoogleBooks", "OpenLibrary"
+        val source: String // "WebSearch", "GoogleBooks", "OpenLibrary"
     )
 
+    // ========================================================================
+    // Aspect Ratio Detection
+    // ========================================================================
+
     /**
-     * Search for cover art from online sources
+     * Check if a local cover image is approximately square.
+     * Returns true if aspect ratio is between 0.9 and 1.1 (within 10% tolerance)
+     */
+    suspend fun isSquareCover(coverPath: String?): Boolean = withContext(Dispatchers.IO) {
+        if (coverPath.isNullOrBlank()) return@withContext false
+
+        try {
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(coverPath, options)
+
+            val width = options.outWidth
+            val height = options.outHeight
+
+            if (width <= 0 || height <= 0) return@withContext false
+
+            val aspectRatio = width.toFloat() / height.toFloat()
+            val isSquare = aspectRatio in 0.9f..1.1f
+
+            Log.d(TAG, "Cover aspect ratio: $aspectRatio (${width}x${height}) - isSquare: $isSquare")
+            isSquare
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to check cover aspect ratio: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Get aspect ratio of a remote image via partial download.
+     * Downloads only the image header to determine dimensions efficiently.
+     */
+    suspend fun getRemoteImageAspectRatio(url: String): Float? = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            connection.requestMethod = "GET"
+            // Request only first 64KB to get image header
+            connection.setRequestProperty("Range", "bytes=0-65535")
+
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            connection.inputStream.use { stream ->
+                BitmapFactory.decodeStream(stream, null, options)
+            }
+            connection.disconnect()
+
+            if (options.outWidth > 0 && options.outHeight > 0) {
+                val ratio = options.outWidth.toFloat() / options.outHeight.toFloat()
+                Log.d(TAG, "Remote image aspect ratio: $ratio (${options.outWidth}x${options.outHeight})")
+                ratio
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get remote image aspect ratio: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Check if a remote image is approximately square (aspect ratio 0.9-1.1)
+     */
+    suspend fun isRemoteImageSquare(url: String): Boolean {
+        val ratio = getRemoteImageAspectRatio(url) ?: return false
+        return ratio in 0.9f..1.1f
+    }
+
+    // ========================================================================
+    // Web Image Search
+    // ========================================================================
+
+    /**
+     * Search for book cover images using DuckDuckGo Images.
+     * This finds high-quality covers from various sources including Amazon, iTunes CDNs.
+     */
+    private suspend fun searchWebForCover(title: String, author: String?): List<CoverSearchResult> = withContext(Dispatchers.IO) {
+        val cleanedTitle = cleanTitle(title)
+        val results = mutableListOf<CoverSearchResult>()
+
+        try {
+            // Build search query
+            val query = buildString {
+                append(cleanedTitle)
+                if (!author.isNullOrBlank()) {
+                    append(" $author")
+                }
+                append(" book cover")
+            }
+
+            Log.d(TAG, "Web search query: $query")
+
+            // Use DuckDuckGo Images API (no API key required)
+            val encodedQuery = URLEncoder.encode(query, "UTF-8")
+            val searchUrl = "https://duckduckgo.com/i.js?q=$encodedQuery&o=json"
+
+            val connection = URL(searchUrl).openConnection() as HttpURLConnection
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            connection.setRequestProperty("Accept", "application/json")
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+                val resultsArray = json.optJSONArray("results")
+
+                if (resultsArray != null) {
+                    for (i in 0 until minOf(resultsArray.length(), 10)) {
+                        val item = resultsArray.getJSONObject(i)
+                        val imageUrl = item.optString("image")
+                        val thumbnailUrl = item.optString("thumbnail")
+
+                        // Prefer full image URL, fallback to thumbnail
+                        val coverUrl = imageUrl.takeIf { it.isNotBlank() }
+                            ?: thumbnailUrl.takeIf { it.isNotBlank() }
+
+                        if (coverUrl != null && isValidImageUrl(coverUrl)) {
+                            results.add(CoverSearchResult(
+                                title = cleanedTitle,
+                                author = author,
+                                coverUrl = coverUrl,
+                                source = "WebSearch"
+                            ))
+                        }
+                    }
+                }
+            }
+            connection.disconnect()
+
+            Log.d(TAG, "Web search completed: ${results.size} results found")
+        } catch (e: Exception) {
+            Log.w(TAG, "Web search failed: ${e.message}")
+            // Non-fatal - fall through to other search methods
+        }
+
+        results
+    }
+
+    /**
+     * Search for cover art from online sources.
+     * Priority order: Web Search → Google Books → OpenLibrary
      */
     suspend fun searchCoverArt(title: String, author: String? = null): List<CoverSearchResult> = withContext(Dispatchers.IO) {
         val results = mutableListOf<CoverSearchResult>()
 
+        // Priority 1: Web Image Search (finds high-quality covers from various CDNs)
         try {
-            // Search Google Books
+            val webResults = searchWebForCover(title, author)
+            results.addAll(webResults)
+            Log.d(TAG, "Web search: ${webResults.size} results")
+        } catch (e: Exception) {
+            Log.w(TAG, "Web search failed: ${e.message}")
+        }
+
+        // Priority 2: Google Books
+        try {
             val googleResults = searchGoogleBooks(title, author)
             results.addAll(googleResults)
+            Log.d(TAG, "Google Books: ${googleResults.size} results")
         } catch (e: Exception) {
             Log.w(TAG, "Google Books search failed: ${e.message}")
             CrashReporter.log("Google Books cover search error: ${e.message}")
         }
 
+        // Priority 3: OpenLibrary
         try {
-            // Search OpenLibrary
             val openLibraryResults = searchOpenLibrary(title, author)
             results.addAll(openLibraryResults)
+            Log.d(TAG, "OpenLibrary: ${openLibraryResults.size} results")
         } catch (e: Exception) {
             Log.w(TAG, "OpenLibrary search failed: ${e.message}")
             CrashReporter.log("OpenLibrary cover search error: ${e.message}")
         }
 
-        try {
-            // Search iTunes (great for audiobooks)
-            val itunesResults = searchItunes(title, author)
-            results.addAll(itunesResults)
-        } catch (e: Exception) {
-            Log.w(TAG, "iTunes search failed: ${e.message}")
-            CrashReporter.log("iTunes cover search error: ${e.message}")
-        }
-
-        Log.d(TAG, "Cover search completed: ${results.size} results from Google Books, OpenLibrary, and iTunes")
+        Log.d(TAG, "Cover search completed: ${results.size} total results")
 
         // Remove duplicates and limit to 15 results
         results.distinctBy { it.coverUrl }.take(15)
+    }
+
+    // ========================================================================
+    // Auto-Replace Non-Square Covers
+    // ========================================================================
+
+    /**
+     * Automatically find and replace a non-square cover with a square one.
+     * Returns the new cover path if replacement was successful, null otherwise.
+     *
+     * @param bookId The book ID in the database
+     * @param currentCoverPath Path to the current cover image
+     * @param title Book title for searching
+     * @param author Book author for searching
+     */
+    suspend fun autoReplaceNonSquareCover(
+        bookId: String,
+        currentCoverPath: String?,
+        title: String,
+        author: String?
+    ): String? = withContext(Dispatchers.IO) {
+        // Check if current cover is already square
+        if (isSquareCover(currentCoverPath)) {
+            Log.d(TAG, "Cover is already square, skipping replacement for: $title")
+            return@withContext null
+        }
+
+        Log.d(TAG, "Cover is non-square, searching for replacement: $title")
+
+        // Search for covers
+        val searchResults = searchCoverArt(title, author)
+
+        if (searchResults.isEmpty()) {
+            Log.d(TAG, "No cover search results for: $title")
+            return@withContext null
+        }
+
+        // Find first square cover from results
+        for (result in searchResults) {
+            try {
+                val aspectRatio = getRemoteImageAspectRatio(result.coverUrl)
+                if (aspectRatio != null && aspectRatio in 0.9f..1.1f) {
+                    Log.d(TAG, "Found square cover from ${result.source} (ratio: $aspectRatio)")
+
+                    // Download and save the square cover locally
+                    val newCoverPath = downloadAndSaveCover(result.coverUrl)
+                    if (newCoverPath != null) {
+                        // Delete old cover if it's a local file
+                        if (!currentCoverPath.isNullOrBlank() && currentCoverPath.startsWith("/")) {
+                            try {
+                                File(currentCoverPath).delete()
+                                Log.d(TAG, "Deleted old cover: $currentCoverPath")
+                            } catch (_: Exception) {}
+                        }
+
+                        // Update database
+                        updateBookCover(bookId, newCoverPath)
+                        Log.d(TAG, "Cover replaced successfully for: $title")
+                        return@withContext newCoverPath
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error checking cover from ${result.source}: ${e.message}")
+            }
+        }
+
+        Log.d(TAG, "No square cover found for: $title")
+        null
     }
 
     /**
@@ -465,6 +682,44 @@ class CoverArtRepository @Inject constructor(
             Log.e(TAG, "Failed to update book cover: ${e.message}", e)
             CrashReporter.logError("Cover update failed", e)
         }
+    }
+
+    /**
+     * Re-check all books in the library for non-square covers and replace them.
+     * Useful for retroactively fixing covers after this feature was added.
+     *
+     * @param onProgress Callback for progress updates (current, total)
+     * @return Number of covers replaced
+     */
+    suspend fun recheckAllCovers(
+        onProgress: ((current: Int, total: Int) -> Unit)? = null
+    ): Int = withContext(Dispatchers.IO) {
+        val allBooks = bookDao.getAllBooksDirect()
+        var replacedCount = 0
+
+        Log.d(TAG, "Starting cover recheck for ${allBooks.size} books")
+
+        allBooks.forEachIndexed { index, book ->
+            onProgress?.invoke(index + 1, allBooks.size)
+
+            try {
+                val newCover = autoReplaceNonSquareCover(
+                    bookId = book.id,
+                    currentCoverPath = book.coverUrl,
+                    title = book.title,
+                    author = book.author
+                )
+                if (newCover != null) {
+                    replacedCount++
+                    Log.d(TAG, "Replaced cover for: ${book.title}")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to recheck cover for ${book.title}: ${e.message}")
+            }
+        }
+
+        Log.d(TAG, "Cover recheck complete: $replacedCount covers replaced")
+        replacedCount
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.viewmodel
+package com.mossglen.lithos.ui.viewmodel
 
 import android.content.Context
 import android.content.Intent
@@ -7,13 +7,13 @@ import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mossglen.reverie.data.GoogleSignInManager
-import com.mossglen.reverie.data.LibraryRepository
-import com.mossglen.reverie.data.TorrentManager
-import com.mossglen.reverie.data.cloud.CloudFileInfo
-import com.mossglen.reverie.data.cloud.CloudSource
-import com.mossglen.reverie.data.cloud.DropboxManager
-import com.mossglen.reverie.data.cloud.GoogleDriveManager
+import com.mossglen.lithos.data.GoogleSignInManager
+import com.mossglen.lithos.data.LibraryRepository
+import com.mossglen.lithos.data.TorrentManager
+import com.mossglen.lithos.data.cloud.CloudFileInfo
+import com.mossglen.lithos.data.cloud.CloudSource
+import com.mossglen.lithos.data.cloud.DropboxManager
+import com.mossglen.lithos.data.cloud.GoogleDriveManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,15 +68,45 @@ class CloudFileBrowserViewModel @Inject constructor(
     val event: StateFlow<CloudBrowserEvent?> = _event.asStateFlow()
 
     init {
-        checkConnections()
+        autoConnectAndRefresh()
     }
 
-    private fun checkConnections() {
+    /**
+     * Auto-connect to cloud services if user was previously signed in,
+     * then refresh files automatically.
+     */
+    private fun autoConnectAndRefresh() {
         viewModelScope.launch {
+            // First update state with current connection status
             _state.value = _state.value.copy(
                 isGoogleDriveConnected = googleDriveManager.isConnected.value,
                 isDropboxConnected = dropboxManager.isConnected.value
             )
+
+            // Try to auto-reconnect Google Drive if user is signed in
+            val isSignedIn = googleSignInManager.isSignedIn.value
+            val hasDrivePermission = googleSignInManager.hasDrivePermission()
+
+            if (isSignedIn && hasDrivePermission && !googleDriveManager.isConnected.value) {
+                Log.d(TAG, "User is signed in, auto-connecting to Google Drive...")
+                _state.value = _state.value.copy(isLoading = true)
+                val success = googleDriveManager.initialize()
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    isGoogleDriveConnected = success
+                )
+                if (success && _state.value.selectedSource == CloudSource.GOOGLE_DRIVE) {
+                    loadFiles()
+                }
+            } else if (googleDriveManager.isConnected.value && _state.value.selectedSource == CloudSource.GOOGLE_DRIVE) {
+                // Already connected, just refresh files
+                loadFiles()
+            }
+
+            // Similarly for Dropbox
+            if (dropboxManager.isConnected.value && _state.value.selectedSource == CloudSource.DROPBOX) {
+                loadFiles()
+            }
         }
     }
 

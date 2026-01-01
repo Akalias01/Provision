@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.components
+package com.mossglen.lithos.ui.components
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.*
@@ -36,11 +36,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.getSeriesInfo
-import com.mossglen.reverie.ui.theme.GlassColors
-import com.mossglen.reverie.ui.theme.GlassTypography
-import com.mossglen.reverie.ui.theme.glassTheme
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.getSeriesInfo
+import com.mossglen.lithos.ui.theme.GlassColors
+import com.mossglen.lithos.ui.theme.GlassTypography
+import com.mossglen.lithos.ui.theme.glassTheme
+import com.mossglen.lithos.ui.theme.LithosSlate
+import com.mossglen.lithos.ui.theme.LithosBlack
+import com.mossglen.lithos.ui.theme.LithosOat
+import com.mossglen.lithos.ui.theme.LithosSurfaceDark
+import com.mossglen.lithos.ui.theme.LithosSurfaceDarkElevated
+import com.mossglen.lithos.ui.theme.LithosSurfaceLight
+import com.mossglen.lithos.ui.theme.LithosSurfaceLightElevated
+import com.mossglen.lithos.ui.theme.LithosError
+import com.mossglen.lithos.ui.theme.LithosAmber
 import kotlin.math.roundToInt
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -100,17 +109,20 @@ fun BookDetailMorphingSheet(
     book: Book,
     isVisible: Boolean,
     accentColor: Color,
-    isReverieDark: Boolean = false,
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     onPlayBook: () -> Unit,
     onAuthorClick: (String) -> Unit = {},
     onSeriesClick: (String) -> Unit = {},
-    onGenreClick: (String) -> Unit = {}
+    onGenreClick: (String) -> Unit = {},
+    onScrollDown: () -> Unit = {},  // Scroll down = hide pill
+    onScrollUp: () -> Unit = {}     // Scroll up = show pill
 ) {
     val view = LocalView.current
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
-    val theme = glassTheme(isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     val screenHeight = with(density) { configuration.screenHeightDp.dp.toPx() }
     val halfSheetHeight = screenHeight * 0.52f  // 52% for half sheet - more room for synopsis + resume bar
@@ -121,6 +133,23 @@ fun BookDetailMorphingSheet(
     var dragOffset by remember { mutableFloatStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+
+    // Track scroll direction for pill auto-hide
+    var lastScrollValue by remember { mutableStateOf(0) }
+    LaunchedEffect(scrollState.value) {
+        val scrollDelta = scrollState.value - lastScrollValue
+        // Use threshold to avoid jitter
+        if (kotlin.math.abs(scrollDelta) > 30) {
+            if (scrollDelta > 0) {
+                // Scrolling down (reading synopsis) - hide pill
+                onScrollDown()
+            } else {
+                // Scrolling up (looking for controls) - show pill
+                onScrollUp()
+            }
+        }
+        lastScrollValue = scrollState.value
+    }
 
     // Exit animation state for smooth play transition
     var isExiting by remember { mutableStateOf(false) }
@@ -268,8 +297,16 @@ fun BookDetailMorphingSheet(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        if (isReverieDark) Color(0xFF1A1A1A) else Color(0xFF1C1C1E),
-                        Color.Black
+                        when {
+                            !isDark -> LithosOat
+                            isOLED -> LithosBlack
+                            else -> LithosSlate
+                        },
+                        when {
+                            !isDark -> LithosOat.copy(alpha = 0.95f)
+                            isOLED -> LithosBlack
+                            else -> LithosSlate.copy(alpha = 0.95f)
+                        }
                     )
                 )
             )
@@ -300,9 +337,9 @@ fun BookDetailMorphingSheet(
                 )
             }
     ) {
-        // Blurred background - ALWAYS in layout, uses alpha to fade in
-        // NO conditional composition to avoid layout jumps at threshold
-        if (book.coverUrl != null) {
+        // Blurred background - Only show in dark mode for premium effect
+        // In light mode, the solid background is cleaner
+        if (book.coverUrl != null && isDark) {
             AsyncImage(
                 model = book.coverUrl,
                 contentDescription = null,
@@ -376,7 +413,7 @@ fun BookDetailMorphingSheet(
                         .width(36.dp)
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(Color.White.copy(alpha = 0.3f))
+                        .background(if (isDark) Color.White.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.2f))
                 )
 
                 // 3-dot menu - ALWAYS in layout, uses alpha to fade in (no conditional composition)
@@ -403,7 +440,7 @@ fun BookDetailMorphingSheet(
                         Icon(
                             Icons.Rounded.MoreVert,
                             contentDescription = "More options",
-                            tint = Color.White.copy(alpha = 0.6f)
+                            tint = theme.textSecondary
                         )
                     }
 
@@ -411,29 +448,33 @@ fun BookDetailMorphingSheet(
                         expanded = showOverflowMenu,
                         onDismissRequest = { showOverflowMenu = false },
                         modifier = Modifier
-                            .background(Color(0xFF1C1C1E), RoundedCornerShape(12.dp))
-                            .widthIn(min = 180.dp)
+                            .background(
+                                if (isDark) LithosSurfaceDark else LithosSurfaceLight,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .widthIn(min = 180.dp),
+                        containerColor = if (isDark) LithosSurfaceDark else LithosSurfaceLight
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Edit Details", color = Color.White) },
+                            text = { Text("Edit Details", color = theme.textPrimary) },
                             onClick = { showOverflowMenu = false },
                             leadingIcon = { Icon(Icons.Rounded.Edit, null, tint = accentColor) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Change Cover", color = Color.White) },
+                            text = { Text("Change Cover", color = theme.textPrimary) },
                             onClick = { showOverflowMenu = false },
                             leadingIcon = { Icon(Icons.Rounded.Image, null, tint = accentColor) }
                         )
                         DropdownMenuItem(
-                            text = { Text("Fetch Metadata", color = Color.White) },
+                            text = { Text("Fetch Metadata", color = theme.textPrimary) },
                             onClick = { showOverflowMenu = false },
                             leadingIcon = { Icon(Icons.Rounded.Refresh, null, tint = accentColor) }
                         )
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+                        HorizontalDivider(color = theme.divider)
                         DropdownMenuItem(
-                            text = { Text("Delete Book", color = GlassColors.Destructive) },
+                            text = { Text("Delete Book", color = LithosError) },
                             onClick = { showOverflowMenu = false },
-                            leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = GlassColors.Destructive) }
+                            leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = LithosError) }
                         )
                     }
                 }
@@ -511,10 +552,10 @@ fun BookDetailMorphingSheet(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0xFF2C2C2E)),
+                                .background(if (isDark) LithosSurfaceDarkElevated else LithosSurfaceLightElevated),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Rounded.Book, null, tint = Color.Gray, modifier = Modifier.size(40.dp))
+                            Icon(Icons.Rounded.Book, null, tint = theme.textSecondary, modifier = Modifier.size(40.dp))
                         }
                     }
 
@@ -555,7 +596,7 @@ fun BookDetailMorphingSheet(
                     Text(
                         text = book.title,
                         style = GlassTypography.Title,
-                        color = Color.White,
+                        color = theme.textPrimary,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -580,7 +621,7 @@ fun BookDetailMorphingSheet(
                         Text(
                             text = "Read by ${book.narrator}",
                             style = GlassTypography.Caption,
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = theme.textSecondary,
                             maxLines = 1
                         )
                     }
@@ -594,7 +635,7 @@ fun BookDetailMorphingSheet(
                         Text(
                             text = formatDuration(book.duration),
                             style = GlassTypography.Caption,
-                            color = Color.White.copy(alpha = 0.6f)
+                            color = theme.textSecondary
                         )
                         if (book.progress > 0 && book.duration > 0) {
                             val pct = ((book.progress.toFloat() / book.duration) * 100).toInt()
@@ -622,7 +663,7 @@ fun BookDetailMorphingSheet(
                         Text(
                             text = "${seriesInfo.name}${seriesInfo.bookNumber?.let { " #${it.toInt()}" } ?: ""}",
                             style = GlassTypography.Caption,
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = theme.textSecondary,
                             maxLines = 1,
                             modifier = Modifier.clickable {
                                 if (expansionProgress < 0.5f) {
@@ -652,7 +693,7 @@ fun BookDetailMorphingSheet(
                     Text(
                         text = book.synopsis,
                         style = GlassTypography.Body.copy(lineHeight = 22.sp),
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = theme.textSecondary,
                         maxLines = 4,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -680,7 +721,7 @@ fun BookDetailMorphingSheet(
                             .fillMaxWidth()
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(Color.White.copy(alpha = 0.1f))
+                            .background(if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
                     ) {
                         Box(
                             modifier = Modifier
@@ -696,7 +737,7 @@ fun BookDetailMorphingSheet(
                     Text(
                         text = "${formatDuration(remainingMs)} remaining",
                         style = GlassTypography.Caption,
-                        color = Color.White.copy(alpha = 0.5f)
+                        color = theme.textSecondary
                     )
                 }
             }
@@ -737,7 +778,7 @@ fun BookDetailMorphingSheet(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 22.sp
                         ),
-                        color = Color.White,
+                        color = theme.textPrimary,
                         textAlign = TextAlign.Center,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -769,7 +810,7 @@ fun BookDetailMorphingSheet(
                         Text(
                             text = "Read by ${book.narrator}",
                             style = GlassTypography.Caption.copy(fontSize = 13.sp),
-                            color = Color.White.copy(alpha = 0.5f),
+                            color = theme.textSecondary,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -782,13 +823,13 @@ fun BookDetailMorphingSheet(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        InfoChip(Icons.Rounded.Schedule, formatDuration(book.duration), accentColor)
+                        InfoChip(Icons.Rounded.Schedule, formatDuration(book.duration), accentColor, isDark)
 
                         val progressPercent = if (book.duration > 0)
                             ((book.progress.toFloat() / book.duration) * 100).toInt() else 0
                         if (progressPercent > 0) {
                             Spacer(Modifier.width(6.dp))
-                            InfoChip(Icons.Rounded.TrendingUp, "$progressPercent%", accentColor)
+                            InfoChip(Icons.Rounded.TrendingUp, "$progressPercent%", accentColor, isDark)
                         }
 
                         // Genre chip (clickable)
@@ -798,6 +839,7 @@ fun BookDetailMorphingSheet(
                                 icon = Icons.Rounded.Category,
                                 text = book.genre,
                                 accentColor = accentColor,
+                                isDark = isDark,
                                 onClick = {
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                     onGenreClick(book.genre)
@@ -812,6 +854,7 @@ fun BookDetailMorphingSheet(
                                 icon = Icons.Rounded.AutoStories,
                                 text = if (seriesInfo.bookNumber != null) "#${seriesInfo.bookNumber.toInt()}" else "Series",
                                 accentColor = accentColor,
+                                isDark = isDark,
                                 onClick = {
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                     onSeriesClick(seriesInfo.name)
@@ -828,7 +871,8 @@ fun BookDetailMorphingSheet(
                     ActionButton(
                         isResuming = book.progress > 0,
                         isEbook = isEbookFormat,
-                        isReverieDark = isReverieDark,
+                        isDark = isDark,
+                        isOLED = isOLED,
                         accentColor = accentColor,
                         size = 64.dp,
                         onClick = {
@@ -853,7 +897,7 @@ fun BookDetailMorphingSheet(
                                     fontWeight = FontWeight.Medium,
                                     letterSpacing = 0.5.sp
                                 ),
-                                color = Color.White.copy(alpha = 0.5f)
+                                color = theme.textSecondary
                             )
 
                             // Show Less / Read More toggle (only if synopsis is long)
@@ -875,7 +919,7 @@ fun BookDetailMorphingSheet(
                         Text(
                             text = book.synopsis,
                             style = GlassTypography.Body.copy(lineHeight = 24.sp),
-                            color = Color.White.copy(alpha = 0.85f),
+                            color = theme.textPrimary.copy(alpha = 0.85f),
                             maxLines = if (isSynopsisExpanded) Int.MAX_VALUE else 5,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -901,7 +945,7 @@ private fun CoverPlayButton(
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.6f))
+            .background(LithosSlate.copy(alpha = 0.85f))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -926,7 +970,7 @@ private fun CoverPlayButton(
 private fun ResumeBar(
     book: Book,
     accentColor: Color,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     alpha: Float,
     onClick: () -> Unit
 ) {
@@ -942,7 +986,7 @@ private fun ResumeBar(
             .graphicsLayer { this.alpha = alpha }
             .clip(RoundedCornerShape(16.dp))
             .background(
-                if (isReverieDark) Color(0xFF1C1C1E) else Color(0xFF2C2C2E)
+                if (isOLED) LithosSurfaceDark else LithosSurfaceDarkElevated
             )
             .clickable(onClick = onClick)
     ) {
@@ -996,6 +1040,7 @@ private fun InfoChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
     accentColor: Color,
+    isDark: Boolean = true,
     onClick: (() -> Unit)? = null
 ) {
     Surface(
@@ -1003,7 +1048,7 @@ private fun InfoChip(
             if (onClick != null) Modifier.clickable(onClick = onClick)
             else Modifier
         ),
-        color = Color.White.copy(alpha = 0.08f),
+        color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f),
         shape = RoundedCornerShape(20.dp)
     ) {
         Row(
@@ -1020,7 +1065,7 @@ private fun InfoChip(
             Text(
                 text,
                 style = GlassTypography.Caption,
-                color = Color.White.copy(alpha = 0.7f)
+                color = if (isDark) Color.White.copy(alpha = 0.7f) else Color.Black.copy(alpha = 0.7f)
             )
         }
     }
@@ -1030,12 +1075,17 @@ private fun InfoChip(
 private fun ActionButton(
     isResuming: Boolean,
     isEbook: Boolean,
-    isReverieDark: Boolean,
+    isDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     size: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit
 ) {
-    val buttonBg = if (isReverieDark) Color(0xFF1C1C1E) else Color(0xFF2C2C2E)
+    val buttonBg = when {
+        !isDark -> LithosSurfaceLightElevated
+        isOLED -> LithosSurfaceDark
+        else -> LithosSurfaceDarkElevated
+    }
 
     Box(
         modifier = Modifier

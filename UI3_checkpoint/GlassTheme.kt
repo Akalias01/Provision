@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.theme
+package com.mossglen.lithos.ui.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable

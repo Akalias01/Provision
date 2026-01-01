@@ -13,15 +13,15 @@ plugins {
 }
 
 android {
-    namespace = "com.mossglen.reverie"
+    namespace = "com.mossglen.lithos"
     compileSdk = 36  // Android 16 (VanillaIceCream) - Bleeding Edge
 
     defaultConfig {
-        applicationId = "com.mossglen.reverie"
+        applicationId = "com.mossglen.lithos"
         minSdk = 29    // Android 10 - RenderEffect blur support
         targetSdk = 36 // Android 16
-        versionCode = 3117
-        versionName = "3.1.17"
+        versionCode = 3143
+        versionName = "3.1.43"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

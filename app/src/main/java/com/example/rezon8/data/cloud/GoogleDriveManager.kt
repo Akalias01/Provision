@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data.cloud
+package com.mossglen.lithos.data.cloud
 
 import android.content.Context
 import android.util.Log
@@ -37,10 +37,11 @@ class GoogleDriveManager @Inject constructor(
 ) {
     companion object {
         private const val TAG = "GoogleDriveManager"
-        private const val APP_NAME = "REVERIE"
-        private const val FOLDER_NAME = "REVERIE_Backups"
+        private const val APP_NAME = "Lithos"
+        private const val FOLDER_NAME = "Lithos_Backups"
         private const val MIME_TYPE_FOLDER = "application/vnd.google-apps.folder"
         private const val MIME_TYPE_ZIP = "application/zip"
+        private const val SHARED_WITH_ME_ID = "__shared_with_me__"
     }
 
     sealed class SyncState {
@@ -324,7 +325,7 @@ class GoogleDriveManager @Inject constructor(
 
     /**
      * Upload a single file (like an audiobook or cover) to Google Drive.
-     * Creates a REVERIE_Books folder for audiobook backups.
+     * Creates a Lithos_Books folder for audiobook backups.
      */
     suspend fun uploadFile(localFile: File, folderName: String? = null): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -387,7 +388,7 @@ class GoogleDriveManager @Inject constructor(
         try {
             val drive = driveService ?: return@withContext null
 
-            val folderName = "REVERIE_Books"
+            val folderName = "Lithos_Books"
 
             // Search for existing folder
             val query = "name = '$folderName' and mimeType = '$MIME_TYPE_FOLDER' and trashed = false"
@@ -477,10 +478,39 @@ class GoogleDriveManager @Inject constructor(
 
     /**
      * List files in a specific folder (or root if folderId is null).
+     * When at root, includes a "Shared with me" virtual folder.
+     * When folderId is SHARED_WITH_ME_ID, lists files shared with the user.
      */
     suspend fun listFiles(folderId: String? = null): List<CloudFileInfo> = withContext(Dispatchers.IO) {
         try {
             val drive = driveService ?: return@withContext emptyList()
+
+            // Handle "Shared with me" virtual folder
+            if (folderId == SHARED_WITH_ME_ID) {
+                val query = "sharedWithMe = true and trashed = false"
+                val result = drive.files().list()
+                    .setQ(query)
+                    .setSpaces("drive")
+                    .setFields("files(id, name, size, mimeType, modifiedTime, thumbnailLink)")
+                    .setOrderBy("folder,name")
+                    .setPageSize(100)
+                    .execute()
+
+                return@withContext result.files.map { file ->
+                    val isFolder = file.mimeType == MIME_TYPE_FOLDER
+                    CloudFileInfo(
+                        id = file.id,
+                        name = file.name,
+                        path = file.id,
+                        size = file.getSize() ?: 0L,
+                        mimeType = file.mimeType ?: "",
+                        modifiedTime = file.modifiedTime?.value ?: 0L,
+                        isFolder = isFolder,
+                        thumbnailUrl = file.thumbnailLink,
+                        source = CloudSource.GOOGLE_DRIVE
+                    )
+                }
+            }
 
             val parentId = folderId ?: "root"
             val query = "'$parentId' in parents and trashed = false"
@@ -493,7 +523,7 @@ class GoogleDriveManager @Inject constructor(
                 .setPageSize(100)
                 .execute()
 
-            result.files.map { file ->
+            val files = result.files.map { file ->
                 val isFolder = file.mimeType == MIME_TYPE_FOLDER
                 CloudFileInfo(
                     id = file.id,
@@ -507,6 +537,24 @@ class GoogleDriveManager @Inject constructor(
                     source = CloudSource.GOOGLE_DRIVE
                 )
             }
+
+            // At root, prepend "Shared with me" virtual folder
+            if (folderId == null) {
+                val sharedFolder = CloudFileInfo(
+                    id = SHARED_WITH_ME_ID,
+                    name = "Shared with me",
+                    path = SHARED_WITH_ME_ID,
+                    size = 0L,
+                    mimeType = MIME_TYPE_FOLDER,
+                    modifiedTime = System.currentTimeMillis(),
+                    isFolder = true,
+                    thumbnailUrl = null,
+                    source = CloudSource.GOOGLE_DRIVE
+                )
+                return@withContext listOf(sharedFolder) + files
+            }
+
+            files
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to list files", e)

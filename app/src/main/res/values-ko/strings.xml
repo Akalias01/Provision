@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Reverie</string>
+    <string name="app_name">Lithos</string>
 
     <!-- Navigation - UI3 Adaptive Context -->
     <string name="nav_now">지금</string>
@@ -139,7 +139,7 @@
     <string name="sleep_custom">사용자 지정</string>
 
     <!-- Dialogs -->
-    <string name="dialog_exit_title">Reverie를 종료하시겠습니까?</string>
+    <string name="dialog_exit_title">Lithos를 종료하시겠습니까?</string>
     <string name="dialog_exit_message">정말로 앱을 종료하시겠습니까?</string>
     <string name="dialog_exit">종료</string>
     <string name="dialog_cancel">취소</string>
@@ -262,7 +262,7 @@
     <string name="edit_track_editor">트랙 편집기</string>
 
     <!-- Welcome -->
-    <string name="welcome_title">Reverie에 오신 것을 환영합니다</string>
+    <string name="welcome_title">Lithos에 오신 것을 환영합니다</string>
     <string name="welcome_subtitle">당신의 오디오, 새롭게.</string>
 
     <!-- Cloud -->

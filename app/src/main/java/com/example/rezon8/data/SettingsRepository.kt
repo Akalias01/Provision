@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -75,6 +75,14 @@ class SettingsRepository @Inject constructor(
         // TTS Settings
         val TTS_ENGINE_TYPE = stringPreferencesKey("tts_engine_type")  // "system" or "kokoro"
         val TTS_VOICE_ID = intPreferencesKey("tts_voice_id")          // Kokoro speaker ID
+        val SYSTEM_TTS_VOICE_NAME = stringPreferencesKey("system_tts_voice_name")  // System TTS voice name
+
+        // Smart Auto-Rewind Settings
+        val SMART_AUTO_REWIND_ENABLED = booleanPreferencesKey("smart_auto_rewind_enabled")
+
+        // Theme Settings
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val LITHOS_ACCENT_VARIANT = stringPreferencesKey("lithos_accent_variant")
     }
 
     // Download Settings
@@ -169,6 +177,13 @@ class SettingsRepository @Inject constructor(
         context.dataStore.edit { it[Keys.AUDIO_FADE_DURATION] = durationMs }
     }
 
+    // Smart Auto-Rewind (rewinds based on pause duration)
+    val smartAutoRewindEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.SMART_AUTO_REWIND_ENABLED] ?: true }
+
+    suspend fun setSmartAutoRewindEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.SMART_AUTO_REWIND_ENABLED] = enabled }
+    }
+
     // ========================================================================
     // Torrent Settings
     // ========================================================================
@@ -255,7 +270,25 @@ class SettingsRepository @Inject constructor(
     // Language Settings
     // ========================================================================
 
-    val appLanguage: Flow<String> = context.dataStore.data.map { it[Keys.APP_LANGUAGE] ?: "System" }
+    val appLanguage: Flow<String> = context.dataStore.data.map { preferences ->
+        val stored = preferences[Keys.APP_LANGUAGE] ?: "system"
+        // Migrate old localized values to locale codes
+        when {
+            stored.equals("system", ignoreCase = true) || stored == "Sistema" || stored == "Système" || stored == "システム" || stored == "系统" || stored == "النظام" || stored == "Системный" || stored == "시스템" -> "system"
+            stored.equals("english", ignoreCase = true) || stored == "Inglés" || stored == "Anglais" || stored == "Englisch" || stored == "Inglese" || stored == "Inglês" || stored == "英語" || stored == "英语" || stored == "الإنجليزية" || stored == "Английский" || stored == "영어" -> "en"
+            stored.equals("spanish", ignoreCase = true) || stored == "Español" || stored == "Espagnol" || stored == "Spanisch" || stored == "Spagnolo" || stored == "Espanhol" || stored == "スペイン語" || stored == "西班牙语" || stored == "الإسبانية" || stored == "Испанский" || stored == "스페인어" -> "es"
+            stored == "French" || stored == "Français" || stored == "Französisch" || stored == "Francese" || stored == "Francês" || stored == "フランス語" || stored == "法语" || stored == "الفرنسية" || stored == "Французский" || stored == "프랑스어" -> "fr"
+            stored == "German" || stored == "Deutsch" || stored == "Allemand" || stored == "Tedesco" || stored == "Alemão" || stored == "ドイツ語" || stored == "德语" || stored == "الألمانية" || stored == "Немецкий" || stored == "독일어" -> "de"
+            stored == "Italian" || stored == "Italiano" || stored == "Italien" || stored == "Italienisch" || stored == "イタリア語" || stored == "意大利语" || stored == "الإيطالية" || stored == "Итальянский" || stored == "이탈리아어" -> "it"
+            stored == "Portuguese" || stored == "Português" || stored == "Portugais" || stored == "Portugiesisch" || stored == "Portoghese" || stored == "ポルトガル語" || stored == "葡萄牙语" || stored == "البرتغالية" || stored == "Португальский" || stored == "포르투갈어" -> "pt"
+            stored == "Japanese" || stored == "日本語" || stored == "Japonais" || stored == "Japanisch" || stored == "Giapponese" || stored == "Japonês" || stored == "日语" || stored == "اليابانية" || stored == "Японский" || stored == "일본어" -> "ja"
+            stored == "Korean" || stored == "한국어" || stored == "Coréen" || stored == "Koreanisch" || stored == "Coreano" || stored == "韓国語" || stored == "韩语" || stored == "الكورية" || stored == "Корейский" -> "ko"
+            stored == "Chinese" || stored == "中文" || stored == "Chinois" || stored == "Chinesisch" || stored == "Cinese" || stored == "Chinês" || stored == "中国語" || stored == "الصينية" || stored == "Китайский" || stored == "중국어" -> "zh"
+            stored == "Russian" || stored == "Русский" || stored == "Russe" || stored == "Russisch" || stored == "Russo" || stored == "ロシア語" || stored == "俄语" || stored == "الروسية" || stored == "러시아어" -> "ru"
+            stored == "Arabic" || stored == "العربية" || stored == "Arabe" || stored == "Arabisch" || stored == "Arabo" || stored == "Árabe" || stored == "アラビア語" || stored == "阿拉伯语" || stored == "Арабский" || stored == "아랍어" -> "ar"
+            else -> stored // Keep as-is if already a valid code
+        }
+    }
 
     suspend fun setAppLanguage(language: String) {
         context.dataStore.edit { it[Keys.APP_LANGUAGE] = language }
@@ -449,5 +482,82 @@ class SettingsRepository @Inject constructor(
      */
     suspend fun getTtsVoiceId(): Int {
         return ttsVoiceId.first()
+    }
+
+    /**
+     * System TTS voice name
+     */
+    val systemTtsVoiceName: Flow<String> = context.dataStore.data.map { it[Keys.SYSTEM_TTS_VOICE_NAME] ?: "" }
+
+    suspend fun setSystemTtsVoiceName(voiceName: String) {
+        context.dataStore.edit { it[Keys.SYSTEM_TTS_VOICE_NAME] = voiceName }
+    }
+
+    suspend fun getSystemTtsVoiceName(): String {
+        return systemTtsVoiceName.first()
+    }
+
+    // ========================================================================
+    // TTS Reading Position Persistence
+    // ========================================================================
+
+    /**
+     * Save TTS reading position for a specific book/chapter.
+     * Key format: "${bookId}_ch${chapter}_tts_position"
+     */
+    suspend fun saveTtsPosition(bookId: String, chapter: Int, sentenceIndex: Int) {
+        val key = stringPreferencesKey("${bookId}_ch${chapter}_tts_position")
+        context.dataStore.edit { preferences ->
+            preferences[key] = sentenceIndex.toString()
+        }
+    }
+
+    /**
+     * Get saved TTS reading position for a specific book/chapter.
+     * Returns -1 if no position is saved.
+     */
+    suspend fun getTtsPosition(bookId: String, chapter: Int): Int {
+        val key = stringPreferencesKey("${bookId}_ch${chapter}_tts_position")
+        return context.dataStore.data.first()[key]?.toIntOrNull() ?: -1
+    }
+
+    /**
+     * Clear TTS reading position for a specific book/chapter (e.g., when finished).
+     */
+    suspend fun clearTtsPosition(bookId: String, chapter: Int) {
+        val key = stringPreferencesKey("${bookId}_ch${chapter}_tts_position")
+        context.dataStore.edit { preferences ->
+            preferences.remove(key)
+        }
+    }
+
+    // ========================================================================
+    // Theme Settings
+    // ========================================================================
+
+    /**
+     * Theme mode: SYSTEM, LIGHT, DARK, LITHOS_DARK, READING
+     */
+    val themeMode: Flow<String> = context.dataStore.data.map { it[Keys.THEME_MODE] ?: "DARK" }
+
+    suspend fun setThemeMode(mode: String) {
+        context.dataStore.edit { it[Keys.THEME_MODE] = mode }
+    }
+
+    suspend fun getThemeMode(): String {
+        return themeMode.first()
+    }
+
+    /**
+     * Lithos accent variant: AMBER_GLASS or AMBER_BORDER
+     */
+    val lithosAccentVariant: Flow<String> = context.dataStore.data.map { it[Keys.LITHOS_ACCENT_VARIANT] ?: "AMBER_BORDER" }
+
+    suspend fun setLithosAccentVariant(variant: String) {
+        context.dataStore.edit { it[Keys.LITHOS_ACCENT_VARIANT] = variant }
+    }
+
+    suspend fun getLithosAccentVariant(): String {
+        return lithosAccentVariant.first()
     }
 }

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 /**
  * Represents a playback speed preset with a name and speed value.

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui
+package com.mossglen.lithos.ui
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
@@ -47,16 +47,16 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import coil.compose.AsyncImage
-import com.mossglen.reverie.IncomingTorrentData
-import com.mossglen.reverie.IncomingFileData
-import com.mossglen.reverie.R
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.Chapter
-import com.mossglen.reverie.navigation.*
-import com.mossglen.reverie.ui.components.*
-import com.mossglen.reverie.ui.screens.*
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.*
+import com.mossglen.lithos.IncomingTorrentData
+import com.mossglen.lithos.IncomingFileData
+import com.mossglen.lithos.R
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.Chapter
+import com.mossglen.lithos.navigation.*
+import com.mossglen.lithos.ui.components.*
+import com.mossglen.lithos.ui.screens.*
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas

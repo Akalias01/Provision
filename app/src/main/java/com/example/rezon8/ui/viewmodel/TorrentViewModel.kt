@@ -1,10 +1,10 @@
-package com.mossglen.reverie.ui.viewmodel
+package com.mossglen.lithos.ui.viewmodel
 
 import android.net.Uri
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mossglen.reverie.data.TorrentManager
+import com.mossglen.lithos.data.TorrentManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn

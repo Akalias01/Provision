@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.components
+package com.mossglen.lithos.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -28,13 +28,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.Series
-import com.mossglen.reverie.data.SeriesInfo
-import com.mossglen.reverie.data.getSeriesInfo
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
-import com.mossglen.reverie.ui.theme.*
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.Series
+import com.mossglen.lithos.data.SeriesInfo
+import com.mossglen.lithos.data.getSeriesInfo
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
+import com.mossglen.lithos.ui.theme.*
 import kotlin.math.roundToInt
 
 /**
@@ -57,10 +57,11 @@ fun AssignBookToSeriesDialog(
     book: Book,
     existingSeries: List<String>,
     isDark: Boolean,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     onAssign: (seriesName: String, bookNumber: Float?) -> Unit
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     var selectedSeriesName by remember { mutableStateOf(book.getSeriesInfo()?.name ?: "") }
@@ -82,6 +83,12 @@ fun AssignBookToSeriesDialog(
 
     val dismissProgress = (dragOffsetY / dismissThreshold).coerceIn(0f, 1f)
 
+    val containerColor = when {
+        isOLED -> Color(0xFF0A0A0A)  // Near-black for OLED
+        isDark -> Color(0xFF1C1C1E)  // Standard dark
+        else -> Color(0xFFF2F2F7)    // Light mode
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -94,7 +101,7 @@ fun AssignBookToSeriesDialog(
                 .scale(1f - dismissProgress * 0.05f)
                 .alpha(1f - dismissProgress * 0.3f)
                 .clip(RoundedCornerShape(24.dp))
-                .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7))
+                .background(containerColor)
                 .pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onDragEnd = {
@@ -220,9 +227,7 @@ fun AssignBookToSeriesDialog(
                             ExposedDropdownMenu(
                                 expanded = expanded,
                                 onDismissRequest = { expanded = false },
-                                modifier = Modifier.background(
-                                    if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-                                )
+                                modifier = Modifier.background(containerColor)
                             ) {
                                 existingSeries.forEach { seriesName ->
                                     DropdownMenuItem(
@@ -300,11 +305,12 @@ fun AssignBookToSeriesDialog(
 fun EditSeriesDialog(
     series: Series,
     isDark: Boolean,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     onRename: (newName: String) -> Unit,
     onReorderBook: (bookId: String, newNumber: Float) -> Unit
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     var newSeriesName by remember { mutableStateOf(series.name) }
@@ -313,7 +319,11 @@ fun EditSeriesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
+        containerColor = when {
+            isOLED -> Color(0xFF0A0A0A)  // Near-black for OLED
+            isDark -> Color(0xFF1C1C1E)  // Standard dark
+            else -> Color(0xFFF2F2F7)    // Light mode
+        },
         shape = RoundedCornerShape(GlassShapes.Medium),
         title = {
             Text(
@@ -385,7 +395,7 @@ fun EditSeriesDialog(
                                     Text(
                                         text = "#${if (bookNumber % 1 == 0f) bookNumber.toInt() else bookNumber}",
                                         style = GlassTypography.Caption,
-                                        color = GlassColors.ReverieAccent,
+                                        color = GlassColors.LithosAccent,
                                         fontWeight = FontWeight.SemiBold,
                                         modifier = Modifier.width(40.dp)
                                     )
@@ -435,6 +445,7 @@ fun EditSeriesDialog(
             ReorderBookDialog(
                 book = book,
                 isDark = isDark,
+                isOLED = isOLED,
                 onDismiss = {
                     showReorderDialog = false
                     bookToReorder = null
@@ -459,16 +470,21 @@ fun EditSeriesDialog(
 private fun ReorderBookDialog(
     book: Book,
     isDark: Boolean,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     onReorder: (Float) -> Unit
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
     val currentNumber = book.getSeriesInfo()?.bookNumber
     var newNumberText by remember { mutableStateOf(currentNumber?.toString() ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
+        containerColor = when {
+            isOLED -> Color(0xFF0A0A0A)  // Near-black for OLED
+            isDark -> Color(0xFF1C1C1E)  // Standard dark
+            else -> Color(0xFFF2F2F7)    // Light mode
+        },
         shape = RoundedCornerShape(GlassShapes.Medium),
         title = {
             Text(
@@ -538,10 +554,11 @@ fun MergeSeriesDialog(
     sourceSeries: Series,
     allSeries: List<Series>,
     isDark: Boolean,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     onMerge: (targetSeriesName: String) -> Unit
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     var selectedTargetSeries by remember { mutableStateOf("") }
@@ -549,9 +566,15 @@ fun MergeSeriesDialog(
 
     val availableTargetSeries = allSeries.filter { it.name != sourceSeries.name }
 
+    val containerColor = when {
+        isOLED -> Color(0xFF0A0A0A)  // Near-black for OLED
+        isDark -> Color(0xFF1C1C1E)  // Standard dark
+        else -> Color(0xFFF2F2F7)    // Light mode
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
+        containerColor = containerColor,
         shape = RoundedCornerShape(GlassShapes.Medium),
         title = {
             Text(
@@ -592,9 +615,7 @@ fun MergeSeriesDialog(
                     ExposedDropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
-                        modifier = Modifier.background(
-                            if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-                        )
+                        modifier = Modifier.background(containerColor)
                     ) {
                         availableTargetSeries.forEach { series ->
                             DropdownMenuItem(

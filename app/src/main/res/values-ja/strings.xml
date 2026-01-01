@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Reverie</string>
+    <string name="app_name">Lithos</string>
 
     <!-- Navigation - UI3 Adaptive Context -->
     <string name="nav_now">今</string>
@@ -139,7 +139,7 @@
     <string name="sleep_custom">カスタム</string>
 
     <!-- Dialogs -->
-    <string name="dialog_exit_title">Reverieを終了しますか？</string>
+    <string name="dialog_exit_title">Lithosを終了しますか？</string>
     <string name="dialog_exit_message">アプリを終了してもよろしいですか？</string>
     <string name="dialog_exit">終了</string>
     <string name="dialog_cancel">キャンセル</string>
@@ -262,7 +262,7 @@
     <string name="edit_track_editor">トラックエディタ</string>
 
     <!-- Welcome -->
-    <string name="welcome_title">Reverieへようこそ</string>
+    <string name="welcome_title">Lithosへようこそ</string>
     <string name="welcome_subtitle">あなたのオーディオ、再発見。</string>
 
     <!-- Cloud -->

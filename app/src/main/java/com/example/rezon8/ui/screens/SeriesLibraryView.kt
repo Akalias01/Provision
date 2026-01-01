@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -39,12 +39,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Series
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
-import com.mossglen.reverie.ui.components.GlassIconButton
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.theme.glassCard
+import com.mossglen.lithos.data.Series
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
+import com.mossglen.lithos.ui.components.GlassIconButton
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.theme.glassCard
 import java.util.concurrent.TimeUnit
 
 /**
@@ -228,7 +228,7 @@ private fun SeriesGridCard(
                         modifier = Modifier
                             .fillMaxWidth(series.progress)
                             .fillMaxHeight()
-                            .background(GlassColors.ReverieAccent)
+                            .background(GlassColors.LithosAccent)
                     )
                 }
             }
@@ -444,7 +444,7 @@ private fun SeriesListCard(
                         .fillMaxWidth()
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp)),
-                    color = GlassColors.ReverieAccent,
+                    color = GlassColors.LithosAccent,
                     trackColor = if (isDark) Color.White.copy(alpha = 0.1f)
                     else Color.Black.copy(alpha = 0.08f)
                 )
@@ -518,7 +518,7 @@ private fun SeriesListCard(
                     Text(
                         text = "Next: ${nextBook.title}",
                         style = GlassTypography.Caption,
-                        color = GlassColors.ReverieAccent,
+                        color = GlassColors.LithosAccent,
                         fontWeight = FontWeight.SemiBold
                     )
                 }

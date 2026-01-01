@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

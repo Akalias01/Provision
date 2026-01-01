@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.*
@@ -38,9 +38,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.data.AudioEffectManager
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.SettingsViewModel
+import com.mossglen.lithos.data.AudioEffectManager
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.SettingsViewModel
+
+// Theme-aware helper functions
+@Composable
+private fun getBackgroundColor(isDark: Boolean, isOLED: Boolean): Color = when {
+    isOLED -> LithosBlack
+    isDark -> LithosSlate
+    else -> LithosOat
+}
+
+@Composable
+private fun getCardBackgroundColor(isDark: Boolean, isOLED: Boolean): Color = when {
+    isOLED -> LithosBlack.copy(alpha = 0.95f)
+    isDark -> LithosSlate.copy(alpha = 0.85f)
+    else -> LithosOat.copy(alpha = 0.90f)
+}
+
+@Composable
+private fun getSliderTrackColor(isDark: Boolean, isOLED: Boolean): Color = when {
+    isOLED -> Color(0xFF1A1D21)
+    isDark -> Color(0xFF2A2F35)
+    else -> Color(0xFFD8D6CF)
+}
 
 /**
  * Equalizer Screen
@@ -52,14 +74,14 @@ import com.mossglen.reverie.ui.viewmodel.SettingsViewModel
 @Composable
 fun EqualizerScreen(
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     onBack: () -> Unit,
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     // Get AudioEffectManager from SettingsViewModel (proper Hilt injection)
     val audioEffectManager = settingsViewModel.audioEffectManager
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     // EQ State
@@ -79,6 +101,8 @@ fun EqualizerScreen(
     LaunchedEffect(Unit) {
         audioEffectManager.reinitialize()
     }
+
+    val backgroundColor = getBackgroundColor(isDark, isOLED)
 
     Scaffold(
         topBar = {
@@ -126,7 +150,7 @@ fun EqualizerScreen(
                 )
             )
         },
-        containerColor = theme.background
+        containerColor = backgroundColor
     ) { padding ->
         Column(
             modifier = Modifier
@@ -143,7 +167,7 @@ fun EqualizerScreen(
                 enabled = eqEnabled,
                 accentColor = accentColor,
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 onToggle = { audioEffectManager.setEqEnabled(it) }
             )
 
@@ -154,7 +178,7 @@ fun EqualizerScreen(
                 selectedPreset = selectedPresetName,
                 accentColor = accentColor,
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 onClick = { showPresetMenu = true }
             )
 
@@ -165,7 +189,7 @@ fun EqualizerScreen(
                 bands = bands,
                 accentColor = accentColor,
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 enabled = eqEnabled,
                 onBandChange = { index, level ->
                     audioEffectManager.setBandLevel(index, level)
@@ -179,7 +203,7 @@ fun EqualizerScreen(
                 preampDb = preamp,
                 accentColor = accentColor,
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 enabled = eqEnabled,
                 onPreampChange = { audioEffectManager.setPreamp(it) }
             )
@@ -198,7 +222,7 @@ fun EqualizerScreen(
                     strength = bassBoostStrength,
                     accentColor = accentColor,
                     isDark = isDark,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     enabled = eqEnabled,
                     modifier = Modifier.weight(1f),
                     onStrengthChange = { audioEffectManager.setBassBoost(it) }
@@ -211,7 +235,7 @@ fun EqualizerScreen(
                     strength = virtualizerStrength,
                     accentColor = accentColor,
                     isDark = isDark,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     enabled = eqEnabled,
                     modifier = Modifier.weight(1f),
                     onStrengthChange = { audioEffectManager.setVirtualizer(it) }
@@ -226,7 +250,7 @@ fun EqualizerScreen(
     if (showPresetMenu) {
         PresetSelectionDialog(
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             accentColor = accentColor,
             currentPreset = selectedPresetName,
             onPresetSelected = { presetName, bands, preampDb ->
@@ -247,12 +271,15 @@ private fun MasterToggleCard(
     enabled: Boolean,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     var isEnabled by remember { mutableStateOf(enabled) }
+    val cardBackground = getCardBackgroundColor(isDark, isOLED)
+    val sliderTrackColor = getSliderTrackColor(isDark, isOLED)
+    val borderColor = if (isDark) theme.glassBorder else LithosSlate.copy(alpha = 0.15f)
 
     LaunchedEffect(enabled) {
         isEnabled = enabled
@@ -262,7 +289,8 @@ private fun MasterToggleCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassSecondary)
+            .background(cardBackground)
+            .border(1.dp, borderColor, RoundedCornerShape(GlassShapes.Medium))
             .clickable {
                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 isEnabled = !isEnabled
@@ -295,11 +323,11 @@ private fun MasterToggleCard(
             },
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                uncheckedThumbColor = Color.White,
+                uncheckedThumbColor = if (isDark) Color.White else LithosSlate,
                 checkedTrackColor = accentColor,
-                uncheckedTrackColor = if (isReverieDark) Color.White.copy(alpha = 0.12f) else theme.glassBorder,
+                uncheckedTrackColor = sliderTrackColor,
                 checkedBorderColor = Color.Transparent,
-                uncheckedBorderColor = Color.Transparent
+                uncheckedBorderColor = if (isDark) Color.Transparent else LithosSlate.copy(alpha = 0.3f)
             )
         )
     }
@@ -314,17 +342,20 @@ private fun PresetSelectorCard(
     selectedPreset: String,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
+    val cardBackground = getCardBackgroundColor(isDark, isOLED)
+    val borderColor = if (isDark) theme.glassBorder else LithosSlate.copy(alpha = 0.15f)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassSecondary)
+            .background(cardBackground)
+            .border(1.dp, borderColor, RoundedCornerShape(GlassShapes.Medium))
             .clickable {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 onClick()
@@ -365,18 +396,21 @@ private fun TenBandEqualizerCard(
     bands: List<Float>,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     enabled: Boolean,
     onBandChange: (Int, Float) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val frequencies = listOf(31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
+    val cardBackground = getCardBackgroundColor(isDark, isOLED)
+    val borderColor = if (isDark) theme.glassBorder else LithosSlate.copy(alpha = 0.15f)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassSecondary)
+            .background(cardBackground)
+            .border(1.dp, borderColor, RoundedCornerShape(GlassShapes.Medium))
             .padding(GlassSpacing.L)
     ) {
         Text(
@@ -400,6 +434,7 @@ private fun TenBandEqualizerCard(
                     level = level,
                     accentColor = accentColor,
                     isDark = isDark,
+                    isOLED = isOLED,
                     enabled = enabled,
                     onLevelChange = { newLevel ->
                         onBandChange(index, newLevel)
@@ -441,13 +476,15 @@ private fun EqBandSlider(
     level: Float,
     accentColor: Color,
     isDark: Boolean,
+    isOLED: Boolean = false,
     enabled: Boolean,
     onLevelChange: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     var currentLevel by remember { mutableFloatStateOf(level) }
+    val sliderTrackColor = getSliderTrackColor(isDark, isOLED)
 
     LaunchedEffect(level) {
         currentLevel = level
@@ -474,7 +511,7 @@ private fun EqBandSlider(
                 .width(28.dp)
                 .weight(1f)
                 .clip(RoundedCornerShape(14.dp))
-                .background(theme.glassSecondary)
+                .background(sliderTrackColor)
                 .pointerInput(enabled) {
                     if (!enabled) return@pointerInput
                     detectDragGestures(
@@ -493,19 +530,14 @@ private fun EqBandSlider(
                 },
             contentAlignment = Alignment.BottomCenter
         ) {
-            // Fill indicator
+            // Fill indicator - matte finish (no gradient glow)
             val fillHeight = ((currentLevel + 12f) / 24f).coerceIn(0f, 1f)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(fillHeight)
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                accentColor.copy(alpha = if (enabled) 0.8f else 0.3f),
-                                accentColor.copy(alpha = if (enabled) 0.6f else 0.2f)
-                            )
-                        )
+                        accentColor.copy(alpha = if (enabled) 0.85f else 0.3f)
                     )
             )
 
@@ -515,7 +547,7 @@ private fun EqBandSlider(
                     .align(Alignment.Center)
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(theme.textTertiary.copy(alpha = 0.3f))
+                    .background(theme.textTertiary.copy(alpha = 0.5f))
             )
         }
 
@@ -542,13 +574,16 @@ private fun PreampCard(
     preampDb: Float,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     enabled: Boolean,
     onPreampChange: (Float) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     var currentPreamp by remember { mutableFloatStateOf(preampDb) }
+    val cardBackground = getCardBackgroundColor(isDark, isOLED)
+    val sliderTrackColor = getSliderTrackColor(isDark, isOLED)
+    val borderColor = if (isDark) theme.glassBorder else LithosSlate.copy(alpha = 0.15f)
 
     LaunchedEffect(preampDb) {
         currentPreamp = preampDb
@@ -558,7 +593,8 @@ private fun PreampCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassSecondary)
+            .background(cardBackground)
+            .border(1.dp, borderColor, RoundedCornerShape(GlassShapes.Medium))
             .padding(GlassSpacing.L)
     ) {
         Row(
@@ -594,7 +630,7 @@ private fun PreampCard(
             colors = SliderDefaults.colors(
                 thumbColor = accentColor,
                 activeTrackColor = accentColor,
-                inactiveTrackColor = theme.glassSecondary
+                inactiveTrackColor = sliderTrackColor
             )
         )
     }
@@ -611,14 +647,17 @@ private fun EffectCard(
     strength: Float,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     enabled: Boolean,
     modifier: Modifier = Modifier,
     onStrengthChange: (Float) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     var currentStrength by remember { mutableFloatStateOf(strength) }
+    val cardBackground = getCardBackgroundColor(isDark, isOLED)
+    val sliderTrackColor = getSliderTrackColor(isDark, isOLED)
+    val borderColor = if (isDark) theme.glassBorder else LithosSlate.copy(alpha = 0.15f)
 
     LaunchedEffect(strength) {
         currentStrength = strength
@@ -627,7 +666,8 @@ private fun EffectCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassSecondary)
+            .background(cardBackground)
+            .border(1.dp, borderColor, RoundedCornerShape(GlassShapes.Medium))
             .padding(GlassSpacing.M),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -670,7 +710,7 @@ private fun EffectCard(
             colors = SliderDefaults.colors(
                 thumbColor = accentColor,
                 activeTrackColor = accentColor,
-                inactiveTrackColor = theme.glassSecondary
+                inactiveTrackColor = sliderTrackColor
             )
         )
     }
@@ -683,13 +723,14 @@ private fun EffectCard(
 @Composable
 private fun PresetSelectionDialog(
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     currentPreset: String,
     onPresetSelected: (String, List<Float>, Float) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
+    val dialogBackground = getBackgroundColor(isDark, isOLED)
 
     // EQ Presets (presetName, bands, preampDb)
     val presets = listOf(
@@ -706,7 +747,7 @@ private fun PresetSelectionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = theme.glassSecondary,
+        containerColor = dialogBackground,
         shape = RoundedCornerShape(GlassShapes.Medium),
         title = {
             Text(
@@ -725,7 +766,7 @@ private fun PresetSelectionDialog(
                             .clip(RoundedCornerShape(GlassShapes.Small))
                             .then(
                                 if (isSelected) {
-                                    Modifier.background(theme.interactive)
+                                    Modifier.background(accentColor.copy(alpha = 0.15f))
                                 } else Modifier
                             )
                             .clickable { onPresetSelected(name, bands, preampDb) }

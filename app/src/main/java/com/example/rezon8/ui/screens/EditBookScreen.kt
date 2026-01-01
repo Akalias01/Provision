@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,24 +23,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.ui.theme.GlassColors
-import com.mossglen.reverie.ui.theme.glassTheme
-import com.mossglen.reverie.ui.viewmodel.CoverArtViewModel
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.ui.theme.GlassColors
+import com.mossglen.lithos.ui.theme.glassTheme
+import com.mossglen.lithos.ui.theme.LithosAmber
+import com.mossglen.lithos.ui.viewmodel.CoverArtViewModel
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditBookScreen(
     bookId: String,
-    accentColor: Color = Color(0xFF00E5FF),
+    accentColor: Color = LithosAmber,
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onBack: () -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
     coverArtViewModel: CoverArtViewModel = hiltViewModel()
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     // Get book directly from VM
     val book = viewModel.books.collectAsState().value.find { it.id == bookId }
@@ -331,7 +332,7 @@ fun EditBookScreen(
             bookTitle = book.title,
             bookAuthor = book.author,
             accentColor = accentColor,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             onDismiss = { showCoverPicker = false },
             onCoverSelected = { newCoverUrl ->
                 coverArtViewModel.updateBookCover(bookId, newCoverUrl)

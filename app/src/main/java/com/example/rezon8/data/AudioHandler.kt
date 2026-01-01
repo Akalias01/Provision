@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -17,7 +17,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
-import com.mossglen.reverie.util.CrashReporter
+import com.mossglen.lithos.util.CrashReporter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -201,6 +201,19 @@ class AudioHandler @Inject constructor(
             CrashReporter.logError("Failed to play book: ${book.title}", e)
             e.printStackTrace()
         }
+    }
+
+    /**
+     * Get the currently loaded book.
+     */
+    fun getCurrentBook(): Book? = currentBook
+
+    /**
+     * Set the player volume (0.0 to 1.0).
+     * Used for audio ducking during transient focus loss.
+     */
+    fun setVolume(volume: Float) {
+        exoPlayer.volume = volume.coerceIn(0f, 1f)
     }
 
     fun loadBookAndSeek(book: Book) {

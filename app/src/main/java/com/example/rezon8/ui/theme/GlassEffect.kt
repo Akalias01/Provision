@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.theme
+package com.mossglen.lithos.ui.theme
 
 import android.graphics.RenderEffect
 import android.graphics.Shader
@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,14 +26,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * REVERIE Glass Effect System
+ * LITHOS AMBER Glass Effect System
+ *
+ * Design Philosophy:
+ * - Frosted blur (20dp standard) not shiny gradients
+ * - Matte/satin finishes
+ * - No neon glow effects
+ * - Natural materials aesthetic
  *
  * True frosted glass effects using multiple techniques:
  * - Modifier.blur() for content blur (Compose 1.6+)
  * - RenderEffect for hardware-accelerated blur (Android 12+)
- * - Layered transparency with gradients for depth
- *
- * Aligned with iOS 26 Liquid Glass, Android 16 Material 3 Expressive.
+ * - Layered transparency for depth
  */
 
 // ============================================================================
@@ -42,30 +45,31 @@ import androidx.compose.ui.unit.dp
 // ============================================================================
 
 /**
- * Applies a glass card effect with subtle frosted appearance.
- * Layered transparency with gradient for depth.
+ * Applies a glass card effect with frosted appearance.
+ * Uses Lithos Slate/Oat colors with subtle borders.
  */
 @Composable
 fun Modifier.glassCard(
     isDark: Boolean = true,
-    cornerRadius: Dp = GlassShapes.Medium
+    cornerRadius: Dp = LithosShapes.Medium
 ): Modifier {
     val backgroundColor = if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.85f)
+        LithosGlass
     } else {
-        Color(0xFFF2F2F7).copy(alpha = 0.85f)
+        LithosGlassLight
     }
 
     val borderColor = if (isDark) {
-        Color.White.copy(alpha = 0.12f)
+        LithosGlassBorder
     } else {
-        Color.Black.copy(alpha = 0.08f)
+        LithosGlassBorderLight
     }
 
+    // Subtle top highlight - matte, not shiny
     val topHighlight = if (isDark) {
-        Color.White.copy(alpha = 0.06f)
+        Color.White.copy(alpha = 0.04f)
     } else {
-        Color.White
+        Color.White.copy(alpha = 0.6f)
     }
 
     return this
@@ -75,59 +79,54 @@ fun Modifier.glassCard(
                 colors = listOf(
                     topHighlight,
                     backgroundColor,
-                    backgroundColor.copy(alpha = 0.95f)
+                    backgroundColor
                 ),
                 startY = 0f,
-                endY = 150f
+                endY = 100f
             )
         )
         .border(
             width = 0.5.dp,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    borderColor.copy(alpha = borderColor.alpha * 1.5f),
-                    borderColor
-                )
-            ),
+            color = borderColor,
             shape = RoundedCornerShape(cornerRadius)
         )
 }
 
 /**
- * Applies a floating glass effect - higher elevation, more prominent.
- * Use for bottom sheets, floating action buttons, mini player.
+ * Applies a floating glass effect - for bottom sheets, floating buttons.
+ * Matte finish with subtle elevation.
  */
 @Composable
 fun Modifier.glassFloating(
     isDark: Boolean = true,
-    cornerRadius: Dp = GlassShapes.Large
+    cornerRadius: Dp = LithosShapes.Large
 ): Modifier {
     val backgroundColor = if (isDark) {
-        Color(0xFF2C2C2E).copy(alpha = 0.95f)
+        LithosSurfaceDarkElevated.copy(alpha = 0.95f)
     } else {
-        Color(0xFFFFFFFF).copy(alpha = 0.95f)
+        LithosSurfaceLightElevated.copy(alpha = 0.95f)
     }
 
     val borderColor = if (isDark) {
-        Color.White.copy(alpha = 0.15f)
+        LithosGlassBorder
     } else {
-        Color.Black.copy(alpha = 0.10f)
+        LithosGlassBorderLight
     }
 
     val topHighlight = if (isDark) {
-        Color.White.copy(alpha = 0.08f)
+        Color.White.copy(alpha = 0.05f)
     } else {
-        Color.White
+        Color.White.copy(alpha = 0.5f)
     }
 
     return this
         .clip(RoundedCornerShape(cornerRadius))
         .drawBehind {
-            // Subtle shadow
+            // Subtle shadow - matte, no glow
             drawRect(
-                color = Color.Black.copy(alpha = 0.2f),
-                topLeft = Offset(0f, -4f),
-                size = size.copy(height = 8f)
+                color = Color.Black.copy(alpha = 0.15f),
+                topLeft = Offset(0f, -3f),
+                size = size.copy(height = 6f)
             )
         }
         .background(
@@ -137,47 +136,42 @@ fun Modifier.glassFloating(
                     backgroundColor
                 ),
                 startY = 0f,
-                endY = 80f
+                endY = 60f
             )
         )
         .border(
             width = 0.5.dp,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    borderColor.copy(alpha = borderColor.alpha * 1.5f),
-                    borderColor
-                )
-            ),
+            color = borderColor,
             shape = RoundedCornerShape(cornerRadius)
         )
 }
 
 /**
  * Applies a navigation bar glass effect.
- * Subtle frosted appearance for bottom navigation.
+ * Frosted appearance for bottom navigation.
  */
 @Composable
 fun Modifier.glassNavBar(
     isDark: Boolean = true
 ): Modifier {
     val backgroundColor = if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.92f)
+        LithosGlass
     } else {
-        Color(0xFFF2F2F7).copy(alpha = 0.92f)
+        LithosGlassLight
     }
 
     val borderColor = if (isDark) {
-        Color.White.copy(alpha = 0.10f)
+        LithosGlassBorder
     } else {
-        Color.Black.copy(alpha = 0.06f)
+        LithosGlassBorderLight
     }
 
     return this
-        .clip(RoundedCornerShape(GlassShapes.Large))
+        .clip(RoundedCornerShape(LithosShapes.Large))
         .background(
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.03f),
                     backgroundColor
                 ),
                 startY = 0f,
@@ -186,37 +180,32 @@ fun Modifier.glassNavBar(
         )
         .border(
             width = 0.5.dp,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    borderColor.copy(alpha = borderColor.alpha * 1.5f),
-                    borderColor
-                )
-            ),
-            shape = RoundedCornerShape(GlassShapes.Large)
+            color = borderColor,
+            shape = RoundedCornerShape(LithosShapes.Large)
         )
 }
 
 /**
- * Applies glass effect with actual blur on Android 12+.
- * Falls back to standard glass styling on older devices.
+ * Applies glass effect with frosted blur on Android 12+.
+ * Uses standard 20dp blur per Lithos spec.
  */
 @Composable
 fun Modifier.glassEffect(
-    blurRadius: Dp = GlassBlur.Medium,
+    blurRadius: Dp = LithosBlur.Standard,  // 20dp per spec
     isDark: Boolean = true,
-    cornerRadius: Dp = GlassShapes.Medium,
+    cornerRadius: Dp = LithosShapes.Medium,
     borderWidth: Dp = 0.5.dp
 ): Modifier {
     val backgroundColor = if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.75f)
+        LithosSlate.copy(alpha = 0.75f)
     } else {
-        Color(0xFFF2F2F7).copy(alpha = 0.75f)
+        LithosOat.copy(alpha = 0.75f)
     }
 
     val borderColor = if (isDark) {
-        Color.White.copy(alpha = 0.12f)
+        LithosGlassBorder
     } else {
-        Color.Black.copy(alpha = 0.08f)
+        LithosGlassBorderLight
     }
 
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -231,7 +220,7 @@ fun Modifier.glassEffect(
                 } else Modifier
             )
     } else {
-        // Fallback - Just use glass card styling
+        // Fallback - Use glass card styling
         this.glassCard(isDark, cornerRadius)
     }
 }
@@ -242,7 +231,6 @@ fun Modifier.glassEffect(
 
 /**
  * Blurs content when it scrolls behind glass elements.
- * Apply this to scrollable content areas.
  */
 @Composable
 fun Modifier.blurredWhenBehindGlass(
@@ -267,19 +255,18 @@ fun Modifier.blurredWhenBehindGlass(
 
 /**
  * Glass effect that animates blur radius.
- * Useful for focus/unfocus states.
  */
 @Composable
 fun Modifier.animatedGlass(
     targetBlur: Dp,
     isDark: Boolean = true,
-    cornerRadius: Dp = GlassShapes.Medium
+    cornerRadius: Dp = LithosShapes.Medium
 ): Modifier {
     val animatedBlur by animateFloatAsState(
         targetValue = targetBlur.value,
         animationSpec = spring(
-            dampingRatio = GlassMotion.DampingRatio,
-            stiffness = GlassMotion.Stiffness
+            dampingRatio = LithosMotion.DampingRatio,
+            stiffness = LithosMotion.Stiffness
         ),
         label = "blur_animation"
     )
@@ -292,21 +279,21 @@ fun Modifier.animatedGlass(
 }
 
 // ============================================================================
-// GLASS OVERLAY EFFECTS
+// GLASS OVERLAY EFFECTS - Matte, no glow
 // ============================================================================
 
 /**
- * Adds a subtle vibrancy overlay that enhances content visibility.
+ * Adds a subtle vibrancy overlay - matte finish.
  */
 @Composable
 fun Modifier.glassVibrancy(
     isDark: Boolean = true,
-    intensity: Float = 0.1f
+    intensity: Float = 0.08f  // Reduced for matte finish
 ): Modifier {
     val overlayColor = if (isDark) {
         Color.White.copy(alpha = intensity)
     } else {
-        Color.Black.copy(alpha = intensity * 0.5f)
+        Color.Black.copy(alpha = intensity * 0.4f)
     }
 
     return this.drawWithContent {
@@ -325,16 +312,16 @@ fun Modifier.glassVibrancy(
 }
 
 /**
- * Adds a frosted edge highlight effect.
+ * Adds a subtle frosted edge highlight - matte, not shiny.
  */
 @Composable
 fun Modifier.glassHighlight(
     isDark: Boolean = true
 ): Modifier {
     val highlightColor = if (isDark) {
-        Color.White.copy(alpha = 0.15f)
+        Color.White.copy(alpha = 0.08f)  // Reduced for matte
     } else {
-        Color.White.copy(alpha = 0.5f)
+        Color.White.copy(alpha = 0.35f)
     }
 
     return this.drawBehind {
@@ -342,7 +329,7 @@ fun Modifier.glassHighlight(
             brush = Brush.verticalGradient(
                 colors = listOf(highlightColor, Color.Transparent),
                 startY = 0f,
-                endY = 3.dp.toPx()
+                endY = 2.dp.toPx()  // Thinner highlight
             )
         )
     }
@@ -354,14 +341,10 @@ fun Modifier.glassHighlight(
 
 /**
  * Applies hardware-accelerated blur using RenderEffect.
- * This blurs the content OF the composable, creating a frosted appearance
- * when layered over other content.
- *
- * Use on a translucent surface placed over content to create backdrop blur effect.
  */
 @Composable
 fun Modifier.renderBlur(
-    blurRadius: Dp = GlassBlur.Medium
+    blurRadius: Dp = LithosBlur.Standard  // 20dp per spec
 ): Modifier {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         this.graphicsLayer {
@@ -379,35 +362,33 @@ fun Modifier.renderBlur(
 
 /**
  * True frosted glass surface with backdrop blur.
- * On Android 12+, creates actual blur of content behind.
- * On older devices, uses enhanced gradient fallback.
+ * Uses Lithos colors and 20dp standard blur.
  */
 @Composable
 fun Modifier.glassBlurSurface(
-    blurRadius: Dp = GlassBlur.Medium,
+    blurRadius: Dp = LithosBlur.Standard,  // 20dp per spec
     isDark: Boolean = true,
-    cornerRadius: Dp = GlassShapes.Medium
+    cornerRadius: Dp = LithosShapes.Medium
 ): Modifier {
     val backgroundColor = if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.65f)
+        LithosSlate.copy(alpha = 0.65f)
     } else {
-        Color(0xFFF2F2F7).copy(alpha = 0.65f)
+        LithosOat.copy(alpha = 0.65f)
     }
 
     val borderColor = if (isDark) {
-        Color.White.copy(alpha = 0.15f)
+        LithosGlassBorder
     } else {
-        Color.Black.copy(alpha = 0.10f)
+        LithosGlassBorderLight
     }
 
     val topHighlight = if (isDark) {
-        Color.White.copy(alpha = 0.08f)
+        Color.White.copy(alpha = 0.05f)
     } else {
-        Color.White.copy(alpha = 0.3f)
+        Color.White.copy(alpha = 0.25f)
     }
 
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        // Android 12+ - Apply RenderEffect blur then overlay with translucent color
         this
             .graphicsLayer {
                 val radiusPx = blurRadius.toPx()
@@ -427,55 +408,36 @@ fun Modifier.glassBlurSurface(
             )
             .border(
                 width = 0.5.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        borderColor.copy(alpha = borderColor.alpha * 2f),
-                        borderColor
-                    )
-                ),
+                color = borderColor,
                 shape = RoundedCornerShape(cornerRadius)
             )
     } else {
-        // Fallback for older devices - enhanced gradient
         this.glassCard(isDark, cornerRadius)
     }
 }
 
 /**
  * Container that provides blurred backdrop effect.
- * Place content behind this and it will appear blurred through the glass.
- *
- * Usage:
- * Box {
- *     // Background content (will be blurred)
- *     ScrollableContent()
- *
- *     // Glass overlay at bottom
- *     GlassBlurOverlay(
- *         modifier = Modifier.align(Alignment.BottomCenter)
- *     ) {
- *         BottomNavContent()
- *     }
- * }
+ * Uses Lithos colors and frosted blur.
  */
 @Composable
 fun GlassBlurOverlay(
     modifier: Modifier = Modifier,
-    blurRadius: Dp = GlassBlur.Medium,
+    blurRadius: Dp = LithosBlur.Standard,  // 20dp per spec
     isDark: Boolean = true,
-    cornerRadius: Dp = GlassShapes.Large,
+    cornerRadius: Dp = LithosShapes.Large,
     content: @Composable BoxScope.() -> Unit
 ) {
     val backgroundColor = if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.85f)
+        LithosGlass
     } else {
-        Color(0xFFF2F2F7).copy(alpha = 0.85f)
+        LithosGlassLight
     }
 
     val borderColor = if (isDark) {
-        Color.White.copy(alpha = 0.12f)
+        LithosGlassBorder
     } else {
-        Color.Black.copy(alpha = 0.08f)
+        LithosGlassBorderLight
     }
 
     Box(
@@ -483,7 +445,6 @@ fun GlassBlurOverlay(
             .clip(RoundedCornerShape(cornerRadius))
             .then(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    // True blur on Android 12+
                     Modifier.graphicsLayer {
                         val radiusPx = blurRadius.toPx()
                         renderEffect = RenderEffect
@@ -495,19 +456,14 @@ fun GlassBlurOverlay(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDark) 0.05f else 0.3f),
+                        Color.White.copy(alpha = if (isDark) 0.03f else 0.2f),
                         backgroundColor
                     )
                 )
             )
             .border(
                 width = 0.5.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        borderColor.copy(alpha = borderColor.alpha * 1.5f),
-                        borderColor
-                    )
-                ),
+                color = borderColor,
                 shape = RoundedCornerShape(cornerRadius)
             ),
         content = content
@@ -515,16 +471,14 @@ fun GlassBlurOverlay(
 }
 
 /**
- * Applies a saturation and brightness boost for vibrancy effect.
- * Enhances the visual quality of blurred content.
+ * Applies a saturation and brightness boost for vibrancy.
  */
 @Composable
 fun Modifier.vibrancy(
-    saturationBoost: Float = 1.2f
+    saturationBoost: Float = 1.1f  // Reduced for more natural look
 ): Modifier {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         this.graphicsLayer {
-            // Slight saturation increase for vibrancy
             val matrix = android.graphics.ColorMatrix().apply {
                 setSaturation(saturationBoost)
             }
@@ -537,3 +491,56 @@ fun Modifier.vibrancy(
     }
 }
 
+// ============================================================================
+// LITHOS-SPECIFIC GLASS MODIFIERS
+// ============================================================================
+
+/**
+ * Lithos Amber accent glass - subtle amber tint for accent surfaces.
+ * NO glow, matte finish.
+ */
+@Composable
+fun Modifier.lithosAmberGlass(
+    cornerRadius: Dp = LithosShapes.Medium
+): Modifier {
+    return this
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    LithosAmber.copy(alpha = 0.08f),
+                    LithosSlate.copy(alpha = 0.85f)
+                )
+            )
+        )
+        .border(
+            width = 0.5.dp,
+            color = LithosAmber.copy(alpha = 0.15f),
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}
+
+/**
+ * Lithos Moss glass - for Play/Pause button backgrounds.
+ * NO glow, matte finish.
+ */
+@Composable
+fun Modifier.lithosMossGlass(
+    cornerRadius: Dp = LithosShapes.Medium
+): Modifier {
+    return this
+        .clip(RoundedCornerShape(cornerRadius))
+        .background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    LithosMoss.copy(alpha = 0.10f),
+                    LithosSlate.copy(alpha = 0.85f)
+                )
+            )
+        )
+        .border(
+            width = 0.5.dp,
+            color = LithosMoss.copy(alpha = 0.15f),
+            shape = RoundedCornerShape(cornerRadius)
+        )
+}

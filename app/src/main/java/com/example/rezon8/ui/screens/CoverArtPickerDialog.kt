@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,13 +32,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.CoverArtRepository
-import com.mossglen.reverie.ui.theme.GlassBlur
-import com.mossglen.reverie.ui.theme.GlassColors
-import com.mossglen.reverie.ui.theme.GlassShapes
-import com.mossglen.reverie.ui.theme.GlassSpacing
-import com.mossglen.reverie.ui.theme.GlassTypography
-import com.mossglen.reverie.ui.viewmodel.CoverArtViewModel
+import com.mossglen.lithos.data.CoverArtRepository
+import com.mossglen.lithos.ui.theme.GlassBlur
+import com.mossglen.lithos.ui.theme.GlassColors
+import com.mossglen.lithos.ui.theme.GlassShapes
+import com.mossglen.lithos.ui.theme.GlassSpacing
+import com.mossglen.lithos.ui.theme.GlassTypography
+import com.mossglen.lithos.ui.theme.LithosUI
+import com.mossglen.lithos.ui.viewmodel.CoverArtViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -56,8 +57,8 @@ fun CoverArtPickerDialog(
     currentCoverUrl: String?,
     bookTitle: String,
     bookAuthor: String,
-    accentColor: Color = GlassColors.ReverieAccent,
-    isReverieDark: Boolean = false,
+    accentColor: Color = GlassColors.LithosAccent,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit,
     onCoverSelected: (String) -> Unit,
     viewModel: CoverArtViewModel = hiltViewModel()
@@ -70,11 +71,11 @@ fun CoverArtPickerDialog(
     val isSearching by viewModel.isSearching.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
-    // Theme colors
-    val background = if (isReverieDark) Color(0xFF0A0A0A) else Color(0xFF1C1C1E)
-    val glassSurface = if (isReverieDark) GlassColors.GlassPrimary else GlassColors.GlassSecondary
-    val textPrimary = if (isReverieDark) GlassColors.ReverieTextPrimary else GlassColors.TextPrimary
-    val textSecondary = if (isReverieDark) GlassColors.ReverieTextSecondary else GlassColors.TextSecondary
+    // Theme colors - Use ReverieUI constants for consistency
+    val background = if (isOLED) LithosUI.DeepBackground else LithosUI.SheetBackground
+    val glassSurface = if (isOLED) GlassColors.GlassPrimary else GlassColors.GlassSecondary
+    val textPrimary = if (isOLED) GlassColors.LithosPremiumTextPrimary else GlassColors.TextPrimary
+    val textSecondary = if (isOLED) GlassColors.LithosPremiumTextSecondary else GlassColors.TextSecondary
 
     // Gallery picker launcher
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -164,7 +165,7 @@ fun CoverArtPickerDialog(
                                 modifier = Modifier
                                     .size(60.dp)
                                     .clip(RoundedCornerShape(GlassShapes.Small))
-                                    .background(Color(0xFF2C2C2E)),
+                                    .background(LithosUI.CardBackground),
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(modifier = Modifier.width(GlassSpacing.S))
@@ -464,7 +465,7 @@ private fun CoverArtGridItem(
                 shape = RoundedCornerShape(GlassShapes.Small)
             )
             .clickable(onClick = onClick)
-            .background(Color(0xFF2C2C2E))
+            .background(LithosUI.CardBackground)
     ) {
         AsyncImage(
             model = coverUrl,

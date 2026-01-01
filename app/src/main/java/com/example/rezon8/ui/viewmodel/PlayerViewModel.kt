@@ -1,13 +1,13 @@
-package com.mossglen.reverie.ui.viewmodel
+package com.mossglen.lithos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mossglen.reverie.data.AudioHandler
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.BookDao
-import com.mossglen.reverie.data.LibraryRepository
-import com.mossglen.reverie.data.ListeningStatsRepository
-import com.mossglen.reverie.data.SettingsRepository
+import com.mossglen.lithos.data.AudioHandler
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.BookDao
+import com.mossglen.lithos.data.LibraryRepository
+import com.mossglen.lithos.data.ListeningStatsRepository
+import com.mossglen.lithos.data.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,7 +25,7 @@ class PlayerViewModel @Inject constructor(
     private val libraryRepository: LibraryRepository,
     private val listeningStatsRepository: ListeningStatsRepository,
     private val settingsRepository: SettingsRepository,
-    private val autoBookmarkManager: com.mossglen.reverie.data.AutoBookmarkManager
+    private val autoBookmarkManager: com.mossglen.lithos.data.AutoBookmarkManager
 ) : ViewModel() {
 
     // Audio state from handler
@@ -72,6 +72,10 @@ class PlayerViewModel @Inject constructor(
     private var statsTrackerJob: Job? = null
     private var sessionStarted: Boolean = false
 
+    // Smart auto-rewind: track when playback was paused
+    private var lastPauseTimestamp: Long = 0L
+    private var smartAutoRewindEnabled: Boolean = true
+
     init {
         // Progress update loop for UI
         viewModelScope.launch {
@@ -88,6 +92,13 @@ class PlayerViewModel @Inject constructor(
             val savedSpeed = settingsRepository.playbackSpeed.firstOrNull() ?: 1.0f
             _playbackSpeed.value = savedSpeed
             audioHandler.setPlaybackSpeed(savedSpeed)
+        }
+
+        // Load smart auto-rewind setting
+        viewModelScope.launch {
+            settingsRepository.smartAutoRewindEnabled.collect { enabled ->
+                smartAutoRewindEnabled = enabled
+            }
         }
     }
 
@@ -115,15 +126,21 @@ class PlayerViewModel @Inject constructor(
             // Check if we're about to start playing (before toggling)
             val wasNotPlaying = !isPlaying.value
 
+            // Apply smart rewind when resuming from pause
+            if (wasNotPlaying) {
+                applySmartRewind()
+            }
+
             // Toggle playback immediately for instant UI response
             audioHandler.togglePlayPause()
 
-            // Handle auto-bookmark based on play/pause state
+            // Handle auto-bookmark and pause timestamp based on play/pause state
             if (wasNotPlaying) {
                 // About to start playing - notify resume
                 autoBookmarkManager.onResume()
             } else {
-                // About to pause - notify pause with current position
+                // About to pause - record timestamp and notify pause
+                lastPauseTimestamp = System.currentTimeMillis()
                 _currentBook.value?.let { book ->
                     val currentPos = audioHandler.getCurrentPosition()
                     autoBookmarkManager.onPause(book.id, currentPos)
@@ -234,13 +251,47 @@ class PlayerViewModel @Inject constructor(
 
     // Playback controls
     fun play() {
+        // Apply smart auto-rewind if enabled and we have a valid pause timestamp
+        applySmartRewind()
         audioHandler.play()
         // Notify auto-bookmark manager that playback has resumed
         autoBookmarkManager.onResume()
     }
 
+    /**
+     * Calculate and apply smart auto-rewind based on pause duration.
+     * - Short pause (< 1 min): No rewind
+     * - Medium pause (1-5 min): 10 second rewind
+     * - Long pause (> 5 min): 30 second rewind
+     * - Very long pause (> 1 hour): 2 minute rewind
+     */
+    private fun applySmartRewind() {
+        if (!smartAutoRewindEnabled || lastPauseTimestamp == 0L) return
+
+        val pauseDuration = System.currentTimeMillis() - lastPauseTimestamp
+        val currentPos = audioHandler.getCurrentPosition()
+
+        val rewindMs = when {
+            pauseDuration < 60_000L -> 0L                    // < 1 min: no rewind
+            pauseDuration < 5 * 60_000L -> 10_000L          // 1-5 min: 10 sec rewind
+            pauseDuration < 60 * 60_000L -> 30_000L         // 5-60 min: 30 sec rewind
+            else -> 2 * 60_000L                              // > 1 hour: 2 min rewind
+        }
+
+        if (rewindMs > 0 && currentPos > rewindMs) {
+            val newPos = maxOf(0L, currentPos - rewindMs)
+            audioHandler.seekTo(newPos)
+            android.util.Log.d("PlayerViewModel", "Smart rewind: paused for ${pauseDuration / 1000}s, rewound ${rewindMs / 1000}s")
+        }
+
+        // Reset timestamp after applying rewind
+        lastPauseTimestamp = 0L
+    }
+
     fun pause() {
         audioHandler.pause()
+        // Record pause timestamp for smart auto-rewind
+        lastPauseTimestamp = System.currentTimeMillis()
         // Notify auto-bookmark manager that playback has paused
         _currentBook.value?.let { book ->
             val currentPos = audioHandler.getCurrentPosition()
@@ -345,6 +396,35 @@ class PlayerViewModel @Inject constructor(
         _sleepTimerRemaining.value = 0L
         _sleepTimerEndTime.value = null
         _sleepTimerMode.value = null
+    }
+
+    /**
+     * Extend sleep timer by specified minutes.
+     * Only works if a minutes-based timer is active.
+     */
+    fun extendSleepTimer(additionalMinutes: Int = 5) {
+        val currentRemaining = _sleepTimerRemaining.value
+        val currentMode = _sleepTimerMode.value
+
+        // Only extend if timer is active and in MINUTES mode
+        if (currentRemaining > 0 && currentMode == SleepTimerMode.MINUTES) {
+            val additionalMs = additionalMinutes * 60 * 1000L
+            val newEndTime = (_sleepTimerEndTime.value ?: System.currentTimeMillis()) + additionalMs
+            _sleepTimerEndTime.value = newEndTime
+            _sleepTimerRemaining.value = currentRemaining + additionalMs
+
+            // Update the displayed minutes
+            val totalRemainingMinutes = ((currentRemaining + additionalMs) / 60000).toInt()
+            _sleepTimerMinutes.value = totalRemainingMinutes
+        }
+    }
+
+    /**
+     * Check if sleep timer is in warning state (< 2 minutes remaining).
+     */
+    fun isSleepTimerWarning(): Boolean {
+        val remaining = _sleepTimerRemaining.value
+        return remaining > 0 && remaining < 2 * 60 * 1000L // Less than 2 minutes
     }
 
     /**

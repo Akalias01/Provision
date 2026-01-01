@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
@@ -12,9 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.PagerDefaults
-import androidx.compose.foundation.pager.rememberPagerState
+// Pager imports removed - now using HeroCardStack
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,13 +41,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.HomeViewModel
-import com.mossglen.reverie.ui.viewmodel.ListeningStatsViewModel
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.ui.components.HeroCardStack
+import com.mossglen.lithos.haptics.performHaptic
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.HomeViewModel
+import com.mossglen.lithos.ui.viewmodel.ListeningStatsViewModel
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 import java.util.Calendar
 import kotlin.math.abs
@@ -79,7 +78,7 @@ fun NowScreenGlass(
     playerViewModel: PlayerViewModel = hiltViewModel(),
     statsViewModel: ListeningStatsViewModel = hiltViewModel(),
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     accentColor: Color = GlassColors.Interactive,
     onPlayBook: (Book) -> Unit = {},
     onBookClick: (String) -> Unit = {},
@@ -87,9 +86,11 @@ fun NowScreenGlass(
     onSettingsClick: () -> Unit = {},
     onAuthorClick: (String) -> Unit = {},
     onSeriesClick: (String) -> Unit = {},
-    onStatsClick: () -> Unit = {}
+    onStatsClick: () -> Unit = {},
+    onScrollUp: () -> Unit = {},
+    onScrollDown: () -> Unit = {}
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     // State
@@ -100,6 +101,11 @@ fun NowScreenGlass(
     val position by playerViewModel.position.collectAsState()
     val duration by playerViewModel.duration.collectAsState()
 
+    // Sleep Timer State - for interactive ring integration
+    val sleepTimerMinutes by playerViewModel.sleepTimerMinutes.collectAsState()
+    val sleepTimerRemaining by playerViewModel.sleepTimerRemaining.collectAsState()
+    val sleepTimerActive = sleepTimerMinutes != null && sleepTimerRemaining > 0
+
     // Stats for Quick Stats Bar
     val currentStreak by statsViewModel.currentStreak.collectAsState()
     val todayListeningTime by statsViewModel.todayListeningTime.collectAsState()
@@ -109,27 +115,25 @@ fun NowScreenGlass(
     // Goal dialog state
     var showGoalDialog by remember { mutableStateOf(false) }
 
-    // Hero books for swipeable pager (last 5)
-    val heroBooks = remember(recentlyPlayed, currentBook, mostRecentBook) {
+    // Base hero books from state (max 4 most recent)
+    val baseHeroBooks = remember(recentlyPlayed, currentBook, mostRecentBook) {
         val books = mutableListOf<Book>()
         currentBook?.let { books.add(it) }
         mostRecentBook?.let { if (it.id != currentBook?.id) books.add(it) }
         recentlyPlayed.filter { book ->
             book.id != currentBook?.id && book.id != mostRecentBook?.id
-        }.take(3).forEach { books.add(it) }
-        books.take(5)
+        }.take(2).forEach { books.add(it) }
+        books.take(4)
     }
 
-    // Pager state
-    val pagerState = rememberPagerState(initialPage = 0) { heroBooks.size.coerceAtLeast(1) }
+    // Use base hero books directly (carousel doesn't reorder)
+    val heroBooks = baseHeroBooks
 
-    // Auto-scroll back to first page after 5 seconds of inactivity
-    LaunchedEffect(pagerState.currentPage) {
-        if (pagerState.currentPage != 0 && heroBooks.isNotEmpty()) {
-            delay(5000)
-            pagerState.animateScrollToPage(0)
-        }
-    }
+    // Track current card index for dot indicators
+    var currentCardIndex by remember { mutableStateOf(0) }
+
+    // Track swipe progress for background crossfade (0.0 to 1.0)
+    var swipeProgress by remember { mutableStateOf(0f) }
 
     // Recent books for "Up Next" section (exclude current hero)
     val upNextBooks = remember(recentlyPlayed, heroBooks) {
@@ -155,18 +159,38 @@ fun NowScreenGlass(
             .background(theme.background)
     ) {
         if (heroBooks.isNotEmpty()) {
-            val currentHeroBook = heroBooks.getOrNull(pagerState.currentPage) ?: heroBooks.first()
+            // Get current and adjacent books for background crossfade
+            val currentHeroBook = heroBooks.getOrNull(currentCardIndex) ?: heroBooks.firstOrNull() ?: return
+            val nextHeroBook = heroBooks.getOrNull(currentCardIndex + 1)
+            val prevHeroBook = heroBooks.getOrNull(currentCardIndex - 1)
 
-            // Ambient background blur - cover art as atmosphere
-            AsyncImage(
-                model = currentHeroBook.coverUrl,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = 0.3f }
-                    .blur(50.dp),
-                contentScale = ContentScale.Crop
-            )
+            // Ambient background blur - shows current book with crossfade during swipes
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Current book cover (always visible, fades slightly during transition)
+                AsyncImage(
+                    model = currentHeroBook.coverUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = 0.3f * (1f - swipeProgress * 0.5f) }
+                        .blur(50.dp),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Next/Prev book cover (fades in during swipe)
+                val transitionBook = nextHeroBook ?: prevHeroBook
+                if (transitionBook != null && swipeProgress > 0.1f) {
+                    AsyncImage(
+                        model = transitionBook.coverUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = 0.3f * swipeProgress }
+                            .blur(50.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
 
             // Gradient overlay for readability
             Box(
@@ -184,6 +208,24 @@ fun NowScreenGlass(
             )
 
             val scrollState = rememberScrollState()
+
+            // Track scroll direction for pill auto-hide
+            var lastScrollValue by remember { mutableStateOf(0) }
+            LaunchedEffect(scrollState.value) {
+                val scrollDelta = scrollState.value - lastScrollValue
+                // Use threshold to avoid jitter
+                if (abs(scrollDelta) > 10) {
+                    if (scrollDelta > 0) {
+                        // Scrolling down (reading forward) - hide pill
+                        onScrollUp()
+                    } else {
+                        // Scrolling up (looking for controls) - show pill
+                        onScrollDown()
+                    }
+                }
+                lastScrollValue = scrollState.value
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -191,77 +233,53 @@ fun NowScreenGlass(
                     .verticalScroll(scrollState)
             ) {
                 // ══════════════════════════════════════════════════════════════
-                // HEADER ROW - Greeting + Settings Gear
+                // HEADER - Greeting (Settings accessed via Profile tab)
                 // ══════════════════════════════════════════════════════════════
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                        .padding(top = 8.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = greeting,
-                            style = GlassTypography.Display.copy(
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.sp
-                            ),
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Continue reading",
-                            style = GlassTypography.Body.copy(
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = theme.textSecondary
-                        )
-                    }
-
-                    // Settings gear
-                    IconButton(
-                        onClick = {
-                            view.performHaptic(HapticType.LightTap)
-                            onSettingsClick()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = "Settings",
-                            tint = theme.textSecondary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Text(
+                        text = greeting,
+                        style = GlassTypography.Display.copy(
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.sp
+                        ),
+                        color = theme.textPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Continue reading",
+                        style = GlassTypography.Body.copy(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal
+                        ),
+                        color = theme.textSecondary
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // ══════════════════════════════════════════════════════════════
-                // SWIPEABLE HERO CARDS
+                // DEPTH CAROUSEL - Premium flanking card effect
+                // Center card at full scale, side cards tucked behind
+                // Auto-returns to first card after 5 seconds of inactivity
                 // ══════════════════════════════════════════════════════════════
-                HorizontalPager(
-                    state = pagerState,
+                HeroCardStack(
+                    items = heroBooks,
+                    onPageChanged = { index ->
+                        currentCardIndex = index
+                    },
+                    onSwipeProgress = { progress ->
+                        swipeProgress = progress
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    pageSpacing = 16.dp,
-                    beyondViewportPageCount = 1,
-                    flingBehavior = PagerDefaults.flingBehavior(
-                        state = pagerState,
-                        snapPositionalThreshold = 0.35f // Snap when 35% past the page
-                    )
-                ) { page ->
-                    val book = heroBooks.getOrNull(page) ?: return@HorizontalPager
-
-                    // Calculate scale and alpha for parallax effect
-                    val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                    val scale = 1f - (abs(pageOffset) * 0.1f).coerceIn(0f, 0.1f)
-                    val alpha = 1f - (abs(pageOffset) * 0.3f).coerceIn(0f, 0.3f)
-
+                        .height(400.dp)
+                ) { book, centeredness ->
                     HeroCard(
                         book = book,
                         isPlaying = isPlaying && currentBook?.id == book.id,
@@ -269,9 +287,8 @@ fun NowScreenGlass(
                         duration = if (currentBook?.id == book.id && duration > 0) duration else book.duration,
                         accentColor = accentColor,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
-                        scale = scale,
-                        alpha = alpha,
+                        isOLED = isOLED,
+                        centeredness = centeredness, // Smooth 0.0-1.0 for shadow interpolation
                         onPlayClick = {
                             view.performHaptic(HapticType.MediumTap)
                             onPlayBook(book)
@@ -295,104 +312,329 @@ fun NowScreenGlass(
                     )
                 }
 
-                // Page indicators
+                // Dot indicators showing current position
                 if (heroBooks.size > 1) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
                         repeat(heroBooks.size) { index ->
-                            val isSelected = pagerState.currentPage == index
+                            val isSelected = index == currentCardIndex
                             Box(
                                 modifier = Modifier
                                     .padding(horizontal = 4.dp)
-                                    .size(if (isSelected) 8.dp else 6.dp)
+                                    .size(8.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (isSelected) accentColor
-                                        else theme.textSecondary.copy(alpha = 0.3f)
+                                        if (isDark) Color.White.copy(alpha = 0.1f)
+                                        else Color.Black.copy(alpha = 0.08f)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Fill dot when selected
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(accentColor)
                                     )
-                            )
+                                }
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // ══════════════════════════════════════════════════════════════
-                // LISTENING GOAL SECTION - Apple-inspired design
+                // INNOVATIVE LISTENING GOAL SECTION
+                // Features:
+                // - Goal Achievement: Pulsing glow + trophy when goal met
+                // - Sleep Timer: Amber overlay, warning pulse, tap to extend
+                // - Active Listening: Breathing animation while playing
+                // - Streak Fire: Animated flame for hot streaks
                 // ══════════════════════════════════════════════════════════════
                 val goalProgress = if (dailyGoalMinutes > 0) {
                     (todayListeningTime.toFloat() / dailyGoalMinutes.toFloat()).coerceIn(0f, 1f)
                 } else 0f
                 val goalMet = todayListeningTime >= dailyGoalMinutes
+                val sleepTimerWarning = sleepTimerActive && sleepTimerRemaining < 2 * 60 * 1000L
+
+                // Animation: Goal achievement glow pulse
+                val infiniteTransition = rememberInfiniteTransition(label = "goal")
+                val goalGlow by infiniteTransition.animateFloat(
+                    initialValue = 0.8f,
+                    targetValue = 1.2f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(1000, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "goalGlow"
+                )
+
+                // Animation: Sleep timer warning pulse
+                val sleepWarningAlpha by infiniteTransition.animateFloat(
+                    initialValue = 0.3f,
+                    targetValue = 0.8f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(500),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "sleepWarning"
+                )
+
+                // Animation: Breathing while playing
+                val breathingScale by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.03f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2000, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "breathing"
+                )
+
+                // Animation: Streak fire flicker
+                val fireFlicker by infiniteTransition.animateFloat(
+                    initialValue = 0.9f,
+                    targetValue = 1.1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(300),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "fire"
+                )
+
+                // Track goal achievement for haptic feedback (only once per session)
+                var hasTriggeredGoalHaptic by remember { mutableStateOf(false) }
+                LaunchedEffect(goalMet) {
+                    if (goalMet && !hasTriggeredGoalHaptic) {
+                        view.performHaptic(HapticType.Confirm)
+                        hasTriggeredGoalHaptic = true
+                    }
+                }
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(20.dp))
                         .background(
-                            if (isDark) Color.White.copy(alpha = 0.05f)
-                            else Color.Black.copy(alpha = 0.05f)
+                            if (isDark) Color.White.copy(alpha = 0.06f)
+                            else Color.Black.copy(alpha = 0.04f)
                         )
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            view.performHaptic(HapticType.LightTap)
+                            onStatsClick()
+                        }
+                        .padding(16.dp)
                 ) {
-                    // Goal Ring with Today's Listening
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                view.performHaptic(HapticType.LightTap)
-                                showGoalDialog = true
-                            },
-                        contentAlignment = Alignment.Center
+                    // Main Row: Ring + Stats
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Background ring
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val strokeWidth = 8.dp.toPx()
-                            val radius = (size.minDimension - strokeWidth) / 2
+                        // Left: INNOVATIVE Goal Ring (64dp)
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .graphicsLayer {
+                                    // Breathing animation while playing
+                                    if (isPlaying) {
+                                        scaleX = breathingScale
+                                        scaleY = breathingScale
+                                    }
+                                    // Goal glow scale when achieved
+                                    if (goalMet) {
+                                        scaleX = goalGlow * 0.15f + 0.85f
+                                        scaleY = goalGlow * 0.15f + 0.85f
+                                    }
+                                }
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    view.performHaptic(HapticType.LightTap)
+                                    // If sleep timer active, tap to extend (+5 min)
+                                    if (sleepTimerActive) {
+                                        playerViewModel.extendSleepTimer(5)
+                                        view.performHaptic(HapticType.Confirm)
+                                    } else {
+                                        showGoalDialog = true
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val strokeWidth = 6.dp.toPx()
+                                val radius = (size.minDimension - strokeWidth) / 2
 
-                            // Background circle
-                            drawCircle(
-                                color = if (isDark) Color.White.copy(alpha = 0.1f)
-                                else Color.Black.copy(alpha = 0.1f),
-                                radius = radius,
-                                style = Stroke(width = strokeWidth)
-                            )
+                                // Background circle
+                                drawCircle(
+                                    color = if (isDark) Color.White.copy(alpha = 0.12f)
+                                    else Color.Black.copy(alpha = 0.1f),
+                                    radius = radius,
+                                    style = Stroke(width = strokeWidth)
+                                )
 
-                            // Progress arc
-                            drawArc(
-                                color = if (goalMet) Color(0xFF4CAF50) else accentColor,
-                                startAngle = -90f,
-                                sweepAngle = 360f * goalProgress,
-                                useCenter = false,
-                                topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2),
-                                size = androidx.compose.ui.geometry.Size(
-                                    size.width - strokeWidth,
-                                    size.height - strokeWidth
-                                ),
-                                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                            )
+                                // Sleep timer overlay (amber) when active
+                                if (sleepTimerActive) {
+                                    val sleepProgress = if (sleepTimerMinutes != null && sleepTimerMinutes!! > 0) {
+                                        (sleepTimerRemaining.toFloat() / (sleepTimerMinutes!! * 60 * 1000L)).coerceIn(0f, 1f)
+                                    } else 1f
+
+                                    val sleepColor = if (sleepTimerWarning) {
+                                        Color(0xFFFF9800).copy(alpha = sleepWarningAlpha)
+                                    } else {
+                                        Color(0xFFFFB74D).copy(alpha = 0.6f)
+                                    }
+
+                                    drawArc(
+                                        color = sleepColor,
+                                        startAngle = -90f,
+                                        sweepAngle = 360f * sleepProgress,
+                                        useCenter = false,
+                                        topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2),
+                                        size = androidx.compose.ui.geometry.Size(
+                                            size.width - strokeWidth,
+                                            size.height - strokeWidth
+                                        ),
+                                        style = Stroke(width = strokeWidth + 2.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                }
+
+                                // Progress arc (goal)
+                                val progressColor = when {
+                                    goalMet -> Color(0xFF4CAF50)
+                                    else -> accentColor
+                                }
+
+                                // Goal glow effect when achieved
+                                if (goalMet) {
+                                    drawCircle(
+                                        color = Color(0xFF4CAF50).copy(alpha = (goalGlow - 0.8f) * 0.5f),
+                                        radius = radius + 4.dp.toPx(),
+                                        style = Stroke(width = 2.dp.toPx())
+                                    )
+                                }
+
+                                drawArc(
+                                    color = progressColor,
+                                    startAngle = -90f,
+                                    sweepAngle = 360f * goalProgress,
+                                    useCenter = false,
+                                    topLeft = androidx.compose.ui.geometry.Offset(strokeWidth / 2, strokeWidth / 2),
+                                    size = androidx.compose.ui.geometry.Size(
+                                        size.width - strokeWidth,
+                                        size.height - strokeWidth
+                                    ),
+                                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                                )
+                            }
+
+                            // Center: Time or Sleep Timer or Trophy
+                            if (sleepTimerActive) {
+                                // Show sleep timer remaining
+                                val mins = (sleepTimerRemaining / 60000).toInt()
+                                val secs = ((sleepTimerRemaining % 60000) / 1000).toInt()
+                                Text(
+                                    text = if (mins > 0) "${mins}m" else "${secs}s",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (sleepTimerWarning) Color(0xFFFF9800) else Color(0xFFFFB74D)
+                                )
+                            } else if (goalMet) {
+                                // Trophy icon for goal achieved
+                                Icon(
+                                    Icons.Filled.EmojiEvents,
+                                    contentDescription = "Goal achieved!",
+                                    tint = Color(0xFFFFD700),
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .graphicsLayer {
+                                            scaleX = goalGlow * 0.2f + 0.8f
+                                            scaleY = goalGlow * 0.2f + 0.8f
+                                        }
+                                )
+                            } else {
+                                Text(
+                                    text = formatMinutes(todayListeningTime),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = theme.textPrimary
+                                )
+                            }
                         }
 
-                        // Center content
+                        // Center: Goal info + Sleep Timer hint
+                        Column(
+                            modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            if (sleepTimerActive) {
+                                Text(
+                                    text = if (sleepTimerWarning) "⏰ Tap ring +5m" else "Sleep timer on",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (sleepTimerWarning) Color(0xFFFF9800) else Color(0xFFFFB74D)
+                                )
+                                Text(
+                                    text = "Tap ring to add 5 minutes",
+                                    fontSize = 12.sp,
+                                    color = theme.textSecondary
+                                )
+                            } else {
+                                Text(
+                                    text = if (goalMet) "Goal reached!" else "${dailyGoalMinutes - todayListeningTime}m to go",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (goalMet) Color(0xFF4CAF50) else theme.textPrimary
+                                )
+                                Text(
+                                    text = "Daily goal: ${dailyGoalMinutes}m",
+                                    fontSize = 12.sp,
+                                    color = theme.textSecondary
+                                )
+                            }
+                        }
+
+                        // Right: Streak with animated fire
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.LocalFireDepartment,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF6B35),
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer {
+                                            // Flicker animation when streak >= 3
+                                            if (currentStreak >= 3) {
+                                                scaleX = fireFlicker
+                                                scaleY = fireFlicker
+                                            }
+                                        }
+                                )
+                                Text(
+                                    text = "$currentStreak",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFF6B35)
+                                )
+                            }
                             Text(
-                                text = formatMinutes(todayListeningTime),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = theme.textPrimary
-                            )
-                            Text(
-                                text = "today",
+                                text = if (currentStreak >= 7) "🔥 streak" else "streak",
                                 fontSize = 11.sp,
                                 color = theme.textSecondary
                             )
@@ -401,80 +643,67 @@ fun NowScreenGlass(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Goal status text
-                    Text(
-                        text = if (goalMet) "🎉 Goal reached!" else "${dailyGoalMinutes - todayListeningTime}m to go",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (goalMet) Color(0xFF4CAF50) else theme.textSecondary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Stats row
+                    // Bottom Row: Mini stats (Active, Done, Journey link)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        MiniStat(
-                            icon = Icons.Filled.LocalFireDepartment,
-                            value = "$currentStreak",
-                            label = "Streak",
-                            color = Color(0xFFFF6B35),
-                            isDark = isDark
-                        )
-                        MiniStat(
-                            icon = Icons.Outlined.Timer,
-                            value = formatMinutes(todayListeningTime),
-                            label = "Today",
-                            color = accentColor,
-                            isDark = isDark
-                        )
-                        MiniStat(
-                            icon = Icons.Outlined.PlayCircleOutline,
-                            value = "$booksInProgress",
-                            label = "Active",
-                            color = accentColor,
-                            isDark = isDark
-                        )
-                        MiniStat(
-                            icon = Icons.Outlined.CheckCircleOutline,
-                            value = "0",
-                            label = "Done",
-                            color = accentColor,
-                            isDark = isDark
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            // Active books
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Outlined.PlayCircleOutline,
+                                    contentDescription = null,
+                                    tint = theme.textSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "$booksInProgress active",
+                                    fontSize = 12.sp,
+                                    color = theme.textSecondary
+                                )
+                            }
+                            // Currently playing indicator
+                            if (isPlaying) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF4CAF50))
+                                            .graphicsLayer {
+                                                alpha = breathingScale
+                                            }
+                                    )
+                                    Text(
+                                        text = "playing",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF4CAF50)
+                                    )
+                                }
+                            }
+                        }
+
+                        // View Journey link
+                        Text(
+                            text = "Journey →",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = accentColor
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Engaging copy + Journey link
-                    Text(
-                        text = "Listen daily. Watch your progress soar.",
-                        fontSize = 12.sp,
-                        color = theme.textSecondary.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // View full stats button
-                    Text(
-                        text = "View Journey →",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = accentColor,
-                        modifier = Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            view.performHaptic(HapticType.LightTap)
-                            onStatsClick()
-                        }
-                    )
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // ══════════════════════════════════════════════════════════════
                 // UP NEXT - Subtle horizontal scroll of recent books
@@ -533,47 +762,26 @@ fun NowScreenGlass(
             }
         } else {
             // ══════════════════════════════════════════════════════════════
-            // EMPTY STATE - Elegant, inviting (with Settings access)
+            // EMPTY STATE - Elegant, inviting
             // ══════════════════════════════════════════════════════════════
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
             ) {
-                // Header row with settings - always visible
-                Row(
+                // Header - greeting only (settings accessible from Profile)
+                Text(
+                    text = greeting,
+                    style = GlassTypography.Display.copy(
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.sp
+                    ),
+                    color = Color.White,
                     modifier = Modifier
-                        .fillMaxWidth()
                         .padding(horizontal = 24.dp)
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = greeting,
-                        style = GlassTypography.Display.copy(
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.sp
-                        ),
-                        color = Color.White
-                    )
-
-                    // Settings gear - always accessible
-                    IconButton(
-                        onClick = {
-                            view.performHaptic(HapticType.LightTap)
-                            onSettingsClick()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = "Settings",
-                            tint = theme.textSecondary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
+                        .padding(top = 8.dp)
+                )
 
                 // Centered content
                 Column(
@@ -618,15 +826,19 @@ private fun HeroCard(
     duration: Long,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
-    scale: Float,
-    alpha: Float,
+    isOLED: Boolean,
+    centeredness: Float, // 0.0 = off-center, 1.0 = fully centered
     onPlayClick: () -> Unit,
     onTitleClick: () -> Unit,
     onAuthorClick: () -> Unit,
     onSeriesClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
+
+    // Direct interpolation - no animation needed since centeredness is already smooth
+    // Shadow scales from 8f (off-center) to 24f (centered)
+    val cardShadow = 8f + (16f * centeredness)
+    val coverShadow = 4f + (12f * centeredness)
 
     // Calculate progress
     val progress = if (duration > 0) {
@@ -640,144 +852,161 @@ private fun HeroCard(
     // Parse series info for "Book X of Y"
     val seriesDisplay = parseSeriesInfo(book.seriesInfo)
 
-    Column(
+    // Card container with smooth shadow (interpolated from centeredness)
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                this.alpha = alpha
-            },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Cover art - 200dp for visual impact, tappable for play/pause
-        // Per manifest: Cover art is king - no play overlay, tap anywhere plays
-        AsyncImage(
-            model = book.coverUrl,
-            contentDescription = book.title,
-            modifier = Modifier
-                .size(200.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onPlayClick
-                ),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Title - Tappable → Series (if exists) or Book Detail
-        Text(
-            text = book.title,
-            style = GlassTypography.Display.copy(
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold
-            ),
-            color = theme.textPrimary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onTitleClick
-                )
-        )
-
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // Author - Tappable → Author Books
-        Text(
-            text = book.author,
-            style = GlassTypography.Body.copy(
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            color = accentColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onAuthorClick
+                shadowElevation = cardShadow
+                shape = RoundedCornerShape(28.dp)
+                clip = false
+            }
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                if (isOLED) Color(0xFF0A0A0A) // Near black but not pure
+                else if (isDark) Color(0xFF1C1C1E) // Original dark color
+                else Color(0xFFF8F8F8)
             )
-        )
+            .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 4.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Cover art - 240dp for visual impact
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        shadowElevation = coverShadow
+                        shape = RoundedCornerShape(20.dp)
+                        clip = true
+                    }
+            ) {
+                AsyncImage(
+                    model = book.coverUrl,
+                    contentDescription = book.title,
+                    modifier = Modifier
+                        .size(240.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onPlayClick
+                        ),
+                    contentScale = ContentScale.Crop
+                )
+            }
 
-        // Narrator - if available
-        if (book.narrator.isNotBlank()) {
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Title - Tappable → Series (if exists) or Book Detail
             Text(
-                text = "Narrated by ${book.narrator}",
-                style = GlassTypography.Caption.copy(
-                    fontSize = 12.sp
+                text = book.title,
+                style = GlassTypography.Display.copy(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
                 ),
-                color = theme.textSecondary,
+                color = theme.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onTitleClick
+                    )
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Author - Tappable → Author Books
+            Text(
+                text = book.author,
+                style = GlassTypography.Body.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                color = accentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-        }
-
-        // Series info - "Book X of Y" if available
-        if (seriesDisplay.isNotBlank()) {
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = seriesDisplay,
-                style = GlassTypography.Body.copy(
-                    fontSize = 14.sp
-                ),
-                color = theme.textSecondary,
-                maxLines = 1,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = onSeriesClick
+                    onClick = onAuthorClick
                 )
             )
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            // Narrator - if available
+            if (book.narrator.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Narrated by ${book.narrator}",
+                    style = GlassTypography.Caption.copy(fontSize = 12.sp),
+                    color = theme.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+            }
 
-        // Progress bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.7f)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.08f))
-        ) {
+            // Series info - "Book X of Y" if available
+            if (seriesDisplay.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = seriesDisplay,
+                    style = GlassTypography.Body.copy(fontSize = 13.sp),
+                    color = theme.textSecondary,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onSeriesClick
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Progress bar
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(progress)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(accentColor)
-            )
-        }
+                    .fillMaxWidth(0.75f)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(2.5.dp))
+                    .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(2.5.dp))
+                        .background(accentColor)
+                )
+            }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // Progress percentage and time remaining
-        Row(
-            modifier = Modifier.fillMaxWidth(0.7f),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "${(progress * 100).toInt()}%",
-                style = GlassTypography.Caption.copy(fontSize = 12.sp),
-                color = theme.textSecondary
-            )
-            Text(
-                text = timeRemaining,
-                style = GlassTypography.Caption.copy(fontSize = 12.sp),
-                color = theme.textSecondary
-            )
+            // Progress percentage and time remaining
+            Row(
+                modifier = Modifier.fillMaxWidth(0.75f),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "${(progress * 100).toInt()}%",
+                    style = GlassTypography.Caption.copy(fontSize = 12.sp),
+                    color = theme.textSecondary
+                )
+                Text(
+                    text = timeRemaining,
+                    style = GlassTypography.Caption.copy(fontSize = 12.sp),
+                    color = theme.textSecondary
+                )
+            }
         }
     }
 }

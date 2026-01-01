@@ -1,8 +1,9 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -33,11 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.data.Achievement
-import com.mossglen.reverie.data.AchievementCategory
-import com.mossglen.reverie.data.ListeningStats
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.ListeningStatsViewModel
+import com.mossglen.lithos.data.Achievement
+import com.mossglen.lithos.data.AchievementCategory
+import com.mossglen.lithos.data.ListeningStats
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.ListeningStatsViewModel
 import java.time.format.DateTimeFormatter
 
 /**
@@ -50,15 +51,18 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ListeningStatsScreen(
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     onBack: () -> Unit,
     viewModel: ListeningStatsViewModel = hiltViewModel()
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val stats by viewModel.stats.collectAsState()
     val achievements by viewModel.achievements.collectAsState()
     val newlyUnlocked by viewModel.newlyUnlockedAchievements.collectAsState()
+
+    // Theme-aware background color
+    val backgroundColor = LithosUI.background(isDark, isOLED)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -85,7 +89,7 @@ fun ListeningStatsScreen(
                     )
                 )
             },
-            containerColor = theme.background
+            containerColor = backgroundColor
         ) { padding ->
             Column(
                 modifier = Modifier
@@ -103,7 +107,8 @@ fun ListeningStatsScreen(
                     value = stats.totalTimeFormatted,
                     subtitle = "${stats.sessionsCount} sessions",
                     accentColor = accentColor,
-                    isDark = isDark
+                    isDark = isDark,
+                    isOLED = isOLED
                 )
 
                 Spacer(modifier = Modifier.height(GlassSpacing.L))
@@ -113,7 +118,8 @@ fun ListeningStatsScreen(
                     currentStreak = stats.streakDays,
                     longestStreak = stats.longestStreak,
                     accentColor = accentColor,
-                    isDark = isDark
+                    isDark = isDark,
+                    isOLED = isOLED
                 )
 
                 Spacer(modifier = Modifier.height(GlassSpacing.L))
@@ -129,6 +135,7 @@ fun ListeningStatsScreen(
                         value = stats.todayTimeFormatted,
                         accentColor = accentColor,
                         isDark = isDark,
+                        isOLED = isOLED,
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
@@ -137,6 +144,7 @@ fun ListeningStatsScreen(
                         value = stats.weekTimeFormatted,
                         accentColor = accentColor,
                         isDark = isDark,
+                        isOLED = isOLED,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -155,6 +163,7 @@ fun ListeningStatsScreen(
                         subtitle = "books",
                         accentColor = accentColor,
                         isDark = isDark,
+                        isOLED = isOLED,
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
@@ -164,6 +173,7 @@ fun ListeningStatsScreen(
                         subtitle = "total",
                         accentColor = accentColor,
                         isDark = isDark,
+                        isOLED = isOLED,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -174,7 +184,8 @@ fun ListeningStatsScreen(
                 AchievementsSection(
                     achievements = achievements,
                     accentColor = accentColor,
-                    isDark = isDark
+                    isDark = isDark,
+                    isOLED = isOLED
                 )
 
                 Spacer(modifier = Modifier.height(GlassSpacing.XXL))
@@ -183,7 +194,8 @@ fun ListeningStatsScreen(
                 MotivationalMessage(
                     stats = stats,
                     accentColor = accentColor,
-                    isDark = isDark
+                    isDark = isDark,
+                    isOLED = isOLED
                 )
 
                 Spacer(modifier = Modifier.height(GlassSpacing.XXL))
@@ -196,6 +208,7 @@ fun ListeningStatsScreen(
                 achievement = newlyUnlocked.first(),
                 accentColor = accentColor,
                 isDark = isDark,
+                isOLED = isOLED,
                 onDismiss = { viewModel.dismissNewlyUnlockedAchievements() }
             )
         }
@@ -208,21 +221,33 @@ private fun HeroStatCard(
     value: String,
     subtitle: String,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
+
+    // Theme-aware card background with visible border
+    val cardBackground = if (isDark) {
+        Color.White.copy(alpha = 0.05f)
+    } else {
+        Color.Black.copy(alpha = 0.05f)
+    }
+
+    val borderColor = if (isDark) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        Color.Black.copy(alpha = 0.10f)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Large))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = 0.15f),
-                        accentColor.copy(alpha = 0.05f)
-                    )
-                )
+            .background(cardBackground)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(GlassShapes.Large)
             )
             .padding(GlassSpacing.XL),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -257,47 +282,72 @@ private fun StreakCard(
     currentStreak: Int,
     longestStreak: Int,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
 
-    // Animated flame for active streaks
-    val infiniteTransition = rememberInfiniteTransition(label = "flame")
-    val flameScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
+    // Theme-aware card background with visible border
+    val cardBackground = if (isDark) {
+        Color.White.copy(alpha = 0.05f)
+    } else {
+        Color.Black.copy(alpha = 0.05f)
+    }
+
+    val borderColor = if (isDark) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        Color.Black.copy(alpha = 0.10f)
+    }
+
+    // Inactive streak icon background - theme aware
+    val inactiveBackground = if (isDark) {
+        Color.White.copy(alpha = 0.08f)
+    } else {
+        Color.Black.copy(alpha = 0.08f)
+    }
+
+    // Subtle pulse animation for active streaks - premium feel
+    val infiniteTransition = rememberInfiniteTransition(label = "streak_pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.30f,
         animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = FastOutSlowInEasing),
+            animation = tween(1200, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "flame_scale"
+        label = "pulse_alpha"
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(
-                if (isDark) Color(0xFF1C1C1E).copy(alpha = 0.8f)
-                else Color(0xFFF2F2F7).copy(alpha = 0.8f)
+            .background(cardBackground)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(GlassShapes.Medium)
             )
             .padding(GlassSpacing.L),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Streak icon with animation
+        // Streak icon - matte finish, no emoji
         Box(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
                 .background(
-                    if (currentStreak > 0) accentColor.copy(alpha = 0.2f)
-                    else theme.glassSecondary
+                    if (currentStreak > 0) accentColor.copy(alpha = pulseAlpha)
+                    else inactiveBackground
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = if (currentStreak > 0) "🔥" else "❄️",
-                fontSize = if (currentStreak > 0) (24 * flameScale).sp else 24.sp
+            Icon(
+                imageVector = if (currentStreak > 0) Icons.Rounded.Whatshot else Icons.Rounded.Schedule,
+                contentDescription = null,
+                tint = if (currentStreak > 0) accentColor else theme.textTertiary,
+                modifier = Modifier.size(28.dp)
             )
         }
 
@@ -305,16 +355,16 @@ private fun StreakCard(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = if (currentStreak > 0) "$currentStreak day streak!" else "Start a streak!",
+                text = if (currentStreak > 0) "$currentStreak Day Streak" else "Start Your Streak",
                 style = GlassTypography.Headline,
                 fontWeight = FontWeight.SemiBold,
                 color = if (currentStreak > 0) accentColor else theme.textPrimary
             )
             Text(
                 text = if (currentStreak > 0) {
-                    "Keep listening daily to grow your streak"
+                    "Keep listening daily to maintain momentum"
                 } else {
-                    "Listen today to start your streak"
+                    "Listen today to begin your journey"
                 },
                 style = GlassTypography.Caption,
                 color = theme.textSecondary
@@ -324,8 +374,11 @@ private fun StreakCard(
         if (longestStreak > 0) {
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "Best",
-                    style = GlassTypography.Caption,
+                    text = "BEST",
+                    style = GlassTypography.Caption.copy(
+                        fontSize = 10.sp,
+                        letterSpacing = 1.sp
+                    ),
                     color = theme.textTertiary
                 )
                 Text(
@@ -347,16 +400,32 @@ private fun StatCard(
     subtitle: String? = null,
     accentColor: Color,
     isDark: Boolean,
+    isOLED: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
+
+    // Theme-aware card background with visible border
+    val cardBackground = if (isDark) {
+        Color.White.copy(alpha = 0.05f)
+    } else {
+        Color.Black.copy(alpha = 0.05f)
+    }
+
+    val borderColor = if (isDark) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        Color.Black.copy(alpha = 0.10f)
+    }
 
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(
-                if (isDark) Color(0xFF1C1C1E).copy(alpha = 0.8f)
-                else Color(0xFFF2F2F7).copy(alpha = 0.8f)
+            .background(cardBackground)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(GlassShapes.Medium)
             )
             .padding(GlassSpacing.M),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -399,39 +468,62 @@ private fun StatCard(
 private fun MotivationalMessage(
     stats: ListeningStats,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
 
+    // Premium motivational messages - no emojis, sophisticated tone
     val message = when {
-        stats.streakDays >= 30 -> "🏆 Legendary! A month-long streak!"
-        stats.streakDays >= 14 -> "🌟 Two weeks strong! You're unstoppable!"
-        stats.streakDays >= 7 -> "💪 A full week! Great consistency!"
-        stats.streakDays >= 3 -> "🔥 3+ days! Keep the momentum!"
-        stats.booksCompleted >= 10 -> "📚 10+ books completed! Voracious reader!"
-        stats.booksCompleted >= 5 -> "📖 5 books down! Well done!"
-        stats.totalTimeMs >= 36_000_000L -> "⏱️ 10+ hours of listening! Dedicated!"
-        stats.totalTimeMs >= 3_600_000L -> "🎧 Over an hour logged!"
-        stats.sessionsCount > 0 -> "👋 Great start! Keep listening!"
-        else -> "🎯 Start listening to track your progress!"
+        stats.streakDays >= 30 -> "Legendary consistency. A month of dedication."
+        stats.streakDays >= 14 -> "Two weeks of excellence. Unstoppable momentum."
+        stats.streakDays >= 7 -> "A full week of commitment. Outstanding discipline."
+        stats.streakDays >= 3 -> "Building momentum. Three days and counting."
+        stats.booksCompleted >= 10 -> "A voracious reader. Ten books conquered."
+        stats.booksCompleted >= 5 -> "Five books complete. Impressive progress."
+        stats.totalTimeMs >= 36_000_000L -> "Ten hours invested. Truly dedicated."
+        stats.totalTimeMs >= 3_600_000L -> "Your journey has begun. Keep going."
+        stats.sessionsCount > 0 -> "Every session counts. Well begun."
+        else -> "Begin your listening journey today."
     }
 
-    Text(
-        text = message,
-        style = GlassTypography.Body,
-        color = theme.textSecondary,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(horizontal = GlassSpacing.L)
-    )
+    // Theme-aware motivational message background
+    val messageBackground = accentColor.copy(alpha = if (isDark) 0.12f else 0.10f)
+    val borderColor = accentColor.copy(alpha = if (isDark) 0.25f else 0.20f)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(GlassShapes.Medium))
+            .background(messageBackground)
+            .border(
+                width = 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(GlassShapes.Medium)
+            )
+            .padding(horizontal = GlassSpacing.L, vertical = GlassSpacing.M),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = message,
+            style = GlassTypography.Body.copy(
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.25.sp
+            ),
+            color = accentColor,
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 @Composable
 private fun AchievementsSection(
     achievements: List<Achievement>,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Section header
@@ -465,7 +557,8 @@ private fun AchievementsSection(
                     category = category,
                     achievements = categoryAchievements,
                     accentColor = accentColor,
-                    isDark = isDark
+                    isDark = isDark,
+                    isOLED = isOLED
                 )
                 Spacer(modifier = Modifier.height(GlassSpacing.M))
             }
@@ -478,9 +571,10 @@ private fun AchievementCategorySection(
     category: AchievementCategory,
     achievements: List<Achievement>,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Category name
@@ -499,7 +593,8 @@ private fun AchievementCategorySection(
                 AchievementBadge(
                     achievement = achievement,
                     accentColor = accentColor,
-                    isDark = isDark
+                    isDark = isDark,
+                    isOLED = isOLED
                 )
             }
         }
@@ -510,14 +605,35 @@ private fun AchievementCategorySection(
 private fun AchievementBadge(
     achievement: Achievement,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark)
-    val backgroundColor = if (achievement.isUnlocked) {
-        accentColor.copy(alpha = 0.15f)
+    val theme = glassTheme(isDark, isOLED)
+
+    // Theme-aware card background with visible border
+    val cardBackground = if (isDark) {
+        Color.White.copy(alpha = 0.05f)
     } else {
-        if (isDark) Color(0xFF1C1C1E).copy(alpha = 0.5f)
-        else Color(0xFFF2F2F7).copy(alpha = 0.5f)
+        Color.Black.copy(alpha = 0.05f)
+    }
+
+    val borderColor = if (isDark) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        Color.Black.copy(alpha = 0.10f)
+    }
+
+    // Unlocked state uses accent color
+    val backgroundColor = if (achievement.isUnlocked) {
+        accentColor.copy(alpha = if (isDark) 0.15f else 0.12f)
+    } else {
+        cardBackground
+    }
+
+    val actualBorderColor = if (achievement.isUnlocked) {
+        accentColor.copy(alpha = if (isDark) 0.30f else 0.25f)
+    } else {
+        borderColor
     }
 
     val iconColor = if (achievement.isUnlocked) {
@@ -526,11 +642,23 @@ private fun AchievementBadge(
         theme.textTertiary
     }
 
+    // Icon background - theme aware
+    val iconBackground = if (achievement.isUnlocked) {
+        accentColor.copy(alpha = 0.2f)
+    } else {
+        if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
             .background(backgroundColor)
+            .border(
+                width = 1.dp,
+                color = actualBorderColor,
+                shape = RoundedCornerShape(GlassShapes.Medium)
+            )
             .padding(GlassSpacing.M),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -539,10 +667,7 @@ private fun AchievementBadge(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(
-                    if (achievement.isUnlocked) accentColor.copy(alpha = 0.2f)
-                    else theme.glassSecondary
-                ),
+                .background(iconBackground),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -606,9 +731,18 @@ private fun AchievementUnlockedToast(
     achievement: Achievement,
     accentColor: Color,
     isDark: Boolean,
+    isOLED: Boolean = false,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark)
+    val theme = glassTheme(isDark, isOLED)
+
+    // Theme-aware dialog background
+    val dialogBackground = LithosUI.sheetBackground(isDark, isOLED)
+    val borderColor = if (isDark) {
+        accentColor.copy(alpha = 0.25f)
+    } else {
+        accentColor.copy(alpha = 0.20f)
+    }
 
     LaunchedEffect(achievement) {
         kotlinx.coroutines.delay(4000)
@@ -620,19 +754,17 @@ private fun AchievementUnlockedToast(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(GlassShapes.Large))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            accentColor.copy(alpha = 0.3f),
-                            accentColor.copy(alpha = 0.15f)
-                        )
-                    )
+                .background(dialogBackground)
+                .border(
+                    width = 1.dp,
+                    color = borderColor,
+                    shape = RoundedCornerShape(GlassShapes.Large)
                 )
                 .padding(GlassSpacing.XL),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Animated icon
-            val infiniteTransition = rememberInfiniteTransition(label = "achievement_glow")
+            // Animated icon - matte finish, no glow
+            val infiniteTransition = rememberInfiniteTransition(label = "achievement_scale")
             val scale by infiniteTransition.animateFloat(
                 initialValue = 1f,
                 targetValue = 1.1f,

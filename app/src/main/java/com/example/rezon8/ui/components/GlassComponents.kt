@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.components
+package com.mossglen.lithos.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -30,9 +30,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
 import androidx.compose.ui.platform.LocalView
 
 /**

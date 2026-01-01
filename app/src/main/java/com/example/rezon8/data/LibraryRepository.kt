@@ -1,4 +1,4 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
 
 import android.content.Context
 import android.content.Intent
@@ -9,11 +9,14 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import com.mossglen.reverie.util.CrashReporter
+import com.mossglen.lithos.util.CrashReporter
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -26,9 +29,11 @@ class LibraryRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val bookDao: BookDao,
     private val metadataRepository: MetadataRepository,
+    private val coverArtRepository: CoverArtRepository,
     private val torrentManager: dagger.Lazy<TorrentManager>  // Lazy to avoid circular dependency
 ) {
     private val gson = Gson()
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
         private const val TAG = "LibraryRepository"
@@ -252,15 +257,20 @@ class LibraryRepository @Inject constructor(
 
         Log.d(TAG, "importBook: No duplicate found, proceeding with import")
 
-        // 5. Extract Metadata (Best Effort)
+        // 5. Extract Metadata (Best Effort) - Using enhanced parsing
         Log.d(TAG, "importBook: Extracting metadata...")
-        var title = filename.substringBeforeLast(".")
-            .replace("_", " ")
-            .replace("-", " ")
-            .trim()
-        var artist = "Unknown Author"
+
+        // First, parse filename for metadata hints
+        val folderPath = uri.path?.substringBeforeLast("/")
+        val filenameParsed = MetadataRepository.parseFilename(filename, folderPath)
+        Log.d(TAG, "importBook: Filename parsed - title: ${filenameParsed.title}, author: ${filenameParsed.author}, series: ${filenameParsed.series}")
+
+        var title = filenameParsed.title
+        var artist = filenameParsed.author ?: "Unknown Author"
         var duration = 0L
         var coverPath: String? = null
+        var seriesInfo = ""
+        var narratorName = ""
 
         if (format == "AUDIO") {
             Log.d(TAG, "importBook: Extracting audio metadata with MediaMetadataRetriever")
@@ -268,15 +278,41 @@ class LibraryRepository @Inject constructor(
             try {
                 retriever.setDataSource(context, effectiveUri)
 
+                // Extract all relevant metadata tags
                 val metaTitle = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
                 val metaArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                val metaAlbum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                val metaAlbumArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
                 val metaDur = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
 
-                Log.d(TAG, "importBook: Extracted - Title: $metaTitle, Artist: $metaArtist, Duration: $metaDur")
+                Log.d(TAG, "importBook: Raw tags - Title: $metaTitle, Artist: $metaArtist, Album: $metaAlbum, AlbumArtist: $metaAlbumArtist")
 
-                if (!metaTitle.isNullOrBlank()) title = metaTitle
-                if (!metaArtist.isNullOrBlank()) artist = metaArtist
+                // Parse embedded metadata using enhanced parsing
+                val embeddedParsed = MetadataRepository.parseEmbeddedMetadata(
+                    rawTitle = metaTitle,
+                    rawArtist = metaArtist,
+                    rawAlbum = metaAlbum,
+                    rawAlbumArtist = metaAlbumArtist
+                )
+                Log.d(TAG, "importBook: Embedded parsed - title: ${embeddedParsed.title}, author: ${embeddedParsed.author}, series: ${embeddedParsed.series}, narrator: ${embeddedParsed.narrator}")
+
+                // Merge filename and embedded metadata
+                val mergedMetadata = MetadataRepository.mergeMetadataSources(filenameParsed, embeddedParsed)
+                Log.d(TAG, "importBook: Merged metadata - title: ${mergedMetadata.title}, author: ${mergedMetadata.author}, series: ${mergedMetadata.series}")
+
+                // Apply merged metadata
+                title = mergedMetadata.title
+                artist = mergedMetadata.author ?: "Unknown Author"
                 if (!metaDur.isNullOrBlank()) duration = metaDur.toLongOrNull() ?: 0L
+
+                // Build series info from merged data
+                seriesInfo = if (mergedMetadata.series != null && mergedMetadata.bookNumber != null) {
+                    val numStr = if (mergedMetadata.bookNumber % 1 == 0f) mergedMetadata.bookNumber.toInt().toString() else mergedMetadata.bookNumber.toString()
+                    "${mergedMetadata.series} #$numStr"
+                } else {
+                    mergedMetadata.series ?: ""
+                }
+                narratorName = mergedMetadata.narrator ?: ""
 
                 // Extract and save cover art
                 val artBytes = retriever.embeddedPicture
@@ -289,24 +325,41 @@ class LibraryRepository @Inject constructor(
                     Log.d(TAG, "importBook: Saved cover to external: $coverPath")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "importBook: Metadata extraction failed, using defaults", e)
+                Log.e(TAG, "importBook: Metadata extraction failed, using filename defaults", e)
                 CrashReporter.logError("Failed to extract metadata from file: $filename", e)
                 CrashReporter.setCustomKey("import_file_name", filename)
                 CrashReporter.setCustomKey("import_file_format", format)
+                // Fall back to filename-parsed data
+                seriesInfo = if (filenameParsed.series != null && filenameParsed.bookNumber != null) {
+                    val numStr = if (filenameParsed.bookNumber % 1 == 0f) filenameParsed.bookNumber.toInt().toString() else filenameParsed.bookNumber.toString()
+                    "${filenameParsed.series} #$numStr"
+                } else {
+                    filenameParsed.series ?: ""
+                }
+                narratorName = filenameParsed.narrator ?: ""
             } finally {
                 try {
                     retriever.release()
                 } catch (_: Exception) {}
             }
+        } else {
+            // Non-audio: Use filename-parsed data
+            seriesInfo = if (filenameParsed.series != null && filenameParsed.bookNumber != null) {
+                val numStr = if (filenameParsed.bookNumber % 1 == 0f) filenameParsed.bookNumber.toInt().toString() else filenameParsed.bookNumber.toString()
+                "${filenameParsed.series} #$numStr"
+            } else {
+                filenameParsed.series ?: ""
+            }
+            narratorName = filenameParsed.narrator ?: ""
         }
 
-        Log.d(TAG, "importBook: Final metadata - Title: $title, Author: $artist, Duration: $duration")
+        Log.d(TAG, "importBook: Final metadata - Title: $title, Author: $artist, Series: $seriesInfo, Narrator: $narratorName, Duration: $duration")
 
         // 6. Extract Chapters from audio metadata
         Log.d(TAG, "importBook: Extracting chapters...")
         val chapters: List<Chapter> = if (format == "AUDIO") {
             try {
-                val extractedChapters = com.mossglen.reverie.util.ChapterExtractor.extractChapters(context, effectiveUri)
+                val extractedChapters = com.mossglen.lithos.util.ChapterExtractor.extractChapters(context, effectiveUri)
                 Log.d(TAG, "importBook: Extracted ${extractedChapters.size} chapters")
                 extractedChapters
             } catch (e: Exception) {
@@ -321,10 +374,6 @@ class LibraryRepository @Inject constructor(
 
         // 7. FORCE Insert to Database (This ALWAYS happens)
         Log.d(TAG, "importBook: Creating Book entity...")
-        // Extract series info and narrator from title automatically
-        val seriesInfo = MetadataRepository.extractSeriesInfo(title) ?: ""
-        val narrator = MetadataRepository.extractNarrator(title) ?: ""
-        Log.d(TAG, "importBook: Extracted series info: $seriesInfo, narrator: $narrator")
         // Use effectiveUri for file path to ensure persistent access
         val book = Book(
             id = UUID.randomUUID().toString(),
@@ -338,7 +387,7 @@ class LibraryRepository @Inject constructor(
             lastPlayedTimestamp = System.currentTimeMillis(),
             chapters = chapters,
             seriesInfo = seriesInfo,
-            narrator = narrator
+            narrator = narratorName
         )
 
         Log.d(TAG, "importBook: Inserting book into database: ${book.id}")
@@ -361,6 +410,21 @@ class LibraryRepository @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "importBook: Online metadata fetch failed: ${e.message}")
             // Don't crash report here - MetadataRepository handles its own logging
+        }
+
+        // 9. Auto-replace non-square cover art (background, non-blocking)
+        scope.launch {
+            try {
+                Log.d(TAG, "importBook: Checking cover art for auto-replacement...")
+                coverArtRepository.autoReplaceNonSquareCover(
+                    bookId = book.id,
+                    currentCoverPath = coverPath,
+                    title = title,
+                    author = artist
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "importBook: Cover auto-replace failed: ${e.message}")
+            }
         }
 
         // Return the book for further processing (e.g., torrent auto-metadata)
@@ -559,6 +623,20 @@ class LibraryRepository @Inject constructor(
             bookDao.insertBook(book)
             Log.d("LibraryRepository", "Imported split chapter audiobook: $bookTitle with ${chapters.size} chapters")
 
+            // Auto-replace non-square cover art (background, non-blocking)
+            scope.launch {
+                try {
+                    coverArtRepository.autoReplaceNonSquareCover(
+                        bookId = book.id,
+                        currentCoverPath = coverPath,
+                        title = bookTitle,
+                        author = author
+                    )
+                } catch (e: Exception) {
+                    Log.w("LibraryRepository", "Cover auto-replace failed for split chapter book: ${e.message}")
+                }
+            }
+
             return book
 
         } catch (e: Exception) {
@@ -699,7 +777,7 @@ class LibraryRepository @Inject constructor(
 
             // Extract chapters
             val uri = Uri.parse(book.filePath)
-            val chapters = com.mossglen.reverie.util.ChapterExtractor.extractChapters(context, uri)
+            val chapters = com.mossglen.lithos.util.ChapterExtractor.extractChapters(context, uri)
 
             if (chapters.isNotEmpty()) {
                 updateChapters(bookId, chapters)
@@ -772,6 +850,90 @@ class LibraryRepository @Inject constructor(
                             putLong("progress", book.progress)
                             putInt("progressPercent", progressPercent)
                         })
+                        .build()
+                )
+                .build()
+        }
+    }
+
+    // ===== Android Auto Browsing Methods =====
+
+    /**
+     * Get unique authors from audiobooks for Android Auto browsing.
+     */
+    suspend fun getUniqueAuthorsForAuto(): List<String> = withContext(Dispatchers.IO) {
+        bookDao.getAllBooksDirect()
+            .filter { it.format == "AUDIO" && it.author.isNotBlank() && !it.author.equals("Unknown Author", ignoreCase = true) }
+            .map { it.author.trim() }
+            .distinct()
+            .sorted()
+    }
+
+    /**
+     * Get unique series from audiobooks for Android Auto browsing.
+     */
+    suspend fun getUniqueSeriesForAuto(): List<String> = withContext(Dispatchers.IO) {
+        bookDao.getAllBooksDirect()
+            .filter { it.format == "AUDIO" && it.seriesInfo.isNotBlank() }
+            .map { it.seriesInfo.trim() }
+            .distinct()
+            .sorted()
+    }
+
+    /**
+     * Get audiobooks by author for Android Auto browsing.
+     */
+    suspend fun getAudiobooksByAuthorForAuto(author: String): List<MediaItem> = withContext(Dispatchers.IO) {
+        val books = bookDao.getAllBooksDirect()
+            .filter { it.format == "AUDIO" && it.author.equals(author, ignoreCase = true) }
+            .sortedByDescending { it.lastPlayedTimestamp }
+
+        Log.d(TAG, "getAudiobooksByAuthorForAuto: $author has ${books.size} books")
+
+        books.map { book ->
+            val progressPercent = if (book.duration > 0) ((book.progress.toFloat() / book.duration) * 100).toInt() else 0
+            MediaItem.Builder()
+                .setMediaId(book.id)
+                .setUri(book.filePath)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(book.title)
+                        .setArtist(book.author)
+                        .setSubtitle(if (book.progress > 0) "$progressPercent% complete" else book.seriesInfo.ifEmpty { "Not started" })
+                        .setArtworkUri(getContentUriForCover(book.coverUrl))
+                        .setIsBrowsable(false)
+                        .setIsPlayable(true)
+                        .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
+                        .build()
+                )
+                .build()
+        }
+    }
+
+    /**
+     * Get audiobooks by series for Android Auto browsing.
+     */
+    suspend fun getAudiobooksBySeriesForAuto(series: String): List<MediaItem> = withContext(Dispatchers.IO) {
+        val books = bookDao.getAllBooksDirect()
+            .filter { it.format == "AUDIO" && it.seriesInfo.equals(series, ignoreCase = true) }
+            .sortedBy { it.title } // Sort alphabetically for series order
+
+        Log.d(TAG, "getAudiobooksBySeriesForAuto: $series has ${books.size} books")
+
+        books.map { book ->
+            val progressPercent = if (book.duration > 0) ((book.progress.toFloat() / book.duration) * 100).toInt() else 0
+            MediaItem.Builder()
+                .setMediaId(book.id)
+                .setUri(book.filePath)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(book.title)
+                        .setArtist(book.author)
+                        .setSubtitle(if (book.progress > 0) "$progressPercent% complete" else "Not started")
+                        .setArtworkUri(getContentUriForCover(book.coverUrl))
+                        .setIsBrowsable(false)
+                        .setIsPlayable(true)
+                        .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
                         .build()
                 )
                 .build()

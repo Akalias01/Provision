@@ -1,4 +1,4 @@
-package com.mossglen.reverie
+package com.mossglen.lithos
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.mossglen.reverie", appContext.packageName)
+        assertEquals("com.mossglen.lithos", appContext.packageName)
     }
 }

@@ -1,21 +1,21 @@
-package com.mossglen.reverie.ui.theme
+package com.mossglen.lithos.ui.theme
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
 /**
- * Reverie E-Reader Theme System
+ * LITHOS AMBER E-Reader Theme System
  *
- * Per PROJECT_MANIFEST:
- * "Audiobooks = Always dark, Slate Gray accent"
- * "Ebooks = User chooses theme, Moss Green accent"
+ * Reading modes use natural, eye-friendly colors:
+ * - Oat (warm cream) for comfortable light reading
+ * - Moss accent for reading highlights
+ * - Amber accent for audio/playback elements
  *
- * This provides dedicated reading themes that feel like a book reader,
- * not an audiobook player.
+ * Design Philosophy:
+ * - NO neon/glowing effects
+ * - Matte/satin finishes
+ * - Natural materials aesthetic
  */
 
 // ============================================================================
@@ -23,11 +23,13 @@ import androidx.compose.ui.unit.sp
 // ============================================================================
 
 enum class ReaderThemeType {
-    PAPER,      // Warm cream background, dark text - like physical paper
-    SEPIA,      // Classic sepia like Kindle - reduces eye strain
-    NIGHT,      // OLED black for dark environments
-    DARK_GRAY,  // Softer dark mode - easier on eyes than pure black
-    CUSTOM      // User-defined colors
+    APP_DEFAULT,  // Follows main app theme (Light/Dark/OLED) - DEFAULT
+    PAPER,        // Warm Oat background - comfortable light reading
+    SEPIA,        // Classic sepia - reduces eye strain
+    AMBER,        // Warm golden tone - evening reading
+    NIGHT,        // OLED black - dark environments
+    DARK_GRAY,    // Slate background - softer dark mode
+    CUSTOM        // User-defined colors
 }
 
 // ============================================================================
@@ -58,139 +60,245 @@ data class ReaderThemeData(
     val controlsText: Color,
     val dividerColor: Color,
     val isDark: Boolean,
-    // ===== Premium Glass Morphism Properties =====
-    val glassSurface: Color = controlsBackground,          // Glass overlay surface
-    val glassBlur: Float = 20f,                            // Blur intensity
-    val glassBorder: Color = accentColor.copy(alpha = 0.2f), // Subtle accent border
-    val glassShadow: Color = Color.Black.copy(alpha = 0.1f), // Soft shadow
-    val glassHighlight: Color = Color.White.copy(alpha = 0.05f), // Top edge highlight
-    val pillBackground: Color = controlsBackground.copy(alpha = 0.95f), // Pill nav background
-    val pillBorder: Color = accentColor.copy(alpha = 0.25f), // Pill accent border
-    val cardGlow: Color = accentColor.copy(alpha = 0.08f), // Subtle glow behind cards
-    val statusBarOverlay: Color = backgroundColor.copy(alpha = 0.8f) // Status bar blend
+    // ===== Lithos Glass Properties - Matte, no glow =====
+    val glassSurface: Color = controlsBackground,
+    val glassBlur: Float = 20f,                           // Standard 20dp blur
+    val glassBorder: Color = accentColor.copy(alpha = 0.15f), // Subtle border, reduced
+    val glassShadow: Color = Color.Black.copy(alpha = 0.08f), // Minimal shadow
+    val glassHighlight: Color = Color.White.copy(alpha = 0.03f), // Very subtle highlight
+    val pillBackground: Color = controlsBackground.copy(alpha = 0.92f),
+    val pillBorder: Color = accentColor.copy(alpha = 0.20f),
+    val cardGlow: Color = Color.Transparent,              // NO glow per Lithos spec
+    val statusBarOverlay: Color = backgroundColor.copy(alpha = 0.8f)
 )
 
 // ============================================================================
-// PRE-DEFINED READER THEMES
+// PRE-DEFINED READER THEMES - Lithos Design Language
 // ============================================================================
 
 object ReaderThemes {
 
-    // Moss Green accent for reading (per manifest)
-    private val MossGreen = Color(0xFF6B7F5E)
-    private val MossGreenLight = Color(0xFF8FA07E)
+    // Moss accent for reading (natural, forest-inspired)
+    private val MossAccent = LithosMoss
+    private val MossAccentLight = LithosMossLight
 
     /**
-     * PAPER - Warm cream background like a physical book page
-     * Default for daytime reading
-     * Premium glass: Subtle cream glass with moss green accents
+     * APP DEFAULT - Light mode (Lithos Oat)
+     * Uses the main app's light theme colors for reading
+     */
+    val AppDefaultLight = ReaderThemeData(
+        name = "App Light",
+        backgroundColor = LithosOat,
+        textColor = LithosTextPrimaryLight,
+        textSecondaryColor = LithosTextSecondaryLight,
+        accentColor = LithosAmber,
+        linkColor = LithosAmber,
+        highlightColor = LithosAmber.copy(alpha = 0.30f),
+        controlsBackground = LithosSurfaceLight,
+        controlsText = LithosTextPrimaryLight,
+        dividerColor = LithosDividerLight,
+        isDark = false,
+        glassSurface = LithosSurfaceLight.copy(alpha = 0.92f),
+        glassBorder = Color.Black.copy(alpha = 0.08f),
+        glassHighlight = Color.White.copy(alpha = 0.3f),
+        pillBackground = Color(0xFFF2F2F7).copy(alpha = 0.95f),
+        pillBorder = Color.Black.copy(alpha = 0.08f),
+        cardGlow = Color.Transparent
+    )
+
+    /**
+     * APP DEFAULT - Dark mode (Lithos Slate)
+     * Uses the main app's dark theme colors for reading
+     */
+    val AppDefaultDark = ReaderThemeData(
+        name = "App Dark",
+        backgroundColor = LithosSlate,
+        textColor = LithosTextPrimary.copy(alpha = 0.87f),
+        textSecondaryColor = LithosTextSecondary,
+        accentColor = LithosAmber,
+        linkColor = LithosAmber,
+        highlightColor = LithosAmber.copy(alpha = 0.25f),
+        controlsBackground = LithosSurfaceDark,
+        controlsText = LithosTextPrimary.copy(alpha = 0.87f),
+        dividerColor = LithosDivider,
+        isDark = true,
+        glassSurface = LithosSurfaceDark.copy(alpha = 0.88f),
+        glassBorder = Color.Black.copy(alpha = 0.08f),
+        glassHighlight = Color.White.copy(alpha = 0.02f),
+        pillBackground = Color(0xFF1C1C1E).copy(alpha = 0.95f),
+        pillBorder = Color.Black.copy(alpha = 0.08f),
+        cardGlow = Color.Transparent
+    )
+
+    /**
+     * APP DEFAULT - OLED mode (Lithos Black)
+     * Uses the main app's OLED theme colors for reading
+     */
+    val AppDefaultOLED = ReaderThemeData(
+        name = "App OLED",
+        backgroundColor = LithosBlack,
+        textColor = Color(0xFFE0E0E0),
+        textSecondaryColor = Color(0xFF9E9E9E),
+        accentColor = LithosAmber,
+        linkColor = LithosAmber,
+        highlightColor = LithosAmber.copy(alpha = 0.25f),
+        controlsBackground = Color(0xFF0A0A0A),
+        controlsText = Color(0xFFE0E0E0),
+        dividerColor = Color(0xFFFFFFFF).copy(alpha = 0.06f),
+        isDark = true,
+        glassSurface = Color(0xFF0A0A0A).copy(alpha = 0.85f),
+        glassBorder = Color.Black.copy(alpha = 0.08f),
+        glassHighlight = LithosAmber.copy(alpha = 0.04f),
+        pillBackground = Color(0xFF0D0D0D).copy(alpha = 0.95f),
+        pillBorder = Color.Black.copy(alpha = 0.08f),
+        cardGlow = Color.Transparent
+    )
+
+    /**
+     * Get app default theme based on main app settings
+     */
+    fun getAppDefaultTheme(isDark: Boolean, isOLED: Boolean): ReaderThemeData {
+        return when {
+            isOLED -> AppDefaultOLED
+            isDark -> AppDefaultDark
+            else -> AppDefaultLight
+        }
+    }
+
+    /**
+     * PAPER - Lithos Oat background
+     * Warm cream for comfortable daytime reading
      */
     val Paper = ReaderThemeData(
         name = "Paper",
-        backgroundColor = Color(0xFFFAF7F2),      // Warm cream
-        textColor = Color(0xFF1C1C1E),            // Near black
-        textSecondaryColor = Color(0xFF3C3C43).copy(alpha = 0.60f),
-        accentColor = MossGreen,
-        linkColor = MossGreen,
-        highlightColor = Color(0xFFFFEB3B).copy(alpha = 0.40f),  // Yellow highlight
-        controlsBackground = Color(0xFFEDEAE5),   // Slightly darker cream
-        controlsText = Color(0xFF1C1C1E),
-        dividerColor = Color(0xFF1C1C1E).copy(alpha = 0.08f),
+        backgroundColor = LithosOat,
+        textColor = LithosTextPrimaryLight,
+        textSecondaryColor = LithosTextSecondaryLight,
+        accentColor = MossAccent,
+        linkColor = MossAccent,
+        highlightColor = LithosAmber.copy(alpha = 0.30f),
+        controlsBackground = LithosSurfaceLight,
+        controlsText = LithosTextPrimaryLight,
+        dividerColor = LithosDividerLight,
         isDark = false,
-        // Premium glass properties
-        glassSurface = Color(0xFFF5F2ED).copy(alpha = 0.92f),
-        glassBorder = MossGreen.copy(alpha = 0.18f),
-        glassHighlight = Color.White.copy(alpha = 0.4f),
-        pillBackground = Color(0xFFF8F5F0).copy(alpha = 0.96f),
-        pillBorder = MossGreen.copy(alpha = 0.22f),
-        cardGlow = MossGreen.copy(alpha = 0.06f)
+        // Lithos glass - matte finish
+        glassSurface = LithosSurfaceLight.copy(alpha = 0.92f),
+        glassBorder = MossAccent.copy(alpha = 0.12f),
+        glassHighlight = Color.White.copy(alpha = 0.3f),
+        pillBackground = Color(0xFFF2F2F7).copy(alpha = 0.95f),
+        pillBorder = MossAccent.copy(alpha = 0.15f),
+        cardGlow = Color.Transparent
     )
 
     /**
-     * SEPIA - Classic e-reader sepia tone
-     * Reduces blue light, easier on eyes for extended reading
-     * Premium glass: Warm amber glass with golden accents
+     * SEPIA - Classic e-reader sepia
+     * Reduces blue light, easier on eyes
      */
     val Sepia = ReaderThemeData(
         name = "Sepia",
-        backgroundColor = Color(0xFFF4E4C9),      // Sepia/parchment
-        textColor = Color(0xFF5C4B37),            // Dark brown
-        textSecondaryColor = Color(0xFF7A6B5C),   // Medium brown
-        accentColor = Color(0xFF8B6914),          // Amber/brown accent
-        linkColor = Color(0xFF6B5A14),
-        highlightColor = Color(0xFFFFD54F).copy(alpha = 0.50f),  // Warm yellow
-        controlsBackground = Color(0xFFE8D4B5),   // Darker sepia
+        backgroundColor = Color(0xFFF4E4C9),
+        textColor = Color(0xFF5C4B37),
+        textSecondaryColor = Color(0xFF7A6B5C),
+        accentColor = LithosAmberDark,
+        linkColor = LithosAmberDark,
+        highlightColor = LithosAmber.copy(alpha = 0.40f),
+        controlsBackground = Color(0xFFE8D4B5),
         controlsText = Color(0xFF5C4B37),
-        dividerColor = Color(0xFF5C4B37).copy(alpha = 0.12f),
+        dividerColor = Color(0xFF5C4B37).copy(alpha = 0.10f),
         isDark = false,
-        // Premium glass properties
+        // Lithos glass - warm matte
         glassSurface = Color(0xFFECD9BC).copy(alpha = 0.94f),
-        glassBorder = Color(0xFF8B6914).copy(alpha = 0.20f),
-        glassHighlight = Color(0xFFFFF8E1).copy(alpha = 0.5f),
+        glassBorder = Color.Black.copy(alpha = 0.08f),
+        glassHighlight = Color(0xFFFFF8E1).copy(alpha = 0.4f),
         pillBackground = Color(0xFFF0DCC2).copy(alpha = 0.96f),
-        pillBorder = Color(0xFFB8860B).copy(alpha = 0.25f),
-        cardGlow = Color(0xFFB8860B).copy(alpha = 0.08f)
+        pillBorder = Color.Black.copy(alpha = 0.08f),
+        cardGlow = Color.Transparent
     )
 
     /**
-     * NIGHT - Pure OLED black for dark environments
-     * Maximum contrast, battery saving on OLED
-     * Premium glass: Deep black glass with vibrant moss green glow
+     * AMBER - Warm golden tone for evening reading
+     * Maximum blue light reduction
+     */
+    val Amber = ReaderThemeData(
+        name = "Amber",
+        backgroundColor = Color(0xFFFFF4E0),
+        textColor = Color(0xFF4A3C2A),
+        textSecondaryColor = Color(0xFF6B5A44),
+        accentColor = LithosAmber,
+        linkColor = LithosAmberDark,
+        highlightColor = LithosAmberLight.copy(alpha = 0.45f),
+        controlsBackground = Color(0xFFF5E6C8),
+        controlsText = Color(0xFF4A3C2A),
+        dividerColor = Color(0xFF4A3C2A).copy(alpha = 0.08f),
+        isDark = false,
+        // Lithos glass - golden matte
+        glassSurface = Color(0xFFFAEDD5).copy(alpha = 0.94f),
+        glassBorder = Color.Black.copy(alpha = 0.08f),
+        glassHighlight = Color(0xFFFFFBF0).copy(alpha = 0.5f),
+        pillBackground = Color(0xFFFFF0D6).copy(alpha = 0.96f),
+        pillBorder = Color.Black.copy(alpha = 0.08f),
+        cardGlow = Color.Transparent
+    )
+
+    /**
+     * NIGHT - Lithos Black (OLED)
+     * True black for dark environments, battery saving
      */
     val Night = ReaderThemeData(
         name = "Night",
-        backgroundColor = Color(0xFF000000),      // True black
-        textColor = Color(0xFFE0E0E0),            // Light gray (not pure white)
-        textSecondaryColor = Color(0xFF9E9E9E),   // Medium gray
-        accentColor = MossGreenLight,
-        linkColor = MossGreenLight,
-        highlightColor = MossGreen.copy(alpha = 0.30f),
-        controlsBackground = Color(0xFF1C1C1E),   // Dark gray
+        backgroundColor = LithosBlack,
+        textColor = Color(0xFFE0E0E0),
+        textSecondaryColor = Color(0xFF9E9E9E),
+        accentColor = MossAccentLight,
+        linkColor = MossAccentLight,
+        highlightColor = MossAccent.copy(alpha = 0.25f),
+        controlsBackground = Color(0xFF0A0A0A),
         controlsText = Color(0xFFE0E0E0),
-        dividerColor = Color(0xFFFFFFFF).copy(alpha = 0.08f),
+        dividerColor = Color(0xFFFFFFFF).copy(alpha = 0.06f),
         isDark = true,
-        // Premium glass properties - vibrant accents on OLED black
+        // Lithos glass - deep matte
         glassSurface = Color(0xFF0A0A0A).copy(alpha = 0.85f),
-        glassBorder = MossGreenLight.copy(alpha = 0.30f),
-        glassHighlight = MossGreenLight.copy(alpha = 0.08f),
-        pillBackground = Color(0xFF0D0D0D).copy(alpha = 0.92f),
-        pillBorder = MossGreenLight.copy(alpha = 0.35f),
-        cardGlow = MossGreenLight.copy(alpha = 0.12f)
+        glassBorder = MossAccentLight.copy(alpha = 0.20f),
+        glassHighlight = MossAccentLight.copy(alpha = 0.04f),
+        pillBackground = Color(0xFF0D0D0D).copy(alpha = 0.95f),
+        pillBorder = MossAccentLight.copy(alpha = 0.25f),
+        cardGlow = Color.Transparent
     )
 
     /**
-     * DARK GRAY - Softer dark mode
-     * Easier on eyes than pure black, still good for low light
-     * Premium glass: Sophisticated charcoal glass with subtle green accents
+     * DARK GRAY - Lithos Slate background
+     * Softer dark mode, easier on eyes than pure black
      */
     val DarkGray = ReaderThemeData(
         name = "Dark Gray",
-        backgroundColor = Color(0xFF1A1A1A),      // Dark gray
-        textColor = Color(0xFFD0D0D0),            // Soft white
-        textSecondaryColor = Color(0xFF8A8A8A),   // Medium gray
-        accentColor = MossGreenLight,
-        linkColor = MossGreenLight,
-        highlightColor = MossGreen.copy(alpha = 0.30f),
-        controlsBackground = Color(0xFF2C2C2E),
-        controlsText = Color(0xFFD0D0D0),
-        dividerColor = Color(0xFFFFFFFF).copy(alpha = 0.10f),
+        backgroundColor = LithosSlate,
+        textColor = LithosTextPrimary.copy(alpha = 0.87f),
+        textSecondaryColor = LithosTextSecondary,
+        accentColor = MossAccentLight,
+        linkColor = MossAccentLight,
+        highlightColor = MossAccent.copy(alpha = 0.25f),
+        controlsBackground = LithosSurfaceDark,
+        controlsText = LithosTextPrimary.copy(alpha = 0.87f),
+        dividerColor = LithosDivider,
         isDark = true,
-        // Premium glass properties - sophisticated charcoal
-        glassSurface = Color(0xFF1E1E20).copy(alpha = 0.88f),
-        glassBorder = MossGreenLight.copy(alpha = 0.22f),
-        glassHighlight = Color.White.copy(alpha = 0.04f),
-        pillBackground = Color(0xFF222224).copy(alpha = 0.94f),
-        pillBorder = MossGreenLight.copy(alpha = 0.28f),
-        cardGlow = MossGreenLight.copy(alpha = 0.10f)
+        // Lithos glass - slate matte
+        glassSurface = LithosSurfaceDark.copy(alpha = 0.88f),
+        glassBorder = MossAccentLight.copy(alpha = 0.15f),
+        glassHighlight = Color.White.copy(alpha = 0.02f),
+        pillBackground = Color(0xFF1C1C1E).copy(alpha = 0.95f),
+        pillBorder = MossAccentLight.copy(alpha = 0.20f),
+        cardGlow = Color.Transparent
     )
 
     /**
-     * Get theme by type
+     * Get theme by type (for non-APP_DEFAULT themes)
      */
     fun getTheme(type: ReaderThemeType, customTheme: ReaderThemeData? = null): ReaderThemeData {
         return when (type) {
+            ReaderThemeType.APP_DEFAULT -> AppDefaultLight // Fallback, use getThemeWithAppSettings for proper handling
             ReaderThemeType.PAPER -> Paper
             ReaderThemeType.SEPIA -> Sepia
+            ReaderThemeType.AMBER -> Amber
             ReaderThemeType.NIGHT -> Night
             ReaderThemeType.DARK_GRAY -> DarkGray
             ReaderThemeType.CUSTOM -> customTheme ?: Paper
@@ -198,14 +306,47 @@ object ReaderThemes {
     }
 
     /**
+     * Get theme by type with app settings for APP_DEFAULT support
+     * Use this when you have access to main app theme settings
+     */
+    fun getThemeWithAppSettings(
+        type: ReaderThemeType,
+        isDark: Boolean,
+        isOLED: Boolean,
+        customTheme: ReaderThemeData? = null
+    ): ReaderThemeData {
+        return when (type) {
+            ReaderThemeType.APP_DEFAULT -> getAppDefaultTheme(isDark, isOLED)
+            else -> getTheme(type, customTheme)
+        }
+    }
+
+    /**
      * All available themes for picker
+     * APP_DEFAULT shown first as the recommended option
      */
     val allThemes = listOf(
+        ReaderThemeType.APP_DEFAULT to AppDefaultLight, // Preview uses light, actual follows app
         ReaderThemeType.PAPER to Paper,
         ReaderThemeType.SEPIA to Sepia,
+        ReaderThemeType.AMBER to Amber,
         ReaderThemeType.DARK_GRAY to DarkGray,
         ReaderThemeType.NIGHT to Night
     )
+
+    /**
+     * Get all themes with proper APP_DEFAULT preview based on current app settings
+     */
+    fun getAllThemesWithAppSettings(isDark: Boolean, isOLED: Boolean): List<Pair<ReaderThemeType, ReaderThemeData>> {
+        return listOf(
+            ReaderThemeType.APP_DEFAULT to getAppDefaultTheme(isDark, isOLED),
+            ReaderThemeType.PAPER to Paper,
+            ReaderThemeType.SEPIA to Sepia,
+            ReaderThemeType.AMBER to Amber,
+            ReaderThemeType.DARK_GRAY to DarkGray,
+            ReaderThemeType.NIGHT to Night
+        )
+    }
 }
 
 // ============================================================================
@@ -214,7 +355,7 @@ object ReaderThemes {
 
 @Immutable
 data class ReaderSettings(
-    val themeType: ReaderThemeType = ReaderThemeType.PAPER,
+    val themeType: ReaderThemeType = ReaderThemeType.APP_DEFAULT, // Defaults to main app theme
     val fontSize: Float = 18f,
     val lineHeight: Float = 1.6f,
     val fontFamily: ReaderFont = ReaderFont.SERIF,
@@ -223,8 +364,19 @@ data class ReaderSettings(
     val textAlign: ReaderTextAlign = ReaderTextAlign.LEFT,
     val customTheme: ReaderThemeData? = null
 ) {
+    /**
+     * Get theme (legacy - use getThemeWithAppSettings for proper APP_DEFAULT handling)
+     */
     val theme: ReaderThemeData
         get() = ReaderThemes.getTheme(themeType, customTheme)
+
+    /**
+     * Get theme with main app settings for proper APP_DEFAULT support
+     * Call this when you have access to isDark and isOLED from the main app
+     */
+    fun getThemeWithAppSettings(isDark: Boolean, isOLED: Boolean): ReaderThemeData {
+        return ReaderThemes.getThemeWithAppSettings(themeType, isDark, isOLED, customTheme)
+    }
 }
 
 enum class ReaderTextAlign {

@@ -75,3 +75,8 @@ lint/tmp/
 *.swp
 .DS_Store
 Thumbs.db
+.claude/settings.local.json
+nul
+app/src/main/assets/kokoro/model.int8.onnx
+app/libs/sherpa-temp/
+app/libs/sherpa-classes/

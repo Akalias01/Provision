@@ -1,15 +1,15 @@
-package com.mossglen.reverie
+package com.mossglen.lithos
 
 import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.mossglen.reverie.util.CrashReporter
+import com.mossglen.lithos.util.CrashReporter
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
 /**
- * REVERIE Application Class
+ * LITHOS Application Class
  *
  * Handles app-wide initialization including:
  * - Hilt dependency injection
@@ -18,7 +18,7 @@ import javax.inject.Inject
  * - Uncaught exception handling
  */
 @HiltAndroidApp
-class ReverieApp : Application(), Configuration.Provider {
+class LithosApp : Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -35,8 +35,8 @@ class ReverieApp : Application(), Configuration.Provider {
         // Set up global uncaught exception handler
         setupGlobalExceptionHandler()
 
-        Log.d(TAG, "REVERIE App initialized")
-        CrashReporter.log("REVERIE App started")
+        Log.d(TAG, "LITHOS App initialized")
+        CrashReporter.log("LITHOS App started")
     }
 
     /**
@@ -68,6 +68,6 @@ class ReverieApp : Application(), Configuration.Provider {
     }
 
     companion object {
-        private const val TAG = "ReverieApp"
+        private const val TAG = "LithosApp"
     }
 }

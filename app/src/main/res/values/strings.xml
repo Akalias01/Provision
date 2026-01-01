@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Reverie</string>
+    <string name="app_name">Lithos</string>
 
     <!-- Navigation - UI3 Adaptive Context -->
     <string name="nav_now">Now</string>
@@ -127,6 +127,8 @@
     <string name="settings_skip_backward">Skip backward amount</string>
     <string name="settings_persistent">Persistent Player</string>
     <string name="settings_persistent_desc">Keep player active in background</string>
+    <string name="settings_smart_rewind">Smart Auto-Rewind</string>
+    <string name="settings_smart_rewind_desc">Rewind based on pause duration</string>
     <string name="settings_skip_amounts">Skip Amounts</string>
     <string name="settings_skip_desc">Set symmetrical skip durations</string>
     <string name="settings_seconds">%d seconds</string>
@@ -169,6 +171,11 @@
     <string name="settings_scan_on_startup">Scan on Startup</string>
     <string name="settings_scan_desc">Check for new files</string>
     <string name="settings_manage_folders">Manage Folders</string>
+    <string name="settings_refresh_covers">Refresh Cover Art</string>
+    <string name="settings_refresh_covers_desc">Find and replace non-square covers</string>
+    <string name="settings_refresh_covers_progress">Checking %1$d of %2$d…</string>
+    <string name="settings_refresh_covers_result">Replaced %1$d covers</string>
+    <string name="settings_refresh_covers_error">Failed to refresh covers</string>
 
     <!-- Audio Decoder Dialog -->
     <string name="settings_audio_decoder_title">Audio Decoder</string>
@@ -297,7 +304,7 @@
     <string name="sleep_custom">Custom</string>
 
     <!-- Dialogs -->
-    <string name="dialog_exit_title">Exit Reverie?</string>
+    <string name="dialog_exit_title">Exit Lithos?</string>
     <string name="dialog_exit_message">Are you sure you want to exit the app?</string>
     <string name="dialog_exit">Exit</string>
     <string name="dialog_cancel">Cancel</string>
@@ -420,7 +427,7 @@
     <string name="edit_track_editor">Track Editor</string>
 
     <!-- Welcome -->
-    <string name="welcome_title">Welcome to Reverie</string>
+    <string name="welcome_title">Welcome to Lithos</string>
     <string name="welcome_subtitle">Your audio, reimagined.</string>
 
     <!-- Cloud -->
@@ -465,7 +472,7 @@
 
     <!-- UI Labels -->
     <string name="ui_add_content">Add Content</string>
-    <string name="ui_reverie">REVERIE</string>
+    <string name="ui_lithos">LITHOS</string>
     <string name="ui_import_files">Import Files</string>
     <string name="ui_resume">Resume</string>
     <string name="ui_progress">Progress</string>

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
@@ -20,10 +20,11 @@ import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import android.widget.Toast
-import com.mossglen.reverie.R
-import com.mossglen.reverie.ui.theme.GlassColors
-import com.mossglen.reverie.ui.theme.GlassTypography
-import com.mossglen.reverie.ui.theme.glassTheme
+import com.mossglen.lithos.R
+import com.mossglen.lithos.ui.theme.GlassColors
+import com.mossglen.lithos.ui.theme.GlassTypography
+import com.mossglen.lithos.ui.theme.LithosUI
+import com.mossglen.lithos.ui.theme.glassTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,10 +52,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.getSeriesInfo
-import com.mossglen.reverie.ui.viewmodel.CoverArtViewModel
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.getSeriesInfo
+import com.mossglen.lithos.ui.viewmodel.CoverArtViewModel
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -74,7 +75,8 @@ import kotlin.math.roundToInt
 fun BookDetailScreen(
     bookId: String,
     accentColor: Color,
-    isReverieDark: Boolean = false,
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
     onBack: () -> Unit,
     onPlayBook: (Book) -> Unit,
     onAuthorClick: (String) -> Unit = {},
@@ -90,7 +92,7 @@ fun BookDetailScreen(
     val books by libraryViewModel.books.collectAsState()
     val book = books.find { it.id == bookId }
 
-    val theme = glassTheme(isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val scope = rememberCoroutineScope()
 
     // State
@@ -102,9 +104,9 @@ fun BookDetailScreen(
     var isFetchingMetadata by remember { mutableStateOf(false) }
     var isSynopsisExpanded by remember { mutableStateOf(true) }  // Start expanded
 
-    // Menu colors
-    val menuBg = Color(0xFF1C1C1E)
-    val menuTextColor = Color.White
+    // Menu colors - Theme-aware
+    val menuBg = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight
+    val menuTextColor = if (isDark) Color.White else Color.Black
     val destructiveColor = GlassColors.Destructive
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -447,7 +449,7 @@ fun BookDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(Color(0xFF2C2C2E)),
+                                    .background(LithosUI.CardBackground),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -573,7 +575,7 @@ fun BookDetailScreen(
                     // ───────────────────────────────────────────────────────────
                     PlayButton(
                         isResuming = progressPercent > 0,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         accentColor = accentColor,
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
@@ -789,7 +791,7 @@ fun BookDetailScreen(
                 bookTitle = book.title,
                 bookAuthor = book.author,
                 accentColor = accentColor,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 onDismiss = { showCoverPicker = false },
                 onCoverSelected = { newCoverUrl ->
                     coverArtViewModel.updateBookCover(bookId, newCoverUrl)
@@ -812,7 +814,7 @@ fun BookDetailScreen(
 @Composable
 private fun PlayButton(
     isResuming: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onClick: () -> Unit
 ) {
@@ -825,9 +827,9 @@ private fun PlayButton(
         label = "playButtonScale"
     )
 
-    // Match player style: dark button, accent icon
-    val buttonBg = if (isReverieDark) Color(0xFF1C1C1E) else Color(0xFF2C2C2E)
-    val shadowColor = if (isReverieDark) accentColor.copy(alpha = 0.3f) else Color.Black
+    // Match player style: dark button, accent icon - Use ReverieUI constants
+    val buttonBg = if (isOLED) LithosUI.SheetBackground else LithosUI.CardBackground
+    val shadowColor = if (isOLED) accentColor.copy(alpha = 0.3f) else Color.Black
 
     Box(
         modifier = Modifier

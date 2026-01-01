@@ -1,11 +1,10 @@
 /*
- * LEGACY SETTINGS SCREEN - NON-GLASS VERSION
+ * SETTINGS SCREEN - LITHOS AMBER DESIGN LANGUAGE
  *
- * This is the original settings screen without glass morphism effects.
- * Kept for reference and potential rollback if needed.
- *
- * DEPRECATED: Use SettingsScreenGlass instead for the modern glass UI.
- * This version will be removed in a future release.
+ * Updated to use the Lithos Amber design system with:
+ * - Amber accent color (#D48C2C) for active toggles, checkboxes, and progress
+ * - Glass card backgrounds with blur effects
+ * - Slate-based dark theme colors
  */
 package com.example.rezon8.ui.screens
 
@@ -60,14 +59,17 @@ import com.example.rezon8.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-@Deprecated(
-    message = "Use SettingsScreenGlass instead for modern glass morphism UI",
-    replaceWith = ReplaceWith("SettingsScreenGlass")
-)
+// Lithos Design Language Color Palette
+private val LithosAmber = Color(0xFFD48C2C)
+private val LithosMoss = Color(0xFF4A5D45)
+private val LithosSlate = Color(0xFF1A1D21)
+private val LithosGlassBackground = Color(0xD91A1D21) // rgba(26, 29, 33, 0.85)
+private val LithosCardBackground = Color(0xFF1A1D21)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    accentColor: Color = Color(0xFF00E5FF),
+    accentColor: Color = LithosAmber,
     isDarkTheme: Boolean = true,
     onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -82,9 +84,9 @@ fun SettingsScreen(
     var showSkipDialog by remember { mutableStateOf(false) }
     var scanOnStartup by remember { mutableStateOf(true) }
 
-    // Theme-aware colors
-    val bgColor = if (isDarkTheme) Color(0xFF0A0A0A) else Color(0xFFF5F5F5)
-    val cardColor = if (isDarkTheme) Color(0xFF1A1A1A) else Color(0xFFFFFFFF)
+    // Lithos Amber theme colors
+    val bgColor = if (isDarkTheme) LithosSlate else Color(0xFFF5F5F5)
+    val cardColor = if (isDarkTheme) LithosGlassBackground else Color(0xFFFFFFFF)
     val textColor = if (isDarkTheme) Color.White else Color.Black
     val subtitleColor = if (isDarkTheme) Color.Gray else Color.DarkGray
     val dividerColor = if (isDarkTheme) Color(0xFF2C2C2E) else Color(0xFFE0E0E0)
@@ -211,7 +213,7 @@ fun SettingsScreen(
     if (showSkipDialog) {
         AlertDialog(
             onDismissRequest = { showSkipDialog = false },
-            containerColor = Color(0xFF1A1A1A),
+            containerColor = LithosGlassBackground,
             title = { Text("Skip Amounts", color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
@@ -236,7 +238,7 @@ fun SettingsScreen(
                                     viewModel.setSkipBackward(seconds)
                                     showSkipDialog = false
                                 },
-                                colors = RadioButtonDefaults.colors(selectedColor = accentColor)
+                                colors = RadioButtonDefaults.colors(selectedColor = LithosAmber)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("$seconds seconds", color = Color.White)
@@ -246,7 +248,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showSkipDialog = false }) {
-                    Text("Close", color = accentColor)
+                    Text("Close", color = LithosAmber)
                 }
             }
         )
@@ -258,7 +260,7 @@ fun SettingsScreen(
 
         AlertDialog(
             onDismissRequest = { showCodecDialog = false },
-            containerColor = Color(0xFF1A1A1A),
+            containerColor = LithosGlassBackground,
             title = { Text("Audio Decoder", color = Color.White, fontWeight = FontWeight.Bold) },
             text = {
                 Column(
@@ -283,7 +285,7 @@ fun SettingsScreen(
                                 .clip(RoundedCornerShape(8.dp))
                                 .border(
                                     width = if (audioCodec == codec) 1.5.dp else 0.dp,
-                                    color = if (audioCodec == codec) accentColor else Color.Transparent,
+                                    color = if (audioCodec == codec) LithosAmber else Color.Transparent,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
@@ -295,13 +297,13 @@ fun SettingsScreen(
                             RadioButton(
                                 selected = audioCodec == codec,
                                 onClick = { viewModel.setAudioCodec(codec) },
-                                colors = RadioButtonDefaults.colors(selectedColor = accentColor)
+                                colors = RadioButtonDefaults.colors(selectedColor = LithosAmber)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(codec, color = Color.White, fontWeight = FontWeight.Medium)
                                 Text(description, color = Color.Gray, fontSize = 11.sp)
-                                Text(formats, color = accentColor.copy(alpha = 0.7f), fontSize = 10.sp)
+                                Text(formats, color = LithosAmber.copy(alpha = 0.7f), fontSize = 10.sp)
                             }
                         }
                     }
@@ -313,7 +315,7 @@ fun SettingsScreen(
                     // Audiophile note
                     Text(
                         "AUDIOPHILE FORMATS",
-                        color = accentColor,
+                        color = LithosAmber,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
@@ -328,7 +330,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showCodecDialog = false }) {
-                    Text("Done", color = accentColor)
+                    Text("Done", color = LithosAmber)
                 }
             }
         )
@@ -336,7 +338,7 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSection(title: String, accentColor: Color) {
+private fun SettingsSection(title: String, accentColor: Color = LithosAmber) {
     Text(
         text = title,
         color = accentColor,
@@ -348,7 +350,7 @@ private fun SettingsSection(title: String, accentColor: Color) {
 }
 
 @Composable
-private fun SettingsCard(cardColor: Color = Color(0xFF1A1A1A), content: @Composable ColumnScope.() -> Unit) {
+private fun SettingsCard(cardColor: Color = LithosGlassBackground, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -365,7 +367,7 @@ private fun SettingsSwitch(
     subtitle: String? = null,
     checked: Boolean,
     onToggle: (Boolean) -> Unit,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     textColor: Color = Color.White,
     subtitleColor: Color = Color.Gray
 ) {
@@ -387,8 +389,8 @@ private fun SettingsSwitch(
             checked = checked,
             onCheckedChange = onToggle,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = accentColor,
-                checkedTrackColor = accentColor.copy(alpha = 0.4f),
+                checkedThumbColor = LithosAmber,
+                checkedTrackColor = LithosAmber.copy(alpha = 0.4f),
                 uncheckedThumbColor = Color.Gray,
                 uncheckedTrackColor = Color(0xFF333333)
             )
@@ -486,7 +488,7 @@ private enum class ReverbPreset(val displayName: String, val roomSize: Float, va
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AdvancedEqualizerDialog(
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     viewModel: SettingsViewModel,
     onDismiss: () -> Unit
 ) {
@@ -585,7 +587,7 @@ private fun AdvancedEqualizerDialog(
                 .scale(dialogScale)
                 .alpha(dialogAlpha)
                 .clip(RoundedCornerShape(28.dp))
-                .background(Color(0xFF0D0D0D))
+                .background(LithosSlate)
                 .pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onDragEnd = {
@@ -619,13 +621,13 @@ private fun AdvancedEqualizerDialog(
                 )
             }
 
-            // Premium Header with gradient
+            // Premium Header with Lithos gradient
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
                         Brush.verticalGradient(
-                            listOf(accentColor.copy(alpha = 0.12f), Color.Transparent)
+                            listOf(LithosAmber.copy(alpha = 0.12f), Color.Transparent)
                         )
                     )
                     .padding(horizontal = 20.dp, vertical = 12.dp)
@@ -644,7 +646,7 @@ private fun AdvancedEqualizerDialog(
                         )
                         Text(
                             "Professional 10-Band Equalizer",
-                            color = accentColor,
+                            color = LithosAmber,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -661,7 +663,7 @@ private fun AdvancedEqualizerDialog(
                         ) { enabled ->
                             Text(
                                 if (enabled) "ON" else "OFF",
-                                color = if (enabled) accentColor else Color.Gray,
+                                color = if (enabled) LithosAmber else Color.Gray,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -671,8 +673,8 @@ private fun AdvancedEqualizerDialog(
                             checked = eqEnabled,
                             onCheckedChange = { audioEffectManager.setEqEnabled(it) },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = accentColor,
-                                checkedTrackColor = accentColor.copy(alpha = 0.4f),
+                                checkedThumbColor = LithosAmber,
+                                checkedTrackColor = LithosAmber.copy(alpha = 0.4f),
                                 uncheckedThumbColor = Color.Gray,
                                 uncheckedTrackColor = Color(0xFF333333)
                             )
@@ -684,8 +686,8 @@ private fun AdvancedEqualizerDialog(
             // Tab Row with animated indicator
             TabRow(
                 selectedTabIndex = pagerState.currentPage,
-                containerColor = Color(0xFF141414),
-                contentColor = accentColor,
+                containerColor = LithosGlassBackground,
+                contentColor = LithosAmber,
                 indicator = { tabPositions ->
                     if (pagerState.currentPage < tabPositions.size) {
                         val currentTabPosition = tabPositions[pagerState.currentPage]
@@ -698,7 +700,7 @@ private fun AdvancedEqualizerDialog(
                                 .height(3.dp)
                                 .padding(horizontal = 24.dp)
                                 .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                                .background(accentColor)
+                                .background(LithosAmber)
                         )
                     }
                 },
@@ -722,7 +724,7 @@ private fun AdvancedEqualizerDialog(
                                 fontSize = 11.sp
                             )
                         },
-                        selectedContentColor = accentColor,
+                        selectedContentColor = LithosAmber,
                         unselectedContentColor = Color.Gray
                     )
                 }
@@ -817,7 +819,7 @@ private fun AdvancedEqualizerDialog(
                     .fillMaxWidth()
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xFF0A0A0A))
+                            listOf(Color.Transparent, LithosSlate)
                         )
                     )
                     .padding(horizontal = 20.dp, vertical = 16.dp)
@@ -832,14 +834,14 @@ private fun AdvancedEqualizerDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(accentColor.copy(alpha = 0.1f))
+                            .background(LithosAmber.copy(alpha = 0.1f))
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(accentColor)
+                                .background(LithosAmber)
                         )
                         Spacer(Modifier.width(10.dp))
                         Column {
@@ -874,7 +876,7 @@ private fun AdvancedEqualizerDialog(
                             audioEffectManager.reset()
                             selectedPreset = EQPreset.FLAT
                         },
-                        color = Color(0xFF1E1E1E),
+                        color = LithosGlassBackground,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.height(44.dp)
                     ) {
@@ -885,7 +887,7 @@ private fun AdvancedEqualizerDialog(
                             Icon(
                                 Icons.Default.Refresh,
                                 contentDescription = "Reset",
-                                tint = accentColor,
+                                tint = LithosAmber,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(Modifier.width(8.dp))
@@ -914,7 +916,7 @@ private fun EQTab(
     preamp: Float,
     onPreampChange: (Float) -> Unit,
     frequencies: List<String>,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     enabled: Boolean,
     selectedPreset: EQPreset
 ) {
@@ -932,13 +934,13 @@ private fun EQTab(
             // Frequency response curve - compact
             FrequencyResponseCurve(
                 bands = bands,
-                accentColor = accentColor,
+                accentColor = LithosAmber,
                 enabled = enabled,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1A1A1A))
+                    .background(LithosGlassBackground)
             )
 
             // Preamp - compact vertical
@@ -947,7 +949,7 @@ private fun EQTab(
                     .width(70.dp)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1A1A1A))
+                    .background(LithosGlassBackground)
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
@@ -955,7 +957,7 @@ private fun EQTab(
                 Text("PREAMP", color = Color.Gray, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "${if (preamp >= 0) "+" else ""}${preamp.toInt()}",
-                    color = if (enabled) accentColor else Color.Gray,
+                    color = if (enabled) LithosAmber else Color.Gray,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -973,8 +975,8 @@ private fun EQTab(
                 .fillMaxWidth()
                 .height(24.dp),
             colors = SliderDefaults.colors(
-                thumbColor = if (enabled) accentColor else Color.Gray,
-                activeTrackColor = if (enabled) accentColor else Color.Gray,
+                thumbColor = if (enabled) LithosAmber else Color.Gray,
+                activeTrackColor = if (enabled) LithosAmber else Color.Gray,
                 inactiveTrackColor = Color(0xFF333333)
             )
         )
@@ -987,7 +989,7 @@ private fun EQTab(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text("+12", color = Color.Gray, fontSize = 9.sp)
-            Text("0 dB", color = accentColor.copy(alpha = 0.7f), fontSize = 9.sp)
+            Text("0 dB", color = LithosAmber.copy(alpha = 0.7f), fontSize = 9.sp)
             Text("-12", color = Color.Gray, fontSize = 9.sp)
         }
 
@@ -997,7 +999,7 @@ private fun EQTab(
                 .fillMaxWidth()
                 .weight(1f)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1A1A1A))
+                .background(LithosGlassBackground)
                 .padding(vertical = 8.dp, horizontal = 2.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
@@ -1006,7 +1008,7 @@ private fun EQTab(
                     value = value,
                     onValueChange = { onBandChange(index, it) },
                     label = frequencies[index],
-                    accentColor = accentColor,
+                    accentColor = LithosAmber,
                     enabled = enabled,
                     modifier = Modifier.weight(1f)
                 )
@@ -1018,7 +1020,7 @@ private fun EQTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1A1A1A))
+                .background(LithosGlassBackground)
                 .padding(horizontal = 8.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -1083,7 +1085,7 @@ private fun EQTab(
 @Composable
 private fun QuickAdjustColumn(
     label: String,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     enabled: Boolean,
     onPlus: () -> Unit,
     onMinus: () -> Unit,
@@ -1108,14 +1110,14 @@ private fun QuickAdjustColumn(
             Surface(
                 onClick = onPlus,
                 enabled = enabled,
-                color = Color(0xFF2A2A2A),
+                color = LithosGlassBackground,
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.size(32.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         "+",
-                        color = if (enabled) accentColor else Color.Gray,
+                        color = if (enabled) LithosAmber else Color.Gray,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -1125,7 +1127,7 @@ private fun QuickAdjustColumn(
             Surface(
                 onClick = onMinus,
                 enabled = enabled,
-                color = Color(0xFF2A2A2A),
+                color = LithosGlassBackground,
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.size(32.dp)
             ) {
@@ -1145,7 +1147,7 @@ private fun QuickAdjustColumn(
 @Composable
 private fun FrequencyResponseCurve(
     bands: List<Float>,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -1158,7 +1160,7 @@ private fun FrequencyResponseCurve(
         val gridColor = Color.Gray.copy(alpha = 0.2f)
         // Horizontal center line (0dB)
         drawLine(
-            color = accentColor.copy(alpha = 0.3f),
+            color = LithosAmber.copy(alpha = 0.3f),
             start = Offset(0f, centerY),
             end = Offset(width, centerY),
             strokeWidth = 1f
@@ -1188,17 +1190,10 @@ private fun FrequencyResponseCurve(
                 }
             }
 
-            // Draw curve glow
+            // Draw main curve (no glow effect per Lithos design)
             drawPath(
                 path = path,
-                color = if (enabled) accentColor.copy(alpha = 0.3f) else Color.Gray.copy(alpha = 0.2f),
-                style = Stroke(width = 8f, cap = StrokeCap.Round)
-            )
-
-            // Draw main curve
-            drawPath(
-                path = path,
-                color = if (enabled) accentColor else Color.Gray,
+                color = if (enabled) LithosAmber else Color.Gray,
                 style = Stroke(width = 3f, cap = StrokeCap.Round)
             )
 
@@ -1207,7 +1202,7 @@ private fun FrequencyResponseCurve(
                 val x = index * pointSpacing
                 val y = centerY - (value / 12f) * (height / 2) * 0.8f
                 drawCircle(
-                    color = if (enabled) accentColor else Color.Gray,
+                    color = if (enabled) LithosAmber else Color.Gray,
                     radius = 4f,
                     center = Offset(x, y)
                 )
@@ -1221,7 +1216,7 @@ private fun PremiumEQBandSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     label: String,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -1237,7 +1232,7 @@ private fun PremiumEQBandSlider(
             text = "${if (value >= 0) "+" else ""}${value.toInt()}",
             color = when {
                 !enabled -> Color.Gray
-                value > 0 -> accentColor
+                value > 0 -> LithosAmber
                 value < 0 -> Color(0xFFFF6B6B)
                 else -> Color.White
             },
@@ -1305,7 +1300,7 @@ private fun PremiumEQBandSlider(
                 // Draw center line (0 dB reference)
                 val centerY = height / 2
                 drawLine(
-                    color = if (enabled) accentColor.copy(alpha = 0.3f) else Color.Gray.copy(alpha = 0.3f),
+                    color = if (enabled) LithosAmber.copy(alpha = 0.3f) else Color.Gray.copy(alpha = 0.3f),
                     start = Offset(centerX - 8.dp.toPx(), centerY),
                     end = Offset(centerX + 8.dp.toPx(), centerY),
                     strokeWidth = 2.dp.toPx()
@@ -1313,7 +1308,7 @@ private fun PremiumEQBandSlider(
 
                 // Draw active track from center
                 val activeColor = if (enabled) {
-                    if (value >= 0) accentColor else Color(0xFFFF6B6B)
+                    if (value >= 0) LithosAmber else Color(0xFFFF6B6B)
                 } else Color.Gray
 
                 if (value != 0f) {
@@ -1326,16 +1321,7 @@ private fun PremiumEQBandSlider(
                     )
                 }
 
-                // Draw thumb glow
-                if (enabled) {
-                    drawCircle(
-                        color = activeColor.copy(alpha = 0.3f),
-                        radius = thumbRadius + 4.dp.toPx(),
-                        center = Offset(centerX, thumbY.coerceIn(thumbRadius, height - thumbRadius))
-                    )
-                }
-
-                // Draw thumb
+                // Draw thumb (no glow effect per Lithos design)
                 drawCircle(
                     color = if (enabled) activeColor else Color.Gray,
                     radius = thumbRadius,
@@ -1344,7 +1330,7 @@ private fun PremiumEQBandSlider(
 
                 // Draw inner thumb circle
                 drawCircle(
-                    color = Color(0xFF1A1A1A),
+                    color = LithosSlate,
                     radius = thumbRadius - 3.dp.toPx(),
                     center = Offset(centerX, thumbY.coerceIn(thumbRadius, height - thumbRadius))
                 )
@@ -1380,7 +1366,7 @@ private fun EffectsTab(
     onReverbChange: (ReverbPreset) -> Unit,
     loudnessEnabled: Boolean,
     onLoudnessChange: (Boolean) -> Unit,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     enabled: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -1389,7 +1375,7 @@ private fun EffectsTab(
             title = "AMPLIFIER",
             subtitle = "Volume gain adjustment",
             icon = Icons.AutoMirrored.Filled.VolumeUp,
-            accentColor = accentColor
+            accentColor = LithosAmber
         ) {
             Column {
                 Row(
@@ -1400,7 +1386,7 @@ private fun EffectsTab(
                     Text(
                         "${if (amplifierGain >= 0) "+" else ""}${amplifierGain.toInt()} dB",
                         color = when {
-                            amplifierGain > 0 -> accentColor
+                            amplifierGain > 0 -> LithosAmber
                             amplifierGain < 0 -> Color(0xFFFF6B6B)
                             else -> Color.White
                         },
@@ -1415,8 +1401,8 @@ private fun EffectsTab(
                     valueRange = -12f..12f,
                     enabled = enabled,
                     colors = SliderDefaults.colors(
-                        thumbColor = accentColor,
-                        activeTrackColor = accentColor,
+                        thumbColor = LithosAmber,
+                        activeTrackColor = LithosAmber,
                         inactiveTrackColor = Color(0xFF333333)
                     )
                 )
@@ -1433,7 +1419,7 @@ private fun EffectsTab(
             title = "BASS BOOST",
             subtitle = "Enhance low frequencies",
             icon = Icons.Default.GraphicEq,
-            accentColor = accentColor
+            accentColor = LithosAmber
         ) {
             Column {
                 Row(
@@ -1441,7 +1427,7 @@ private fun EffectsTab(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Off", color = Color.Gray, fontSize = 10.sp)
-                    Text("${(bassBoost * 100).toInt()}%", color = accentColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("${(bassBoost * 100).toInt()}%", color = LithosAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text("Max", color = Color.Gray, fontSize = 10.sp)
                 }
                 Slider(
@@ -1449,8 +1435,8 @@ private fun EffectsTab(
                     onValueChange = onBassBoostChange,
                     enabled = enabled,
                     colors = SliderDefaults.colors(
-                        thumbColor = accentColor,
-                        activeTrackColor = accentColor,
+                        thumbColor = LithosAmber,
+                        activeTrackColor = LithosAmber,
                         inactiveTrackColor = Color(0xFF333333)
                     )
                 )
@@ -1462,7 +1448,7 @@ private fun EffectsTab(
             title = "VIRTUALIZER",
             subtitle = "3D spatial audio effect",
             icon = Icons.Default.SurroundSound,
-            accentColor = accentColor
+            accentColor = LithosAmber
         ) {
             Column {
                 Row(
@@ -1470,7 +1456,7 @@ private fun EffectsTab(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Narrow", color = Color.Gray, fontSize = 10.sp)
-                    Text("${(virtualizer * 100).toInt()}%", color = accentColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("${(virtualizer * 100).toInt()}%", color = LithosAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text("Wide", color = Color.Gray, fontSize = 10.sp)
                 }
                 Slider(
@@ -1478,8 +1464,8 @@ private fun EffectsTab(
                     onValueChange = onVirtualizerChange,
                     enabled = enabled,
                     colors = SliderDefaults.colors(
-                        thumbColor = accentColor,
-                        activeTrackColor = accentColor,
+                        thumbColor = LithosAmber,
+                        activeTrackColor = LithosAmber,
                         inactiveTrackColor = Color(0xFF333333)
                     )
                 )
@@ -1491,25 +1477,25 @@ private fun EffectsTab(
             title = "STEREO BALANCE",
             subtitle = "Left/Right channel balance",
             icon = Icons.Default.Tune,
-            accentColor = accentColor
+            accentColor = LithosAmber
         ) {
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("L", color = if (stereoBalance < 0) accentColor else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("L", color = if (stereoBalance < 0) LithosAmber else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Text(
                         when {
                             stereoBalance < -0.05f -> "L ${(-stereoBalance * 100).toInt()}%"
                             stereoBalance > 0.05f -> "R ${(stereoBalance * 100).toInt()}%"
                             else -> "Center"
                         },
-                        color = accentColor,
+                        color = LithosAmber,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Text("R", color = if (stereoBalance > 0) accentColor else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("R", color = if (stereoBalance > 0) LithosAmber else Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Slider(
                     value = stereoBalance,
@@ -1517,8 +1503,8 @@ private fun EffectsTab(
                     valueRange = -1f..1f,
                     enabled = enabled,
                     colors = SliderDefaults.colors(
-                        thumbColor = accentColor,
-                        activeTrackColor = accentColor,
+                        thumbColor = LithosAmber,
+                        activeTrackColor = LithosAmber,
                         inactiveTrackColor = Color(0xFF333333)
                     )
                 )
@@ -1530,7 +1516,7 @@ private fun EffectsTab(
             title = "REVERB",
             subtitle = "Room simulation effect",
             icon = Icons.Default.Waves,
-            accentColor = accentColor
+            accentColor = LithosAmber
         ) {
             Row(
                 modifier = Modifier
@@ -1546,12 +1532,12 @@ private fun EffectsTab(
                         label = { Text(reverb.displayName, fontSize = 11.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Color.Transparent,
-                            selectedLabelColor = accentColor
+                            selectedLabelColor = LithosAmber
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = enabled,
                             selected = selectedReverb == reverb,
-                            selectedBorderColor = accentColor,
+                            selectedBorderColor = LithosAmber,
                             selectedBorderWidth = 1.5.dp
                         )
                     )
@@ -1564,7 +1550,7 @@ private fun EffectsTab(
             title = "LOUDNESS NORMALIZATION",
             subtitle = "Maintain consistent volume across tracks",
             icon = Icons.AutoMirrored.Filled.VolumeUp,
-            accentColor = accentColor
+            accentColor = LithosAmber
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1573,7 +1559,7 @@ private fun EffectsTab(
             ) {
                 Text(
                     if (loudnessEnabled) "Enabled - Target: -14 LUFS" else "Disabled",
-                    color = if (loudnessEnabled) accentColor else Color.Gray,
+                    color = if (loudnessEnabled) LithosAmber else Color.Gray,
                     fontSize = 12.sp
                 )
                 Switch(
@@ -1581,8 +1567,8 @@ private fun EffectsTab(
                     onCheckedChange = onLoudnessChange,
                     enabled = enabled,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = accentColor,
-                        checkedTrackColor = accentColor.copy(alpha = 0.4f)
+                        checkedThumbColor = LithosAmber,
+                        checkedTrackColor = LithosAmber.copy(alpha = 0.4f)
                     )
                 )
             }
@@ -1595,14 +1581,14 @@ private fun EffectCard(
     title: String,
     subtitle: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     content: @Composable () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF1A1A1A))
+            .background(LithosGlassBackground)
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1633,7 +1619,7 @@ private fun PresetsTab(
     selectedCategory: PresetCategory?,
     onCategorySelect: (PresetCategory) -> Unit,
     onPresetSelect: (EQPreset) -> Unit,
-    accentColor: Color
+    accentColor: Color = LithosAmber
 ) {
     Column {
         // Category chips
@@ -1657,12 +1643,12 @@ private fun PresetsTab(
                     label = { Text(category.displayName, fontSize = 12.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color.Transparent,
-                        selectedLabelColor = accentColor
+                        selectedLabelColor = LithosAmber
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = selectedCategory == category,
-                        selectedBorderColor = accentColor,
+                        selectedBorderColor = LithosAmber,
                         selectedBorderWidth = 1.5.dp
                     )
                 )
@@ -1694,17 +1680,17 @@ private fun PresetsTab(
 private fun PresetItem(
     preset: EQPreset,
     isSelected: Boolean,
-    accentColor: Color,
+    accentColor: Color = LithosAmber,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1A1A1A))
+            .background(LithosGlassBackground)
             .border(
                 width = if (isSelected) 1.5.dp else 0.dp,
-                color = if (isSelected) accentColor else Color.Transparent,
+                color = if (isSelected) LithosAmber else Color.Transparent,
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable { onClick() }
@@ -1720,8 +1706,8 @@ private fun PresetItem(
                     when (preset.category) {
                         PresetCategory.GENRE -> Color(0xFF9C27B0).copy(alpha = 0.2f)
                         PresetCategory.USE_CASE -> Color(0xFF2196F3).copy(alpha = 0.2f)
-                        PresetCategory.AUDIOBOOK -> Color(0xFF4CAF50).copy(alpha = 0.2f)
-                        PresetCategory.CUSTOM -> accentColor.copy(alpha = 0.2f)
+                        PresetCategory.AUDIOBOOK -> LithosMoss.copy(alpha = 0.2f)
+                        PresetCategory.CUSTOM -> LithosAmber.copy(alpha = 0.2f)
                     }
                 ),
             contentAlignment = Alignment.Center
@@ -1737,8 +1723,8 @@ private fun PresetItem(
                 tint = when (preset.category) {
                     PresetCategory.GENRE -> Color(0xFF9C27B0)
                     PresetCategory.USE_CASE -> Color(0xFF2196F3)
-                    PresetCategory.AUDIOBOOK -> Color(0xFF4CAF50)
-                    PresetCategory.CUSTOM -> accentColor
+                    PresetCategory.AUDIOBOOK -> LithosMoss
+                    PresetCategory.CUSTOM -> LithosAmber
                 },
                 modifier = Modifier.size(20.dp)
             )
@@ -1749,7 +1735,7 @@ private fun PresetItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 preset.displayName,
-                color = if (isSelected) accentColor else Color.White,
+                color = if (isSelected) LithosAmber else Color.White,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -1766,7 +1752,7 @@ private fun PresetItem(
             Icon(
                 Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = accentColor,
+                tint = LithosAmber,
                 modifier = Modifier.size(24.dp)
             )
         }

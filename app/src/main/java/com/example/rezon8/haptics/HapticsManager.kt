@@ -1,4 +1,4 @@
-package com.mossglen.reverie.haptics
+package com.mossglen.lithos.haptics
 
 import android.content.Context
 import android.os.Build

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.content.res.Configuration
 import android.widget.Toast
@@ -43,10 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 
@@ -325,7 +325,7 @@ fun CarModeScreen(
 
 @Composable
 private fun CarModePortrait(
-    currentBook: com.mossglen.reverie.data.Book?,
+    currentBook: com.mossglen.lithos.data.Book?,
     isPlaying: Boolean,
     progress: Float,
     timeRemaining: Long,
@@ -361,7 +361,7 @@ private fun CarModePortrait(
 
                 // Progress arc
                 drawArc(
-                    color = GlassColors.ReverieAccent,
+                    color = GlassColors.LithosAccent,
                     startAngle = -90f,
                     sweepAngle = 360f * progress,
                     useCenter = false,
@@ -441,7 +441,7 @@ private fun CarModePortrait(
                 icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 size = 120.dp,
                 iconSize = 64.dp,
-                backgroundColor = GlassColors.ReverieAccent,
+                backgroundColor = GlassColors.LithosAccent,
                 onClick = onPlayPause
             )
 
@@ -460,7 +460,7 @@ private fun CarModePortrait(
 
 @Composable
 private fun CarModeLandscape(
-    currentBook: com.mossglen.reverie.data.Book?,
+    currentBook: com.mossglen.lithos.data.Book?,
     isPlaying: Boolean,
     progress: Float,
     timeRemaining: Long,
@@ -495,7 +495,7 @@ private fun CarModeLandscape(
                 )
 
                 drawArc(
-                    color = GlassColors.ReverieAccent,
+                    color = GlassColors.LithosAccent,
                     startAngle = -90f,
                     sweepAngle = 360f * progress,
                     useCenter = false,
@@ -577,7 +577,7 @@ private fun CarModeLandscape(
                     icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     size = 100.dp,
                     iconSize = 56.dp,
-                    backgroundColor = GlassColors.ReverieAccent,
+                    backgroundColor = GlassColors.LithosAccent,
                     onClick = onPlayPause
                 )
 

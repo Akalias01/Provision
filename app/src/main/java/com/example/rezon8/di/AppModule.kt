@@ -1,4 +1,4 @@
-package com.mossglen.reverie.di
+package com.mossglen.lithos.di
 
 import android.content.Context
 import androidx.media3.common.AudioAttributes
@@ -6,11 +6,11 @@ import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.room.Room
 import androidx.work.WorkManager
-import com.mossglen.reverie.data.*
-import com.mossglen.reverie.data.audio.AudioSplitter
-import com.mossglen.reverie.data.cloud.CloudSyncRepository
-import com.mossglen.reverie.data.cloud.DropboxManager
-import com.mossglen.reverie.data.cloud.GoogleDriveManager
+import com.mossglen.lithos.data.*
+import com.mossglen.lithos.data.audio.AudioSplitter
+import com.mossglen.lithos.data.cloud.CloudSyncRepository
+import com.mossglen.lithos.data.cloud.DropboxManager
+import com.mossglen.lithos.data.cloud.GoogleDriveManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,6 +25,7 @@ object AppModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(context, AppDatabase::class.java, "reverie.db")
+            .addMigrations(AppDatabase.MIGRATION_5_6)
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -33,14 +34,18 @@ object AppModule {
     fun provideBookDao(db: AppDatabase): BookDao = db.bookDao()
 
     @Provides
+    fun provideTorrentDownloadDao(db: AppDatabase): TorrentDownloadDao = db.torrentDownloadDao()
+
+    @Provides
     @Singleton
     fun provideLibraryRepository(
         @ApplicationContext context: Context,
         bookDao: BookDao,
         metadataRepository: MetadataRepository,
+        coverArtRepository: CoverArtRepository,
         torrentManager: dagger.Lazy<TorrentManager>
     ): LibraryRepository {
-        return LibraryRepository(context, bookDao, metadataRepository, torrentManager)
+        return LibraryRepository(context, bookDao, metadataRepository, coverArtRepository, torrentManager)
     }
 
     @Provides
@@ -66,9 +71,10 @@ object AppModule {
         @ApplicationContext context: Context,
         libraryRepository: LibraryRepository,
         metadataRepository: MetadataRepository,
-        settingsRepository: SettingsRepository
+        settingsRepository: SettingsRepository,
+        torrentDownloadDao: TorrentDownloadDao
     ): TorrentManager {
-        return TorrentManager(context, libraryRepository, metadataRepository, settingsRepository)
+        return TorrentManager(context, libraryRepository, metadataRepository, settingsRepository, torrentDownloadDao)
     }
 
     @Provides

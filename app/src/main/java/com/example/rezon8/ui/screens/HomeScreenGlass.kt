@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -25,7 +25,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import androidx.compose.ui.util.lerp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,10 +44,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -59,27 +61,31 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.R
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.HomeViewModel
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
-import com.mossglen.reverie.ui.components.BookDetailMorphingSheet
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
+import com.mossglen.lithos.R
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.theme.LithosUI
+import com.mossglen.lithos.ui.theme.LithosComponents
+import com.mossglen.lithos.ui.theme.GlassIconSize
+import com.mossglen.lithos.ui.viewmodel.HomeViewModel
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.ui.components.BookDetailMorphingSheet
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
 
 /**
- * REVERIE Glass - Unified Home (10/10 Design)
+ * LITHOS AMBER Design Language - Home Screen
  *
  * ONE unified experience - no separate "Now" and "Library".
  * The app IS your library. Your current book is the hero at top.
  *
- * Design Principles (Per PROJECT_MANIFEST):
- * - INVISIBLE PERFECTION: No modes to learn, no sections to understand
- * - ANTICIPATORY INTELLIGENCE: Contextual greeting with actionable info
- * - 2-TAP PRINCIPLE: Tap cover = play instantly
- * - PROGRESSIVE DISCLOSURE: Stats glanceable, tap for more
+ * Lithos Design Principles:
+ * - MATTE/SATIN FINISH: No glow effects, no gradients
+ * - FROSTED GLASS: rgba(26, 29, 33, 0.85) with 20dp blur
+ * - AMBER ACCENT (#D48C2C): Progress indicators, active/selected states
+ * - MOSS (#4A5D45): Primary action buttons (play)
+ * - THIN STROKES: 2-3dp for progress rings
  *
  * Layout:
  * 1. Contextual Greeting with smart subtext
@@ -88,6 +94,7 @@ import com.mossglen.reverie.haptics.performHaptic
  * 4. Filter Chips (All | In Progress | Finished | Authors | Series)
  * 5. Unified Library Grid (smart sorted)
  */
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreenGlass(
@@ -95,8 +102,8 @@ fun HomeScreenGlass(
     playerViewModel: PlayerViewModel = hiltViewModel(),
     libraryViewModel: LibraryViewModel = hiltViewModel(),
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.Interactive,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,  // Lithos Amber for active/selected states
     scrollToTopTrigger: Int = 0,
     onBookClick: (String) -> Unit = {},
     onPlayBook: (Book) -> Unit = {},
@@ -107,7 +114,7 @@ fun HomeScreenGlass(
     onAddClick: () -> Unit = {},
     onScrolling: (isScrollingDown: Boolean) -> Unit = {}  // Smart mini player hide
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val listState = rememberLazyListState()
     val view = LocalView.current
     val scope = rememberCoroutineScope()
@@ -257,7 +264,7 @@ fun HomeScreenGlass(
                             position = position,
                             homeViewModel = homeViewModel,
                             isDark = isDark,
-                            isReverieDark = isReverieDark,
+                            isOLED = isOLED,
                             accentColor = accentColor,
                             onPlayBook = { book ->
                                 if (currentBook?.id == book.id) {
@@ -284,7 +291,7 @@ fun HomeScreenGlass(
                         booksFinished = finishedBooksCount,
                         inProgressCount = booksInProgress.size,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         accentColor = accentColor,
                         onClick = {
                             view.performHaptic(HapticType.LightTap)
@@ -330,7 +337,7 @@ fun HomeScreenGlass(
                                     imageVector = if (viewMode) Icons.Outlined.ViewAgenda else Icons.Default.Apps,
                                     contentDescription = if (viewMode) "Switch to list" else "Switch to grid",
                                     tint = theme.textSecondary,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(GlassIconSize.Medium)
                                 )
                             }
 
@@ -379,7 +386,7 @@ fun HomeScreenGlass(
                     item {
                         EmptyLibraryState(
                             isDark = isDark,
-                            isReverieDark = isReverieDark,
+                            isOLED = isOLED,
                             accentColor = accentColor,
                             onAddClick = onAddClick
                         )
@@ -418,7 +425,7 @@ fun HomeScreenGlass(
                                 LibraryBookCard(
                                     book = book,
                                     isDark = isDark,
-                                    isReverieDark = isReverieDark,
+                                    isOLED = isOLED,
                                     accentColor = accentColor,
                                     onCoverClick = { onPlayBook(book) },
                                     onCardClick = { bookForPreview = book },
@@ -441,8 +448,9 @@ fun HomeScreenGlass(
             BookDetailMorphingSheet(
                 book = book,
                 isVisible = true,
-                accentColor = if (isReverieDark) accentColor else theme.interactive,
-                isReverieDark = isReverieDark,
+                accentColor = if (isOLED) accentColor else theme.interactive,
+                isDark = isDark,
+                isOLED = isOLED,
                 onDismiss = { bookForPreview = null },
                 onPlayBook = {
                     onPlayBook(book)
@@ -490,39 +498,44 @@ private fun HeroSection(
     progress: Float,
     timeRemaining: String,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onPlayClick: () -> Unit,
     onBookClick: () -> Unit,
     onSeriesClick: ((String) -> Unit)? = null,
     onAuthorClick: ((String) -> Unit)? = null
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
-    // Cover art press animation - subtle scale for play feedback
+    // Cover art press animation - Apple-quality spring physics
+    // Uses DampingRatioMediumBouncy with StiffnessLow for premium feel
     val coverInteractionSource = remember { MutableInteractionSource() }
     val isCoverPressed by coverInteractionSource.collectIsPressedAsState()
     val coverScale by animateFloatAsState(
-        targetValue = if (isCoverPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        targetValue = if (isCoverPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,  // 0.75 - natural with subtle overshoot
+            stiffness = Spring.StiffnessLow  // 200 - smooth, not snappy
+        ),
         label = "coverScale"
     )
 
-    // Play hint alpha - appears on cover press
+    // Play hint alpha - smooth fade with no bounce
     val playHintAlpha by animateFloatAsState(
         targetValue = if (isCoverPressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,  // Clean fade
+            stiffness = Spring.StiffnessMedium  // Responsive
+        ),
         label = "playHint"
     )
 
-    // Glass background matching the nav pill style
-    val glassBg = if (isReverieDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.95f)
-    } else if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.92f)
+    // Lithos frosted glass background - matte/satin finish, no glow
+    val glassBg = if (isDark) {
+        LithosColors.FrostedGlass  // rgba(26, 29, 33, 0.85)
     } else {
-        Color(0xFFF2F2F7).copy(alpha = 0.95f)
+        LithosColors.FrostedGlassLight
     }
 
     Column(
@@ -531,12 +544,12 @@ private fun HeroSection(
             .padding(horizontal = GlassSpacing.M)
     ) {
         // ══════════════════════════════════════════════════════════════
-        // "CONTINUE LISTENING" SECTION HEADER - Simple text, NOT a button
+        // "CONTINUE LISTENING" SECTION HEADER - Lithos Amber
         // ══════════════════════════════════════════════════════════════
         Text(
             text = stringResource(R.string.home_continue_listening),
             style = GlassTypography.Caption,
-            color = accentColor,
+            color = LithosColors.Amber,  // Lithos Amber
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.5.sp
         )
@@ -568,7 +581,7 @@ private fun HeroSection(
                             scaleY = coverScale
                             shadowElevation = 16f
                         }
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(LithosComponents.Buttons.cornerRadius))
                         .clickable(
                             interactionSource = coverInteractionSource,
                             indication = null
@@ -633,7 +646,7 @@ private fun HeroSection(
 
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        // Author with chevron - tappable to author books
+                        // Author with chevron - tappable to author books - Lithos Amber
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -646,7 +659,7 @@ private fun HeroSection(
                             Text(
                                 text = "by ${book.author}",
                                 style = GlassTypography.Caption,
-                                color = if (onAuthorClick != null) accentColor.copy(alpha = 0.9f) else theme.textSecondary,
+                                color = if (onAuthorClick != null) LithosColors.Amber.copy(alpha = 0.9f) else theme.textSecondary,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -656,7 +669,7 @@ private fun HeroSection(
                                 Icon(
                                     imageVector = Icons.Filled.ChevronRight,
                                     contentDescription = "View author's books",
-                                    tint = accentColor.copy(alpha = 0.6f),
+                                    tint = LithosColors.Amber.copy(alpha = 0.6f),  // Lithos Amber
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -668,13 +681,13 @@ private fun HeroSection(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Start
                     ) {
-                        // Progress Ring - completion-focused, psychologically encouraging
+                        // Lithos Progress Ring - thin stroke (2.5dp), Amber accent
                         ProgressRing(
                             progress = progress,
-                            accentColor = accentColor,
+                            accentColor = LithosColors.Amber,  // Lithos Amber for progress
                             size = 48.dp,
-                            strokeWidth = 4.dp,
-                            backgroundColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f),
+                            strokeWidth = 2.5.dp,  // Lithos thin stroke
+                            backgroundColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f),
                             textColor = theme.textPrimary
                         )
 
@@ -695,108 +708,6 @@ private fun HeroSection(
 }
 
 // ============================================================================
-// QUICK STATS ROW (4 compact cards)
-// ============================================================================
-
-@Composable
-private fun QuickStatsRow(
-    streakDays: Int,
-    todayTime: String,
-    inProgressCount: Int,
-    finishedCount: Int,
-    isDark: Boolean,
-    isReverieDark: Boolean,
-    accentColor: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = GlassSpacing.M),
-        horizontalArrangement = Arrangement.spacedBy(GlassSpacing.S)
-    ) {
-        QuickStatCard(
-            icon = Icons.Filled.LocalFireDepartment,
-            value = "$streakDays",
-            label = stringResource(R.string.home_streak),
-            isDark = isDark,
-            isReverieDark = isReverieDark,
-            accentColor = if (streakDays > 0) accentColor else null,
-            modifier = Modifier.weight(1f)
-        )
-        QuickStatCard(
-            icon = Icons.Outlined.Schedule,
-            value = todayTime.ifEmpty { "0m" },
-            label = stringResource(R.string.stats_today),
-            isDark = isDark,
-            isReverieDark = isReverieDark,
-            modifier = Modifier.weight(1f)
-        )
-        QuickStatCard(
-            icon = Icons.Outlined.PlayCircle,
-            value = "$inProgressCount",
-            label = stringResource(R.string.home_active),
-            isDark = isDark,
-            isReverieDark = isReverieDark,
-            modifier = Modifier.weight(1f)
-        )
-        QuickStatCard(
-            icon = Icons.Outlined.CheckCircle,
-            value = "$finishedCount",
-            label = stringResource(R.string.home_done),
-            isDark = isDark,
-            isReverieDark = isReverieDark,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun QuickStatCard(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    isDark: Boolean,
-    isReverieDark: Boolean,
-    accentColor: Color? = null,
-    modifier: Modifier = Modifier
-) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val displayColor = accentColor ?: theme.textSecondary
-
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(
-                if (isDark) Color(0xFF1C1C1E).copy(alpha = 0.8f)
-                else Color(0xFFF2F2F7).copy(alpha = 0.8f)
-            )
-            .padding(vertical = GlassSpacing.S, horizontal = GlassSpacing.XS),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = displayColor,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = GlassTypography.Body,
-            fontWeight = FontWeight.Bold,
-            color = theme.textPrimary,
-            maxLines = 1
-        )
-        Text(
-            text = label,
-            style = GlassTypography.Caption,
-            color = theme.textSecondary,
-            maxLines = 1
-        )
-    }
-}
-
-// ============================================================================
 // SERIES CARD (for Your Series horizontal scroll)
 // ============================================================================
 
@@ -805,18 +716,21 @@ private fun SeriesCard(
     seriesName: String,
     books: List<Book>,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "scale"
     )
 
@@ -922,26 +836,23 @@ private fun StatCard(
     label: String,
     value: String,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(GlassShapes.Medium))
+            // Lithos: Matte/satin finish - no gradient, solid frosted glass
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (isDark) 0.06f else 0.10f),
-                        theme.glassCard
-                    )
-                )
+                if (isDark) LithosColors.FrostedGlass
+                else LithosColors.FrostedGlassLight
             )
             .border(
                 width = 0.5.dp,
-                color = theme.glassBorder,
+                color = LithosColors.BorderMatte,  // Lithos matte border
                 shape = RoundedCornerShape(GlassShapes.Medium)
             )
             .padding(GlassSpacing.M)
@@ -952,8 +863,8 @@ private fun StatCard(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = accentColor,
-                modifier = Modifier.size(24.dp)
+                tint = LithosColors.Amber,  // Lithos Amber accent
+                modifier = Modifier.size(GlassIconSize.Medium)
             )
             Spacer(modifier = Modifier.height(GlassSpacing.S))
             Text(
@@ -980,12 +891,12 @@ private fun StatCard(
 private fun RecentBookCard(
     book: Book,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onCoverClick: () -> Unit,  // Tap cover = play
     onTextClick: () -> Unit     // Tap text = show half sheet
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     // Separate interaction sources for cover and text
@@ -996,20 +907,29 @@ private fun RecentBookCard(
 
     val coverScale by animateFloatAsState(
         targetValue = if (isCoverPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "coverScale"
     )
 
     val textScale by animateFloatAsState(
         targetValue = if (isTextPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "textScale"
     )
 
     // Play hint alpha - appears on press
     val playHintAlpha by animateFloatAsState(
         targetValue = if (isCoverPressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "playHint"
     )
 
@@ -1043,20 +963,20 @@ private fun RecentBookCard(
                 contentScale = ContentScale.Crop
             )
 
-            // Progress indicator at bottom
+            // Lithos progress indicator - thin bar with Amber accent
             if (book.progress > 0 && book.duration > 0) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
+                        .height(3.dp)  // Lithos thin stroke
                         .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.3f))
+                        .background(Color.Black.copy(alpha = 0.25f))
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(book.progressPercent())
                             .fillMaxHeight()
-                            .background(accentColor)
+                            .background(LithosColors.Amber)  // Lithos Amber progress
                     )
                 }
             }
@@ -1126,11 +1046,11 @@ private fun RecommendationSection(
     icon: ImageVector,
     books: List<Book>,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onBookClick: (String) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1142,8 +1062,8 @@ private fun RecommendationSection(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(24.dp)
+                tint = LithosColors.Amber,  // Lithos Amber accent
+                modifier = Modifier.size(GlassIconSize.Medium)
             )
             Spacer(modifier = Modifier.width(GlassSpacing.S))
             Column {
@@ -1165,7 +1085,7 @@ private fun RecommendationSection(
             RecommendationBookItem(
                 book = book,
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 accentColor = accentColor,
                 onClick = { onBookClick(book.id) }
             )
@@ -1177,18 +1097,21 @@ private fun RecommendationSection(
 private fun RecommendationBookItem(
     book: Book,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "scale"
     )
 
@@ -1217,7 +1140,7 @@ private fun RecommendationBookItem(
             contentDescription = book.title,
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(LithosComponents.Cards.chipRadius))
                 .graphicsLayer { shadowElevation = 2f },
             contentScale = ContentScale.Crop
         )
@@ -1244,7 +1167,7 @@ private fun RecommendationBookItem(
                 Text(
                     text = book.seriesInfo,
                     style = GlassTypography.Caption,
-                    color = accentColor,
+                    color = LithosColors.Amber,  // Lithos Amber for series
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1255,13 +1178,13 @@ private fun RecommendationBookItem(
             imageVector = Icons.Outlined.ChevronRight,
             contentDescription = null,
             tint = theme.textTertiary,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(GlassIconSize.Small)
         )
     }
 }
 
 // ============================================================================
-// PREMIUM PLAY BUTTON
+// PREMIUM PLAY BUTTON - Uses Lithos Moss for primary action
 // ============================================================================
 
 @Composable
@@ -1271,41 +1194,38 @@ private fun PremiumPlayButton(
     onClick: () -> Unit,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean
+    isOLED: Boolean
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 500f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "scale"
     )
 
-    // Muted button style - dark background with accent icon/text
-    // Similar to play button in full player - focus stays on cover art
-    val buttonBg = if (isReverieDark) {
-        Color(0xFF1C1C1E)  // Dark card background
-    } else if (isDark) {
-        Color(0xFF2C2C2E)  // Slightly lighter for dark mode
-    } else {
-        Color(0xFF1C1C1E)  // Dark for light mode too (for contrast)
-    }
+    // Lithos: Moss background for primary play action, matte finish
+    val buttonBg = LithosColors.Moss
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(52.dp)  // Slightly smaller
+            .height(LithosComponents.Buttons.height)  // Standardized button height
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(RoundedCornerShape(GlassShapes.Small))
+            .clip(RoundedCornerShape(LithosComponents.Buttons.cornerRadius))
             .background(buttonBg)
+            // Lithos: No glow border, just subtle matte border
             .border(
-                width = 0.5.dp,
-                color = accentColor.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(GlassShapes.Small)
+                width = LithosComponents.Cards.borderWidth,
+                color = LithosColors.Moss.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(LithosComponents.Buttons.cornerRadius)
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -1321,14 +1241,14 @@ private fun PremiumPlayButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = accentColor,  // Accent color for icon
-                modifier = Modifier.size(24.dp)
+                tint = LithosColors.Oat,  // Lithos Oat for icon on Moss
+                modifier = Modifier.size(GlassIconSize.Medium)
             )
             Spacer(modifier = Modifier.width(GlassSpacing.S))
             Text(
                 text = text,
                 style = GlassTypography.Label,
-                color = Color.White,  // White text for readability
+                color = LithosColors.Oat,  // Lithos Oat text for readability
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -1336,17 +1256,17 @@ private fun PremiumPlayButton(
 }
 
 // ============================================================================
-// PROGRESS RING - Circular progress indicator with percentage
+// PROGRESS RING - Lithos thin stroke circular progress indicator
 // ============================================================================
 
 @Composable
 private fun ProgressRing(
     progress: Float,
-    accentColor: Color,
+    accentColor: Color = LithosColors.Amber,  // Default to Lithos Amber
     modifier: Modifier = Modifier,
     size: androidx.compose.ui.unit.Dp = 48.dp,
-    strokeWidth: androidx.compose.ui.unit.Dp = 4.dp,
-    backgroundColor: Color = Color.White.copy(alpha = 0.15f),
+    strokeWidth: androidx.compose.ui.unit.Dp = 2.5.dp,  // Lithos thin stroke
+    backgroundColor: Color = Color.White.copy(alpha = 0.12f),
     textColor: Color = Color.White
 ) {
     val animatedProgress by animateFloatAsState(
@@ -1453,12 +1373,12 @@ private fun getContextualSubtext(
         heroBook != null && timeRemaining == "Almost done" -> {
             "Almost done!"
         }
-        // Active streak (7+ days is impressive)
+        // Lithos: No emoji for matte feel
         streakDays >= 7 -> {
-            "🔥 $streakDays-day streak! Keep it going"
+            "$streakDays-day streak! Keep it going"
         }
         streakDays > 0 -> {
-            "🔥 $streakDays-day streak"
+            "$streakDays-day streak"
         }
         // Has finished books
         finishedCount > 0 -> {
@@ -1474,6 +1394,7 @@ private fun getContextualSubtext(
 /**
  * Returns contextual subtext WITHOUT time (time is in hero card)
  * Shows streak or finished count only
+ * Lithos: No emoji for matte feel
  */
 @Composable
 private fun getContextualSubtextNoTime(
@@ -1481,12 +1402,12 @@ private fun getContextualSubtextNoTime(
     finishedCount: Int
 ): String {
     return when {
-        // Active streak (7+ days is impressive)
+        // Lithos: No emoji for matte feel
         streakDays >= 7 -> {
-            "🔥 $streakDays-day streak! Keep it going"
+            "$streakDays-day streak! Keep it going"
         }
         streakDays > 0 -> {
-            "🔥 $streakDays-day streak"
+            "$streakDays-day streak"
         }
         // Has finished books
         finishedCount > 0 -> {
@@ -1495,6 +1416,36 @@ private fun getContextualSubtextNoTime(
         // New user - empty, don't show anything redundant
         else -> ""
     }
+}
+
+// ============================================================================
+// PAGER OFFSET HELPERS - Premium animation calculations
+// ============================================================================
+
+/**
+ * Calculate offset for a page relative to current scroll position.
+ * Returns negative for pages to the right, positive for pages to the left.
+ * Range: approximately -1 to +1 for adjacent pages.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun androidx.compose.foundation.pager.PagerState.offsetForPage(page: Int): Float {
+    return (currentPage - page) + currentPageOffsetFraction
+}
+
+/**
+ * Get offset clamped to positive values (pages scrolling out to the left).
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun androidx.compose.foundation.pager.PagerState.startOffsetForPage(page: Int): Float {
+    return offsetForPage(page).coerceAtLeast(0f)
+}
+
+/**
+ * Get offset clamped to negative values (pages scrolling in from the right).
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun androidx.compose.foundation.pager.PagerState.endOffsetForPage(page: Int): Float {
+    return offsetForPage(page).coerceAtMost(0f)
 }
 
 // ============================================================================
@@ -1510,32 +1461,54 @@ private fun SwipeableHeroSection(
     position: Long,
     homeViewModel: HomeViewModel,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onPlayBook: (Book) -> Unit,
     onBookClick: (Book) -> Unit,
     onSeriesClick: (String) -> Unit,
     onAuthorClick: (String) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val scope = rememberCoroutineScope()
 
     val pagerState = rememberPagerState(pageCount = { books.size })
 
-    // Auto-scroll back to first page after 5 seconds of inactivity
-    var lastInteractionTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    // Track last user interaction for auto-return
+    var lastInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
-    LaunchedEffect(pagerState.currentPage) {
-        lastInteractionTime = System.currentTimeMillis()
+    // Update interaction time when user drags
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collect { isScrolling: Boolean ->
+                if (isScrolling) {
+                    lastInteractionTime = System.currentTimeMillis()
+                }
+            }
     }
 
+    // Apple-quality auto-return: scroll back to first card after 4 seconds
+    // Uses spring animation for smooth, natural feel
     LaunchedEffect(Unit) {
         while (true) {
-            delay(1000)
+            delay(500) // Check twice per second for responsive feel
+
+            val currentPage = pagerState.currentPage
+            val isSettled = !pagerState.isScrollInProgress
             val timeSinceInteraction = System.currentTimeMillis() - lastInteractionTime
-            if (timeSinceInteraction > 5000 && pagerState.currentPage != 0) {
-                pagerState.animateScrollToPage(0)
+
+            if (currentPage > 0 && isSettled && timeSinceInteraction > 4000) {
+                // Smoothly scroll back with spring animation
+                pagerState.animateScrollToPage(
+                    page = 0,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,  // Subtle bounce
+                        stiffness = Spring.StiffnessLow  // Smooth, not snappy
+                    )
+                )
+                // Reset timer after auto-scroll
+                lastInteractionTime = System.currentTimeMillis()
             }
         }
     }
@@ -1545,11 +1518,11 @@ private fun SwipeableHeroSection(
             .fillMaxWidth()
             .padding(horizontal = GlassSpacing.M)
     ) {
-        // Header: "Continue Listening" or "Now Playing"
+        // Header: "Continue Listening" or "Now Playing" - Lithos Amber
         Text(
             text = if (currentPlayingBookId != null) "NOW PLAYING" else "CONTINUE LISTENING",
             style = GlassTypography.Label,
-            color = accentColor,
+            color = LithosColors.Amber,  // Lithos Amber for active state
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp,
             fontSize = 12.sp
@@ -1572,16 +1545,49 @@ private fun SwipeableHeroSection(
             }
             val timeRemaining = homeViewModel.formatTimeRemaining(homeViewModel.getTimeRemaining(book))
 
-            // Calculate page offset for beautiful card effect
-            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-            val absOffset = kotlin.math.abs(pageOffset)
+            // ============================================================
+            // PREMIUM APPLE-QUALITY CARD TRANSITION
+            // Uses lerp for smooth interpolation, 3D depth effects
+            // ============================================================
+            val pageOffset = pagerState.offsetForPage(page)
+            val absOffset = kotlin.math.abs(pageOffset).coerceIn(0f, 1f)
 
-            // Scale: 1.0 for current page, 0.9 for adjacent pages
-            val scale = 1f - (absOffset * 0.1f).coerceIn(0f, 0.1f)
-            // Alpha: 1.0 for current page, 0.6 for adjacent pages
-            val alpha = 1f - (absOffset * 0.4f).coerceIn(0f, 0.4f)
-            // Translation Y: cards slightly rise as they become current
-            val translationY = absOffset * 20f
+            // Scale: lerp from 1.0 (centered) to 0.88 (off-screen)
+            // Creates depth perception - centered card is largest
+            val scale = lerp(
+                start = 0.88f,
+                stop = 1f,
+                fraction = 1f - absOffset
+            )
+
+            // Alpha: subtle fade for off-center cards
+            val alpha = lerp(
+                start = 0.5f,
+                stop = 1f,
+                fraction = 1f - absOffset
+            )
+
+            // Rotation Y: 3D carousel effect - cards rotate away from center
+            // Negative offset (right side) rotates left, positive rotates right
+            val rotationY = lerp(
+                start = 0f,
+                stop = if (pageOffset < 0) -10f else 10f,
+                fraction = absOffset.coerceIn(0f, 1f)
+            )
+
+            // Shadow elevation: centered card has more shadow (depth effect)
+            val shadowElevation = lerp(
+                start = 4f,
+                stop = 20f,
+                fraction = 1f - absOffset
+            )
+
+            // Slight vertical offset for stacking illusion
+            val translationY = lerp(
+                start = 0f,
+                stop = 12f,
+                fraction = absOffset
+            )
 
             Box(
                 modifier = Modifier
@@ -1589,9 +1595,12 @@ private fun SwipeableHeroSection(
                         scaleX = scale
                         scaleY = scale
                         this.alpha = alpha
+                        this.rotationY = rotationY
                         this.translationY = translationY
-                        // Add subtle shadow for depth
-                        shadowElevation = (1f - absOffset).coerceIn(0f, 1f) * 8f
+                        cameraDistance = 12f * density  // Smooth 3D perspective
+                        this.shadowElevation = shadowElevation
+                        // Transform from center for natural rotation
+                        transformOrigin = TransformOrigin(0.5f, 0.5f)
                     }
             ) {
                 StackedHeroCard(
@@ -1600,16 +1609,22 @@ private fun SwipeableHeroSection(
                     timeRemaining = timeRemaining,
                     isPlaying = isCurrentBook && isPlaying,
                     isDark = isDark,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     accentColor = accentColor,
                     onPlayClick = { onPlayBook(book) },
                     onBookClick = { onBookClick(book) },
-                    onAuthorClick = { onAuthorClick(book.author) }
+                    onAuthorClick = { onAuthorClick(book.author) },
+                    onSeriesClick = {
+                        // Extract series name from seriesInfo (e.g., "Book 3 of Mercenary" -> "Mercenary")
+                        val seriesName = book.seriesInfo.substringAfter("of ").trim()
+                            .ifBlank { book.seriesInfo }
+                        onSeriesClick(seriesName)
+                    }
                 )
             }
         }
 
-        // Page indicator dots (if more than 1 book)
+        // Lithos page indicator dots - Amber for selected
         if (books.size > 1) {
             Spacer(modifier = Modifier.height(GlassSpacing.S))
             Row(
@@ -1624,8 +1639,8 @@ private fun SwipeableHeroSection(
                             .size(if (isSelected) 8.dp else 6.dp)
                             .clip(CircleShape)
                             .background(
-                                if (isSelected) accentColor
-                                else theme.textTertiary.copy(alpha = 0.4f)
+                                if (isSelected) LithosColors.Amber  // Lithos Amber for selected
+                                else theme.textTertiary.copy(alpha = 0.35f)
                             )
                     )
                 }
@@ -1645,13 +1660,14 @@ private fun StackedHeroCard(
     timeRemaining: String,
     isPlaying: Boolean,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onPlayClick: () -> Unit,
     onBookClick: () -> Unit,
-    onAuthorClick: () -> Unit
+    onAuthorClick: () -> Unit,
+    onSeriesClick: () -> Unit = {}
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     // Cover press animation
@@ -1659,21 +1675,26 @@ private fun StackedHeroCard(
     val isCoverPressed by coverInteractionSource.collectIsPressedAsState()
     val coverScale by animateFloatAsState(
         targetValue = if (isCoverPressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "coverScale"
     )
     val playHintAlpha by animateFloatAsState(
         targetValue = if (isCoverPressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "playHint"
     )
 
-    val glassBg = if (isReverieDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.95f)
-    } else if (isDark) {
-        Color(0xFF1C1C1E).copy(alpha = 0.92f)
+    // Lithos frosted glass background - matte/satin finish
+    val glassBg = if (isDark) {
+        LithosColors.FrostedGlass  // rgba(26, 29, 33, 0.85)
     } else {
-        Color(0xFFF2F2F7).copy(alpha = 0.95f)
+        LithosColors.FrostedGlassLight
     }
 
     Box(
@@ -1699,7 +1720,7 @@ private fun StackedHeroCard(
                             scaleY = coverScale
                             shadowElevation = 16f
                         }
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(LithosComponents.Buttons.cornerRadius))
                         .clickable(
                             interactionSource = coverInteractionSource,
                             indication = null
@@ -1740,12 +1761,13 @@ private fun StackedHeroCard(
                         .padding(start = GlassSpacing.L)  // Space from cover
                         .padding(end = GlassSpacing.M)    // Space from edge
                 ) {
+                    // Lithos Progress Ring - thin stroke (3dp), Amber accent
                     ProgressRing(
                         progress = progress,
-                        accentColor = accentColor,
+                        accentColor = LithosColors.Amber,  // Lithos Amber
                         size = 80.dp,
-                        strokeWidth = 6.dp,
-                        backgroundColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.1f),
+                        strokeWidth = 3.dp,  // Lithos thin stroke
+                        backgroundColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f),
                         textColor = theme.textPrimary
                     )
 
@@ -1762,37 +1784,100 @@ private fun StackedHeroCard(
 
             Spacer(modifier = Modifier.height(GlassSpacing.S))
 
-            // BOTTOM: Title and Author (below the cover area)
-            Text(
-                text = book.title,
-                style = GlassTypography.Title,
-                color = theme.textPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+            // BOTTOM: Title, Author, and Series Info (below the cover area)
+
+            // Title - taps to series if available, otherwise book detail
+            val hasSeries = book.seriesInfo.isNotBlank()
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
                         view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
-                        onBookClick()
-                    }
-            )
+                        if (hasSeries) {
+                            onSeriesClick()
+                        } else {
+                            onBookClick()
+                        }
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = book.title,
+                    style = GlassTypography.Title,
+                    color = theme.textPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                if (hasSeries) {
+                    Icon(
+                        imageVector = Icons.Filled.ChevronRight,
+                        contentDescription = "Go to series",
+                        tint = theme.textTertiary,
+                        modifier = Modifier.size(GlassIconSize.Small)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
-                text = "by ${book.author}",
-                style = GlassTypography.Caption,
-                color = accentColor.copy(alpha = 0.9f),
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable {
-                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
-                    onAuthorClick()
+            // Author - always navigates to author page - Lithos Amber
+            Row(
+                modifier = Modifier
+                    .clickable {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
+                        onAuthorClick()
+                    },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "by ${book.author}",
+                    style = GlassTypography.Caption,
+                    color = LithosColors.Amber.copy(alpha = 0.9f),  // Lithos Amber
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Icon(
+                    imageVector = Icons.Filled.ChevronRight,
+                    contentDescription = "Go to author",
+                    tint = LithosColors.Amber.copy(alpha = 0.6f),  // Lithos Amber
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            // Series info chip - Lithos Amber tappable
+            if (hasSeries) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(LithosComponents.Cards.chipRadius))
+                        .background(LithosColors.Amber.copy(alpha = 0.12f))  // Lithos Amber bg
+                        .clickable {
+                            view.performHapticFeedback(android.view.HapticFeedbackConstants.CONTEXT_CLICK)
+                            onSeriesClick()
+                        }
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.LibraryBooks,
+                        contentDescription = null,
+                        tint = LithosColors.Amber,  // Lithos Amber
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = book.seriesInfo,
+                        style = GlassTypography.Caption,
+                        color = LithosColors.Amber,  // Lithos Amber
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp
+                    )
                 }
-            )
+            }
         }
     }
 }
@@ -1857,12 +1942,13 @@ private fun ModeToggleItem(
 ) {
     val theme = glassTheme(isDark, false)
 
+    // Lithos: Use Amber for selected state
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) accentColor.copy(alpha = 0.15f) else Color.Transparent,
+        targetValue = if (isSelected) LithosColors.Amber.copy(alpha = 0.15f) else Color.Transparent,
         label = "bg"
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) accentColor else theme.textSecondary,
+        targetValue = if (isSelected) LithosColors.Amber else theme.textSecondary,
         label = "content"
     )
 
@@ -1964,7 +2050,7 @@ private fun FilterChipsRowUpdated(
 }
 
 // ============================================================================
-// AMBIENT STATS BAR - Tappable summary (Progressive Disclosure)
+// AMBIENT STATS BAR - Lithos frosted glass with Amber accent
 // ============================================================================
 
 @Composable
@@ -1974,18 +2060,21 @@ private fun AmbientStatsBar(
     booksFinished: Int,
     inProgressCount: Int,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "scale"
     )
 
@@ -2000,7 +2089,7 @@ private fun AmbientStatsBar(
         }
         if (streakDays > 0) {
             if (isNotEmpty()) append(" • ")
-            append("🔥 $streakDays")
+            append("$streakDays day streak")  // Lithos: No emoji for matte feel
         }
     }.ifEmpty { "Tap to see your stats" }
 
@@ -2013,9 +2102,10 @@ private fun AmbientStatsBar(
                 scaleY = scale
             }
             .clip(RoundedCornerShape(GlassShapes.Small))
+            // Lithos frosted glass background
             .background(
-                if (isDark) Color(0xFF1C1C1E).copy(alpha = 0.8f)
-                else Color(0xFFF2F2F7).copy(alpha = 0.9f)
+                if (isDark) LithosColors.FrostedGlass
+                else LithosColors.FrostedGlassLight
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -2038,7 +2128,7 @@ private fun AmbientStatsBar(
                 Icon(
                     imageVector = Icons.Outlined.BarChart,
                     contentDescription = "Stats",
-                    tint = accentColor,
+                    tint = LithosColors.Amber,  // Lithos Amber accent
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
@@ -2077,21 +2167,25 @@ private fun FilterChip(
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "scale"
     )
 
+    // Lithos: Use Amber for selected state, frosted glass for unselected
     val backgroundColor by animateColorAsState(
         targetValue = when {
-            isSelected -> accentColor.copy(alpha = 0.2f)
-            isDark -> Color.White.copy(alpha = 0.08f)
-            else -> Color.Black.copy(alpha = 0.06f)
+            isSelected -> LithosColors.Amber.copy(alpha = 0.18f)  // Lithos Amber
+            isDark -> Color.White.copy(alpha = 0.06f)
+            else -> Color.Black.copy(alpha = 0.05f)
         },
         label = "bg"
     )
 
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) accentColor else theme.textSecondary,
+        targetValue = if (isSelected) LithosColors.Amber else theme.textSecondary,  // Lithos Amber
         label = "text"
     )
 
@@ -2106,7 +2200,7 @@ private fun FilterChip(
             .then(
                 if (isSelected) Modifier.border(
                     width = 1.dp,
-                    color = accentColor.copy(alpha = 0.5f),
+                    color = LithosColors.Amber.copy(alpha = 0.45f),  // Lithos Amber border
                     shape = RoundedCornerShape(GlassShapes.Small)
                 ) else Modifier
             )
@@ -2136,26 +2230,32 @@ private fun FilterChip(
 private fun LibraryBookCard(
     book: Book,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onCoverClick: () -> Unit,
     onCardClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val coverInteractionSource = remember { MutableInteractionSource() }
     val isCoverPressed by coverInteractionSource.collectIsPressedAsState()
 
     val coverScale by animateFloatAsState(
         targetValue = if (isCoverPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "coverScale"
     )
 
     val playHintAlpha by animateFloatAsState(
         targetValue = if (isCoverPressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
         label = "playHint"
     )
 
@@ -2185,37 +2285,37 @@ private fun LibraryBookCard(
                 contentScale = ContentScale.Crop
             )
 
-            // Progress bar at bottom
+            // Lithos progress bar - thin stroke with Amber
             if (book.progress > 0 && book.duration > 0) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
+                        .height(3.dp)  // Lithos thin stroke
                         .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.4f))
+                        .background(Color.Black.copy(alpha = 0.35f))
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(book.progressPercent())
                             .fillMaxHeight()
-                            .background(accentColor)
+                            .background(LithosColors.Amber)  // Lithos Amber progress
                     )
                 }
             }
 
-            // Play hint on press
+            // Play hint on press - Moss background for play action
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(48.dp)
                     .alpha(playHintAlpha)
-                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                    .background(LithosColors.Moss.copy(alpha = 0.9f), CircleShape),  // Lithos Moss
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.PlayArrow,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = LithosColors.Oat,  // Lithos Oat for contrast
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -2253,24 +2353,27 @@ private fun LibraryBookCard(
 }
 
 // ============================================================================
-// EMPTY LIBRARY STATE
+// EMPTY LIBRARY STATE - Lithos styling
 // ============================================================================
 
 @Composable
 private fun EmptyLibraryState(
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     accentColor: Color,
     onAddClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "scale"
     )
 
@@ -2300,6 +2403,7 @@ private fun EmptyLibraryState(
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(GlassSpacing.L))
+        // Lithos: Moss button for primary action
         Box(
             modifier = Modifier
                 .graphicsLayer {
@@ -2307,7 +2411,7 @@ private fun EmptyLibraryState(
                     scaleY = scale
                 }
                 .clip(RoundedCornerShape(GlassShapes.Medium))
-                .background(GlassColors.ButtonBackground)
+                .background(LithosColors.Moss)  // Lithos Moss for action
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null
@@ -2324,13 +2428,13 @@ private fun EmptyLibraryState(
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(20.dp)
+                    tint = LithosColors.Oat,  // Lithos Oat for contrast
+                    modifier = Modifier.size(GlassIconSize.Small)
                 )
                 Text(
                     text = "Add Audiobook",
                     style = GlassTypography.Label,
-                    color = accentColor,
+                    color = LithosColors.Oat,  // Lithos Oat for contrast
                     fontWeight = FontWeight.SemiBold
                 )
             }

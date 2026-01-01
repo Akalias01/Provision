@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,21 +16,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mossglen.lithos.ui.theme.LithosUI
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WelcomeScreen(
     accentColor: Color,
     isDarkTheme: Boolean,
+    isOLED: Boolean = false,
     onOpenDrawer: () -> Unit,
     onImportClick: () -> Unit,
     onTorrentClick: () -> Unit
 ) {
-    val bgColor = if (isDarkTheme) Color(0xFF0A0A0A) else Color(0xFFF5F5F5)
+    // Use Lithos 3-mode system for consistent theming
+    val bgColor = LithosUI.background(isDarkTheme, isOLED)
     val textColor = if (isDarkTheme) Color.White else Color.Black
     val subtitleColor = Color.Gray
-    val cardColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFE8E8E8)
-    val secondaryButtonColor = if (isDarkTheme) Color(0xFF2C2C2E) else Color(0xFFDDDDDD)
+    val cardColor = if (isDarkTheme) LithosUI.SheetBackground else LithosUI.ElevatedBackgroundLight
+    val secondaryButtonColor = if (isDarkTheme) LithosUI.CardBackground else LithosUI.ElevatedBackgroundLight
     val iconColor = if (isDarkTheme) Color.LightGray else Color.DarkGray
 
     Scaffold(

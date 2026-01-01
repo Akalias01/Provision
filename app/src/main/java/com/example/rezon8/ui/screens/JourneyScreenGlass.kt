@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -30,10 +30,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.haptics.HapticType
-import com.mossglen.reverie.haptics.performHaptic
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.ListeningStatsViewModel
+import com.mossglen.lithos.haptics.HapticType
+import com.mossglen.lithos.haptics.performHaptic
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.ListeningStatsViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -55,13 +55,13 @@ import java.util.*
 fun JourneyScreenGlass(
     statsViewModel: ListeningStatsViewModel = hiltViewModel(),
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     accentColor: Color = GlassColors.Interactive,
     onSettingsClick: () -> Unit = {},
     onStatsClick: () -> Unit = {},
     onAchievementsClick: () -> Unit = {}
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
     val scrollState = rememberScrollState()
 

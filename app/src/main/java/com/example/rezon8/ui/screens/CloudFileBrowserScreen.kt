@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,30 +31,30 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.data.cloud.CloudFileInfo
-import com.mossglen.reverie.data.cloud.CloudSource
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.CloudBrowserEvent
-import com.mossglen.reverie.ui.viewmodel.CloudFileBrowserViewModel
+import com.mossglen.lithos.data.cloud.CloudFileInfo
+import com.mossglen.lithos.data.cloud.CloudSource
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.CloudBrowserEvent
+import com.mossglen.lithos.ui.viewmodel.CloudFileBrowserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CloudFileBrowserScreen(
     isDark: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = GlassColors.LithosAccent,
     onNavigateBack: () -> Unit,
     viewModel: CloudFileBrowserViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val event by viewModel.event.collectAsState()
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val focusManager = LocalFocusManager.current
 
-    // Solid colors for consistent appearance (no transparency issues)
-    val screenBg = if (isDark) Color(0xFF0A0A0A) else Color(0xFFF2F2F7)
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-    val accentColor = if (isReverieDark) reverieAccentColor else GlassColors.Interactive
+    // Solid colors for consistent appearance - Use Lithos 3-mode system
+    val screenBg = LithosUI.background(isDark, isOLED)
+    val cardBg = if (isDark) LithosUI.SheetBackground else LithosUI.ElevatedBackgroundLight
+    val accentColor = if (isOLED) reverieAccentColor else GlassColors.Interactive
     val textPrimary = if (isDark) Color.White else Color.Black
     val textSecondary = if (isDark) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
 
@@ -78,16 +78,7 @@ fun CloudFileBrowserScreen(
         }
     }
 
-    // Auto-refresh when screen opens and user is already connected
-    LaunchedEffect(state.isGoogleDriveConnected, state.isDropboxConnected) {
-        val isConnected = when (state.selectedSource) {
-            CloudSource.GOOGLE_DRIVE -> state.isGoogleDriveConnected
-            CloudSource.DROPBOX -> state.isDropboxConnected
-        }
-        if (isConnected && state.files.isEmpty() && !state.isLoading) {
-            viewModel.loadFiles()
-        }
-    }
+    // Note: Auto-connect and refresh is handled by ViewModel's init block
 
     // Handle back navigation
     BackHandler(enabled = state.pathHistory.size > 1 || state.isSearching) {
@@ -117,7 +108,21 @@ fun CloudFileBrowserScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(bottom = 56.dp)
+            ) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = cardBg,
+                    contentColor = textPrimary,
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+        },
         containerColor = screenBg,
         topBar = {
             TopAppBar(
@@ -166,7 +171,7 @@ fun CloudFileBrowserScreen(
                     isGoogleDriveConnected = state.isGoogleDriveConnected,
                     isDropboxConnected = state.isDropboxConnected,
                     isDark = isDark,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     onSourceSelected = { viewModel.selectSource(it) }
                 )
 
@@ -179,7 +184,7 @@ fun CloudFileBrowserScreen(
                         viewModel.search(searchText)
                     },
                     isDark = isDark,
-                    isReverieDark = isReverieDark
+                    isOLED = isOLED
                 )
 
                 // Breadcrumb Path
@@ -187,7 +192,7 @@ fun CloudFileBrowserScreen(
                     PathBreadcrumb(
                         pathHistory = state.pathHistory,
                         isDark = isDark,
-                        isReverieDark = isReverieDark
+                        isOLED = isOLED
                     )
                 }
 
@@ -197,7 +202,7 @@ fun CloudFileBrowserScreen(
                         ConnectionPrompt(
                             source = CloudSource.GOOGLE_DRIVE,
                             isDark = isDark,
-                            isReverieDark = isReverieDark,
+                            isOLED = isOLED,
                             onConnect = { viewModel.connectGoogleDrive() }
                         )
                     }
@@ -205,7 +210,7 @@ fun CloudFileBrowserScreen(
                         ConnectionPrompt(
                             source = CloudSource.DROPBOX,
                             isDark = isDark,
-                            isReverieDark = isReverieDark,
+                            isOLED = isOLED,
                             onConnect = { viewModel.connectDropbox() }
                         )
                     }
@@ -230,7 +235,7 @@ fun CloudFileBrowserScreen(
                             downloadProgress = state.downloadProgress,
                             isRefreshing = state.isLoading,
                             isDark = isDark,
-                            isReverieDark = isReverieDark,
+                            isOLED = isOLED,
                             onRefresh = { viewModel.loadFiles() },
                             onFileClick = { file ->
                                 if (file.isFolder) {
@@ -253,7 +258,7 @@ private fun SourceTabs(
     isGoogleDriveConnected: Boolean,
     isDropboxConnected: Boolean,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onSourceSelected: (CloudSource) -> Unit
 ) {
     Row(
@@ -267,7 +272,7 @@ private fun SourceTabs(
             isSelected = selectedSource == CloudSource.GOOGLE_DRIVE,
             isConnected = isGoogleDriveConnected,
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             modifier = Modifier.weight(1f),
             onClick = { onSourceSelected(CloudSource.GOOGLE_DRIVE) }
         )
@@ -276,7 +281,7 @@ private fun SourceTabs(
             isSelected = selectedSource == CloudSource.DROPBOX,
             isConnected = isDropboxConnected,
             isDark = isDark,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             modifier = Modifier.weight(1f),
             onClick = { onSourceSelected(CloudSource.DROPBOX) }
         )
@@ -289,21 +294,23 @@ private fun SourceTab(
     isSelected: Boolean,
     isConnected: Boolean,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val accentColor = if (isReverieDark) GlassColors.ReverieAccent else GlassColors.Interactive
-    // Solid card background matching Chapters menu style
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+    val theme = glassTheme(isDark, isOLED)
+    val accentColor = LithosAmber // Use Lithos Amber for accent text/icons
+    // Solid card background matching Chapters menu style - Use ReverieUI constants
+    val cardBg = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight
     val borderColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.15f)
+    // Use neutral selection background (not amber)
+    val selectionBg = LithosColors.selection(isDark, isOLED)
 
     Surface(
         modifier = modifier
             .clip(RoundedCornerShape(GlassShapes.Medium))
             .clickable(onClick = onClick),
-        color = if (isSelected) accentColor.copy(alpha = 0.2f) else cardBg,
+        color = if (isSelected) selectionBg else cardBg,
         shape = RoundedCornerShape(GlassShapes.Medium),
         border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, borderColor)
     ) {
@@ -335,10 +342,10 @@ private fun SearchBar(
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     isDark: Boolean,
-    isReverieDark: Boolean = false
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val accentColor = if (isReverieDark) GlassColors.ReverieAccent else GlassColors.Interactive
+    val theme = glassTheme(isDark, isOLED)
+    val accentColor = if (isOLED) GlassColors.LithosAccent else GlassColors.Interactive
 
     OutlinedTextField(
         value = query,
@@ -388,10 +395,10 @@ private fun SearchBar(
 private fun PathBreadcrumb(
     pathHistory: List<String>,
     isDark: Boolean,
-    isReverieDark: Boolean = false
+    isOLED: Boolean = false
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val accentColor = if (isReverieDark) GlassColors.ReverieAccent else GlassColors.Interactive
+    val theme = glassTheme(isDark, isOLED)
+    val accentColor = if (isOLED) GlassColors.LithosAccent else GlassColors.Interactive
 
     Row(
         modifier = Modifier
@@ -420,12 +427,12 @@ private fun PathBreadcrumb(
 private fun ConnectionPrompt(
     source: CloudSource,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onConnect: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val accentColor = if (isReverieDark) GlassColors.ReverieAccent else GlassColors.Interactive
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+    val theme = glassTheme(isDark, isOLED)
+    val accentColor = if (isOLED) GlassColors.LithosAccent else GlassColors.Interactive
+    val cardBg = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight
     val sourceName = when (source) {
         CloudSource.GOOGLE_DRIVE -> "Google Drive"
         CloudSource.DROPBOX -> "Dropbox"
@@ -513,11 +520,11 @@ private fun FileListWithRefresh(
     downloadProgress: Float,
     isRefreshing: Boolean,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onRefresh: () -> Unit,
     onFileClick: (CloudFileInfo) -> Unit
 ) {
-    val accentColor = if (isReverieDark) GlassColors.ReverieAccent else GlassColors.Interactive
+    val accentColor = if (isOLED) GlassColors.LithosAccent else GlassColors.Interactive
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -535,7 +542,7 @@ private fun FileListWithRefresh(
                     isDownloading = file.name == downloadingFile,
                     downloadProgress = downloadProgress,
                     isDark = isDark,
-                    isReverieDark = isReverieDark,
+                    isOLED = isOLED,
                     onClick = { onFileClick(file) }
                 )
             }
@@ -549,19 +556,27 @@ private fun FileItem(
     isDownloading: Boolean,
     downloadProgress: Float,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val accentColor = if (isReverieDark) GlassColors.ReverieAccent else GlassColors.Interactive
-    // Solid card background matching Chapters menu style
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+    val theme = glassTheme(isDark, isOLED)
+    val accentColor = if (isOLED) GlassColors.LithosAccent else GlassColors.Interactive
+    // Solid card background matching Chapters menu style - Use ReverieUI constants
+    val cardBg = if (isDark) LithosUI.SheetBackground else LithosUI.SheetBackgroundLight
+
+    // Check if file is compatible (folder or importable format)
+    val isCompatible = file.isFolder || file.isImportable
+
+    // Dim incompatible files to make them visually distinct
+    val contentAlpha = if (isCompatible) 1f else 0.4f
+    val textColor = theme.textPrimary.copy(alpha = contentAlpha)
+    val secondaryTextColor = theme.textSecondary.copy(alpha = contentAlpha)
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .clickable(enabled = !isDownloading, onClick = onClick),
+            .clickable(enabled = !isDownloading && isCompatible, onClick = onClick),
         color = cardBg,
         shape = RoundedCornerShape(GlassShapes.Medium)
     ) {
@@ -574,13 +589,13 @@ private fun FileItem(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(RoundedCornerShape(GlassShapes.Small))
-                    .background(getFileIconColor(file, isDark, isReverieDark).copy(alpha = 0.15f)),
+                    .background(getFileIconColor(file, isDark, isOLED).copy(alpha = if (isCompatible) 0.15f else 0.08f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = getFileIcon(file),
                     contentDescription = null,
-                    tint = getFileIconColor(file, isDark, isReverieDark),
+                    tint = getFileIconColor(file, isDark, isOLED).copy(alpha = contentAlpha),
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -593,7 +608,7 @@ private fun FileItem(
                     text = file.name,
                     style = GlassTypography.Body,
                     fontWeight = FontWeight.Medium,
-                    color = theme.textPrimary,
+                    color = textColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -604,18 +619,26 @@ private fun FileItem(
                         Text(
                             text = file.formattedSize,
                             style = GlassTypography.Caption,
-                            color = theme.textSecondary
+                            color = secondaryTextColor
                         )
                         if (file.formattedDate.isNotEmpty()) {
                             Text(
                                 text = " • ",
                                 style = GlassTypography.Caption,
-                                color = theme.textSecondary
+                                color = secondaryTextColor
                             )
                             Text(
                                 text = file.formattedDate,
                                 style = GlassTypography.Caption,
-                                color = theme.textSecondary
+                                color = secondaryTextColor
+                            )
+                        }
+                        // Show "Unsupported" label for incompatible files
+                        if (!isCompatible) {
+                            Text(
+                                text = " • Unsupported",
+                                style = GlassTypography.Caption,
+                                color = secondaryTextColor
                             )
                         }
                     }
@@ -642,6 +665,14 @@ private fun FileItem(
                     contentDescription = "Download",
                     tint = accentColor
                 )
+            } else {
+                // Show block icon for unsupported files
+                Icon(
+                    Icons.Default.Block,
+                    contentDescription = "Unsupported format",
+                    tint = theme.textSecondary.copy(alpha = 0.4f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -657,9 +688,9 @@ private fun getFileIcon(file: CloudFileInfo) = when {
 }
 
 @Composable
-private fun getFileIconColor(file: CloudFileInfo, isDark: Boolean, isReverieDark: Boolean = false): Color {
-    val theme = glassTheme(isDark, isReverieDark)
-    val accentColor = if (isReverieDark) GlassColors.ReverieAccent else Color(0xFF60A5FA)
+private fun getFileIconColor(file: CloudFileInfo, isDark: Boolean, isOLED: Boolean = false): Color {
+    val theme = glassTheme(isDark, isOLED)
+    val accentColor = if (isOLED) GlassColors.LithosAccent else Color(0xFF60A5FA)
     return when {
         file.isFolder -> accentColor
         file.isAudioBook -> Color(0xFF22C55E) // Green

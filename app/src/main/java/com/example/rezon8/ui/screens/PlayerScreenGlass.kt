@@ -1,6 +1,7 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.view.HapticFeedbackConstants
+import com.mossglen.lithos.util.ShakeDetector
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -79,10 +80,10 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.mossglen.reverie.R
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.R
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -96,8 +97,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.data.AudioEffectManager
-import com.mossglen.reverie.ui.viewmodel.SettingsViewModel
+import com.mossglen.lithos.data.AudioEffectManager
+import com.mossglen.lithos.ui.viewmodel.SettingsViewModel
 
 /**
  * REVERIE Premium Player
@@ -116,9 +117,9 @@ fun PlayerScreenGlass(
     playerViewModel: PlayerViewModel,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
-    highlightColor: Color = GlassColors.WarmSlate,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
+    highlightColor: Color = LithosSlate,
     useBorderHighlight: Boolean = false,
     dynamicColors: Boolean = true,
     onBack: () -> Unit,
@@ -131,12 +132,20 @@ fun PlayerScreenGlass(
     // Get AudioEffectManager for Quick EQ
     val audioEffectManager = settingsViewModel.audioEffectManager
 
-    // Reverie Dark uses deep amber accent and muted colors
-    val accentColor = if (isReverieDark) reverieAccentColor else Color.White
-    // Selection highlight - use warm slate or border style based on preference
-    val selectionBg = if (isReverieDark) highlightColor else Color.White.copy(alpha = 0.1f)
-    val textColor = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
-    val secondaryTextColor = if (isReverieDark) GlassColors.ReverieTextSecondary else Color.White.copy(alpha = 0.7f)
+    // Theme-aware colors - properly handle Light, Dark, and OLED modes
+    val accentColor = LithosAmber  // Amber accent is consistent across all modes
+    val textColor = when {
+        !isDark -> LithosSlate  // Light mode: dark text
+        else -> Color.White     // Dark/OLED: white text
+    }
+    val secondaryTextColor = when {
+        !isDark -> LithosSlate.copy(alpha = 0.7f)  // Light mode
+        else -> Color.White.copy(alpha = 0.7f)     // Dark/OLED
+    }
+    val selectionBg = when {
+        !isDark -> Color.Black.copy(alpha = 0.08f)  // Light mode: subtle dark
+        else -> Color.White.copy(alpha = 0.1f)      // Dark/OLED: subtle light
+    }
 
     val view = LocalView.current
     val context = LocalContext.current
@@ -151,7 +160,45 @@ fun PlayerScreenGlass(
     val playbackSpeed by playerViewModel.playbackSpeed.collectAsState()
     val sleepTimerMinutes by playerViewModel.sleepTimerMinutes.collectAsState()
     val sleepTimerRemaining by playerViewModel.sleepTimerRemaining.collectAsState()
+    val sleepTimerMode by playerViewModel.sleepTimerMode.collectAsState()
     val customSpeedPresets by playerViewModel.customSpeedPresets.collectAsState(initial = emptyList())
+
+    // Shake to extend sleep timer state
+    var showShakeExtendedFeedback by remember { mutableStateOf(false) }
+    val sleepTimerWarningThreshold = 2 * 60 * 1000L  // 2 minutes
+    val isSleepTimerWarning = sleepTimerRemaining > 0 && sleepTimerRemaining < sleepTimerWarningThreshold
+
+    // Shake detector for extending sleep timer
+    val shakeDetector = remember {
+        ShakeDetector(context) {
+            // Only extend if timer is in warning state and in MINUTES mode
+            if (isSleepTimerWarning && sleepTimerMode == PlayerViewModel.SleepTimerMode.MINUTES) {
+                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                playerViewModel.extendSleepTimer(5)  // Extend by 5 minutes
+                showShakeExtendedFeedback = true
+            }
+        }
+    }
+
+    // Start/stop shake detection based on sleep timer warning state
+    DisposableEffect(isSleepTimerWarning, sleepTimerMode) {
+        if (isSleepTimerWarning && sleepTimerMode == PlayerViewModel.SleepTimerMode.MINUTES) {
+            shakeDetector.start()
+        } else {
+            shakeDetector.stop()
+        }
+        onDispose {
+            shakeDetector.stop()
+        }
+    }
+
+    // Reset shake extended feedback after 2 seconds
+    LaunchedEffect(showShakeExtendedFeedback) {
+        if (showShakeExtendedFeedback) {
+            delay(2000)
+            showShakeExtendedFeedback = false
+        }
+    }
 
     // EQ state
     val eqPresetName by audioEffectManager.selectedPresetName.collectAsState()
@@ -198,8 +245,8 @@ fun PlayerScreenGlass(
     val animatedSwipeOffset by animateFloatAsState(
         targetValue = swipeOffset,
         animationSpec = spring(
-            dampingRatio = 0.6f,
-            stiffness = 400f
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
         ),
         label = "swipe"
     )
@@ -307,8 +354,13 @@ fun PlayerScreenGlass(
         }
     }
 
-    // Background color based on mode
-    val backgroundColor = if (isReverieDark) Color(0xFF050505) else Color.Black
+    // Background color based on mode - MUST match Lithos theme system
+    // Dark mode = Slate (#1A1D21), OLED = True Black (#000000)
+    val backgroundColor = when {
+        !isDark -> LithosOat     // Light mode: warm paper
+        isOLED -> LithosBlack    // OLED: true black
+        else -> LithosSlate      // Dark mode: slate
+    }
 
     Box(
         modifier = Modifier
@@ -323,16 +375,25 @@ fun PlayerScreenGlass(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()
-                        .blur(if (isReverieDark) 60.dp else 50.dp)
+                        .blur(when {
+                            !isDark -> 40.dp  // Light mode: less blur
+                            isOLED -> 60.dp   // OLED: more blur
+                            else -> 50.dp     // Dark: medium
+                        })
                         .graphicsLayer {
-                            alpha = if (isReverieDark) 0.35f else 0.6f
+                            alpha = when {
+                                !isDark -> 0.3f   // Light mode: subtle
+                                isOLED -> 0.35f   // OLED: muted
+                                else -> 0.6f      // Dark: vibrant
+                            }
                         },
                     contentScale = ContentScale.Crop
                 )
             }
         }
 
-        // LAYER 2: Gradient overlay - Top 15% clear, transition 15-35%, dark 35-100%
+        // LAYER 2: Gradient overlay - Top 15% clear, transition 15-35%, theme-based at bottom
+        // Uses LithosSlate for dark mode, LithosBlack only for OLED mode
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -341,11 +402,11 @@ fun PlayerScreenGlass(
                         colorStops = arrayOf(
                             0.0f to Color.Transparent,                // Top - completely clear
                             0.15f to Color.Transparent,               // Still clear at 15%
-                            0.25f to Color.Black.copy(alpha = 0.3f),  // Start darkening
-                            0.35f to Color.Black.copy(alpha = 0.6f),  // Transition complete
-                            0.50f to Color.Black.copy(alpha = 0.85f), // Getting dark
-                            0.70f to Color.Black.copy(alpha = 0.95f), // Very dark
-                            1.0f to Color.Black                       // Solid black at bottom
+                            0.25f to backgroundColor.copy(alpha = 0.3f),  // Start darkening
+                            0.35f to backgroundColor.copy(alpha = 0.6f),  // Transition complete
+                            0.50f to backgroundColor.copy(alpha = 0.85f), // Getting dark
+                            0.70f to backgroundColor.copy(alpha = 0.95f), // Very dark
+                            1.0f to backgroundColor                       // Theme-appropriate solid at bottom
                         )
                     )
                 )
@@ -424,7 +485,8 @@ fun PlayerScreenGlass(
                 isBookFinished = currentBook?.isFinished == true,
                 authorName = currentBook?.author ?: "",
                 seriesName = currentBook?.seriesInfo?.takeIf { it.isNotBlank() },
-                isReverieDark = isReverieDark,
+                isDark = isDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor
             )
 
@@ -536,7 +598,7 @@ fun PlayerScreenGlass(
                 // Gesture indicator overlay
                 androidx.compose.animation.AnimatedVisibility(
                     visible = gestureIndicator != null,
-                    enter = scaleIn(spring(dampingRatio = 0.5f)) + fadeIn(),
+                    enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)) + fadeIn(),
                     exit = scaleOut() + fadeOut()
                 ) {
                     GestureIndicator(type = gestureIndicator ?: GestureType.PLAY)
@@ -579,15 +641,19 @@ fun PlayerScreenGlass(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
+                            .padding(horizontal = LithosComponents.TimeLabels.horizontalPadding),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // LEFT: Book time passed (e.g., "1h 24m")
                         Text(
                             text = bookTimePassedText,
-                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                            color = if (isReverieDark) secondaryTextColor else Color.White.copy(alpha = 0.6f),
+                            style = TextStyle(
+                                fontSize = LithosComponents.TimeLabels.fontSize.sp,
+                                fontWeight = LithosComponents.TimeLabels.fontWeight,
+                                letterSpacing = LithosComponents.TimeLabels.letterSpacing.sp
+                            ),
+                            color = if (!isDark) textColor.copy(alpha = 0.7f) else if (isOLED) secondaryTextColor else Color.White.copy(alpha = 0.6f),
                             modifier = Modifier.weight(1f),
                             textAlign = TextAlign.Start
                         )
@@ -603,7 +669,8 @@ fun PlayerScreenGlass(
                             totalChapters = totalChapters,
                             rippleDirection = ringRippleDirection,
                             bookmarkRippleTrigger = bookmarkRippleTrigger,
-                            isReverieDark = isReverieDark,
+                            isDark = isDark,
+                            isOLED = isOLED,
                             reverieAccentColor = reverieAccentColor,
                             onTap = { showChaptersDialog = true }
                         )
@@ -611,8 +678,12 @@ fun PlayerScreenGlass(
                         // RIGHT: Book time remaining (e.g., "-3h 24m")
                         Text(
                             text = bookTimeLeftText,
-                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                            color = if (isReverieDark) accentColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.6f),
+                            style = TextStyle(
+                                fontSize = LithosComponents.TimeLabels.fontSize.sp,
+                                fontWeight = LithosComponents.TimeLabels.fontWeight,
+                                letterSpacing = LithosComponents.TimeLabels.letterSpacing.sp
+                            ),
+                            color = if (!isDark) textColor.copy(alpha = 0.7f) else if (isOLED) accentColor.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.6f),
                             modifier = Modifier.weight(1f),
                             textAlign = TextAlign.End
                         )
@@ -625,7 +696,7 @@ fun PlayerScreenGlass(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
+                            .padding(horizontal = LithosComponents.ProgressBar.horizontalPadding)
                     ) {
                         // Premium progress slider - tracks CHAPTER progress for easy chapter navigation
                         var isSeeking by remember { mutableStateOf(false) }
@@ -642,12 +713,12 @@ fun PlayerScreenGlass(
                                 val previewTimeMs = chapterStartMs + (seekPreviewProgress * chapterDuration).toLong()
                                 val scale by animateFloatAsState(
                                     targetValue = if (isSeeking) 1f else 0.8f,
-                                    animationSpec = spring(dampingRatio = 0.8f),
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
                                     label = "previewScale"
                                 )
                                 val alpha by animateFloatAsState(
                                     targetValue = if (isSeeking) 1f else 0f,
-                                    animationSpec = spring(dampingRatio = 0.8f),
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
                                     label = "previewAlpha"
                                 )
 
@@ -658,21 +729,21 @@ fun PlayerScreenGlass(
                                         .scale(scale)
                                         .alpha(alpha)
                                         .background(
-                                            color = if (isReverieDark)
-                                                Color(0xFF1C1C1E).copy(alpha = 0.95f)
+                                            color = if (isOLED)
+                                                LithosUI.SheetBackground.copy(alpha = 0.95f)
                                             else
                                                 Color.Black.copy(alpha = 0.75f),
-                                            shape = RoundedCornerShape(12.dp)
+                                            shape = RoundedCornerShape(LithosComponents.ProgressBar.previewCornerRadius)
                                         )
                                         .border(
-                                            width = 1.dp,
-                                            color = if (isReverieDark)
+                                            width = LithosComponents.ProgressBar.previewBorderWidth,
+                                            color = if (isOLED)
                                                 reverieAccentColor.copy(alpha = 0.3f)
                                             else
                                                 Color.White.copy(alpha = 0.2f),
-                                            shape = RoundedCornerShape(12.dp)
+                                            shape = RoundedCornerShape(LithosComponents.ProgressBar.previewCornerRadius)
                                         )
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                        .padding(horizontal = LithosComponents.ProgressBar.previewPadding, vertical = 8.dp)
                                 ) {
                                     Text(
                                         text = formatTime(previewTimeMs - chapterStartMs),
@@ -681,7 +752,7 @@ fun PlayerScreenGlass(
                                             fontWeight = FontWeight.SemiBold,
                                             letterSpacing = 0.5.sp
                                         ),
-                                        color = if (isReverieDark) reverieAccentColor else Color.White
+                                        color = if (isOLED) reverieAccentColor else Color.White
                                     )
                                 }
                             }
@@ -694,7 +765,7 @@ fun PlayerScreenGlass(
                             ) {
                                 PremiumSlider(
                                     value = if (isChapterSkipAnimating) animatedChapterProgress else chapterProgress,
-                                    isReverieDark = isReverieDark,
+                                    isOLED = isOLED,
                                     reverieAccentColor = reverieAccentColor,
                                     isChapterSkipAnimating = isChapterSkipAnimating,
                                     onValueChange = { newChapterProgress ->
@@ -726,14 +797,22 @@ fun PlayerScreenGlass(
                             // LEFT: Chapter position (e.g., "2:34")
                             Text(
                                 text = formatTime(chapterPosition),
-                                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                                color = if (isReverieDark) secondaryTextColor else Color.White.copy(alpha = 0.5f)
+                                style = TextStyle(
+                                    fontSize = LithosComponents.TimeLabels.fontSize.sp,
+                                    fontWeight = LithosComponents.TimeLabels.fontWeight,
+                                    letterSpacing = LithosComponents.TimeLabels.letterSpacing.sp
+                                ),
+                                color = if (!isDark) textColor.copy(alpha = 0.6f) else if (isOLED) secondaryTextColor else Color.White.copy(alpha = 0.5f)
                             )
                             // RIGHT: Chapter time remaining (e.g., "-42:38")
                             Text(
                                 text = "-${formatTime(chapterRemainingMs)}",
-                                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                                color = if (isReverieDark) secondaryTextColor else Color.White.copy(alpha = 0.5f)
+                                style = TextStyle(
+                                    fontSize = LithosComponents.TimeLabels.fontSize.sp,
+                                    fontWeight = LithosComponents.TimeLabels.fontWeight,
+                                    letterSpacing = LithosComponents.TimeLabels.letterSpacing.sp
+                                ),
+                                color = if (!isDark) textColor.copy(alpha = 0.6f) else if (isOLED) secondaryTextColor else Color.White.copy(alpha = 0.5f)
                             )
                         }
                     }
@@ -745,7 +824,8 @@ fun PlayerScreenGlass(
                     // Main Controls - Premium floating design
                     MainPlayerControls(
                         isPlaying = isPlaying,
-                        isReverieDark = isReverieDark,
+                        isDark = isDark,
+                        isOLED = isOLED,
                         reverieAccentColor = reverieAccentColor,
                         onSkipBack = {
                             playerViewModel.skipBackward()
@@ -782,12 +862,13 @@ fun PlayerScreenGlass(
                         sleepTimerMinutes = sleepTimerMinutes,
                         sleepTimerRemaining = sleepTimerRemaining,
                         eqPresetName = eqPresetName,
-                        isReverieDark = isReverieDark,
+                        isDark = isDark,
+                        isOLED = isOLED,
                         reverieAccentColor = reverieAccentColor,
                         onBookmarkClick = {
                             // Quick bookmark - instant with toast feedback + ripple animation
                             playerViewModel.toggleBookmark()
-                            bookmarkRippleTrigger++  // Trigger bookmark glow animation on NavigationRing
+                            bookmarkRippleTrigger++  // Trigger bookmark ripple animation on NavigationRing
                             view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                             Toast.makeText(context, context.getString(R.string.player_add_bookmark), Toast.LENGTH_SHORT).show()
                         },
@@ -810,7 +891,7 @@ fun PlayerScreenGlass(
             visible = showBookDetailsOverlay,
             enter = fadeIn(animationSpec = tween(200)) + slideInVertically(
                 initialOffsetY = { it / 4 },
-                animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f)
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
             ),
             exit = fadeOut(animationSpec = tween(150)) + slideOutVertically(
                 targetOffsetY = { it / 4 },
@@ -890,7 +971,7 @@ fun PlayerScreenGlass(
                                 fontWeight = FontWeight.Medium,
                                 letterSpacing = 0.sp
                             ),
-                            color = if (isReverieDark) reverieAccentColor else Color.White.copy(alpha = 0.85f),
+                            color = if (isOLED) reverieAccentColor else Color.White.copy(alpha = 0.85f),
                             textAlign = TextAlign.Center,
                             maxLines = 1
                         )
@@ -966,7 +1047,7 @@ fun PlayerScreenGlass(
             PremiumSpeedDialog(
                 currentSpeed = playbackSpeed,
                 customPresets = customSpeedPresets,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor,
                 highlightColor = highlightColor,
                 onSpeedSelected = {
@@ -988,7 +1069,7 @@ fun PlayerScreenGlass(
         if (showSavePresetDialog) {
             SavePresetDialog(
                 initialName = presetName,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor,
                 onSave = { name ->
                     playerViewModel.saveCurrentSpeedAsPreset(name)
@@ -1012,7 +1093,7 @@ fun PlayerScreenGlass(
                 duration = duration,
                 bookmarks = currentBook?.bookmarks ?: emptyList(),
                 bookmarkNotes = currentBook?.bookmarkNotes ?: emptyMap(),
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor,
                 highlightColor = highlightColor,
                 onSeekTo = { ms ->
@@ -1035,7 +1116,7 @@ fun PlayerScreenGlass(
         if (showSleepTimer) {
             PremiumSleepDialog(
                 sleepTimerMinutes = sleepTimerMinutes,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor,
                 onTimerSet = { minutes ->
                     view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -1061,7 +1142,7 @@ fun PlayerScreenGlass(
             BookmarkNoteDialog(
                 note = bookmarkNote,
                 onNoteChange = { bookmarkNote = it },
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor,
                 onSave = {
                     view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -1077,10 +1158,48 @@ fun PlayerScreenGlass(
         if (showAudioSettings) {
             AudioSettingsDialog(
                 audioEffectManager = audioEffectManager,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor,
                 onDismiss = { showAudioSettings = false }
             )
+        }
+
+        // Shake to extend sleep timer feedback
+        AnimatedVisibility(
+            visible = showShakeExtendedFeedback,
+            enter = fadeIn(animationSpec = tween(200)) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+            ),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 100.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = reverieAccentColor.copy(alpha = 0.9f),
+                shadowElevation = 8.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Rounded.Timer,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        "+5 minutes",
+                        style = GlassTypography.Label,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
 
         // NOTE: Edit, Mark As, Delete dialogs belong on the Book Detail/Synopsis screen
@@ -1144,12 +1263,13 @@ private fun TopPlayerBar(
     isBookFinished: Boolean,
     authorName: String,
     seriesName: String?,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber
 ) {
-    val menuBg = if (isReverieDark) Color(0xFF0A0A0A) else Color(0xFF2C2C2E)
-    val menuTextColor = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
-    val menuIconColor = if (isReverieDark) reverieAccentColor else Color.White
+    val menuBg = if (!isDark) Color(0xFFF2F2F7) else if (isOLED) LithosUI.DeepBackground else LithosUI.CardBackground
+    val menuTextColor = if (!isDark) LithosSlate else if (isOLED) LithosTextPrimary else Color.White
+    val menuIconColor = if (!isDark) LithosAmber else if (isOLED) reverieAccentColor else Color.White
 
     // Minimal header layout - swipe to dismiss, 3-dot on right
     Box(
@@ -1162,11 +1282,13 @@ private fun TopPlayerBar(
     ) {
         // Center - Sleep timer indicator (only shown when active)
         if (sleepTimerActive && sleepTimerMinutes != null) {
+            val timerBg = if (!isDark) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.15f)
+            val timerColor = if (!isDark) LithosSlate.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.8f)
             Row(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.15f))
+                    .background(timerBg)
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1174,20 +1296,20 @@ private fun TopPlayerBar(
                 Icon(
                     Icons.Filled.Snooze,
                     null,
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = timerColor,
                     modifier = Modifier.size(14.dp)
                 )
                 Text(
                     "${sleepTimerMinutes}m",
                     style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-                    color = Color.White.copy(alpha = 0.8f)
+                    color = timerColor
                 )
             }
         }
 
         // Right - 3-dot overflow menu (Audible-style options)
         Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-            TopBarButton(icon = Icons.Rounded.MoreVert, onClick = onOverflowClick)
+            TopBarButton(icon = Icons.Rounded.MoreVert, onClick = onOverflowClick, isDark = isDark)
 
             // Dropdown with Audible-style options
             // NOTE: Speed, Timer, EQ, Bookmark are in utility buttons below - NOT duplicated here
@@ -1240,7 +1362,7 @@ private fun TopPlayerBar(
 
                 // Divider
                 HorizontalDivider(
-                    color = if (isReverieDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.1f),
+                    color = if (isOLED) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.1f),
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
 
@@ -1279,7 +1401,7 @@ private fun TopPlayerBar(
 
                 // Divider before settings section
                 HorizontalDivider(
-                    color = if (isReverieDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.1f),
+                    color = if (isOLED) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.1f),
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
 
@@ -1339,31 +1461,35 @@ private fun TopPlayerBar(
 private fun TopBarButton(
     icon: ImageVector,
     onClick: () -> Unit,
-    size: Dp = 40.dp
+    size: Dp = 40.dp,
+    isDark: Boolean = true
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 500f),
+        targetValue = if (isPressed) LithosComponents.Pill.pressScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "scale"
     )
+
+    val buttonBg = if (!isDark) Color.Black.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.25f)
+    val iconTint = if (!isDark) LithosSlate.copy(alpha = 0.9f) else Color.White.copy(alpha = 0.9f)
 
     Box(
         modifier = Modifier
             .scale(scale)
             .size(size)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.25f))  // Subtle, translucent backdrop
+            .background(buttonBg)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.9f),
-            modifier = Modifier.size(if (size > 40.dp) 28.dp else 24.dp)
+            tint = iconTint,
+            modifier = Modifier.size(if (size > 40.dp) 28.dp else GlassIconSize.Medium)
         )
     }
 }
@@ -1376,8 +1502,8 @@ private fun TopBarButton(
 @Composable
 private fun PremiumSlider(
     value: Float,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
     isChapterSkipAnimating: Boolean = false,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit
@@ -1388,14 +1514,14 @@ private fun PremiumSlider(
 
     val animatedValue by animateFloatAsState(
         targetValue = if (isDragging) previewValue else value,
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "slider"
     )
 
-    // Reverie Dark uses dynamic accent color
-    val trackColor = if (isReverieDark) reverieAccentColor else Color.White
-    val thumbColor = if (isReverieDark) reverieAccentColor else Color.White
-    val inactiveColor = if (isReverieDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.2f)
+    // Lithos Amber - solid amber color for scrubber/seek bar
+    val trackColor = LithosAmber  // Solid Amber #D48C2C
+    val thumbColor = LithosAmber  // Matching thumb color
+    val inactiveColor = LithosProgressTrack  // 20% white track
 
     // Create interaction source to detect press state
     val interactionSource = remember { MutableInteractionSource() }
@@ -1433,7 +1559,7 @@ private fun PremiumSlider(
             // Simple thumb that scales up when dragging
             val thumbScale by animateFloatAsState(
                 targetValue = if (isDragging) 1.3f else 1f,
-                animationSpec = spring(dampingRatio = 0.8f, stiffness = 400f),
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
                 label = "thumbScale"
             )
 
@@ -1453,8 +1579,8 @@ private fun PremiumSlider(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
+                    .height(LithosComponents.ProgressBar.height)
+                    .clip(RoundedCornerShape(LithosComponents.ProgressBar.cornerRadius))
                     .background(inactiveColor)
             ) {
                 // Simple progress track
@@ -1476,8 +1602,9 @@ private fun PremiumSlider(
 @Composable
 private fun MainPlayerControls(
     isPlaying: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
     onSkipBack: () -> Unit,
     onPrevious: () -> Unit,
     onPlayPause: () -> Unit,
@@ -1499,7 +1626,8 @@ private fun MainPlayerControls(
             icon = Icons.Rounded.SkipPrevious,
             onClick = onPrevious,
             size = 44.dp,
-            iconSize = 26.dp
+            iconSize = 26.dp,
+            isDark = isDark
         )
 
         // Skip back 30s - INSIDE (more frequent, next to play)
@@ -1507,13 +1635,14 @@ private fun MainPlayerControls(
             icon = Icons.Rounded.Replay30,
             onClick = onSkipBack,
             size = 52.dp,
-            iconSize = 30.dp
+            iconSize = 30.dp,
+            isDark = isDark
         )
 
         // Play/Pause - Hero button (CENTER)
         PlayPauseButton(
             isPlaying = isPlaying,
-            isReverieDark = isReverieDark,
+            isOLED = isOLED,
             reverieAccentColor = reverieAccentColor,
             onClick = onPlayPause
         )
@@ -1523,7 +1652,8 @@ private fun MainPlayerControls(
             icon = Icons.Rounded.Forward30,
             onClick = onSkipForward,
             size = 52.dp,
-            iconSize = 30.dp
+            iconSize = 30.dp,
+            isDark = isDark
         )
 
         // Next Chapter - OUTSIDE (less frequent)
@@ -1531,7 +1661,8 @@ private fun MainPlayerControls(
             icon = Icons.Rounded.SkipNext,
             onClick = onNext,
             size = 44.dp,
-            iconSize = 26.dp
+            iconSize = 26.dp,
+            isDark = isDark
         )
     }
 }
@@ -1541,14 +1672,15 @@ private fun ControlButton(
     icon: ImageVector,
     onClick: () -> Unit,
     size: Dp,
-    iconSize: Dp
+    iconSize: Dp,
+    isDark: Boolean = true
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.8f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 600f),
+        targetValue = if (isPressed) LithosComponents.Buttons.pressScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "scale"
     )
 
@@ -1563,7 +1695,7 @@ private fun ControlButton(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = if (isDark) Color.White else LithosSlate,  // Theme-aware
             modifier = Modifier.size(iconSize)
         )
     }
@@ -1572,30 +1704,46 @@ private fun ControlButton(
 @Composable
 private fun PlayPauseButton(
     isPlaying: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
-        animationSpec = spring(dampingRatio = 0.4f, stiffness = 500f),
+        targetValue = if (isPressed) LithosComponents.Buttons.pressScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "scale"
     )
 
-    // Dark button with accent-colored icon for premium feel
-    val buttonColor = if (isReverieDark) Color(0xFF1C1C1E) else Color(0xFF2C2C2E)
-    val iconColor = if (isReverieDark) reverieAccentColor else Color.White
+    // Lithos Moss button - ONLY for Play/Pause per Lithos design spec
+    val buttonColor = LithosMoss  // Moss #4A5D45 for play button ONLY
+    val iconColor = LithosTextPrimary  // White icon on Moss background
 
     Box(
         modifier = Modifier
             .scale(scale)
             .size(80.dp)  // Slightly larger button
-            .shadow(20.dp, CircleShape, spotColor = if (isReverieDark) reverieAccentColor.copy(alpha = 0.3f) else Color.Black)
+            .shadow(12.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.4f))  // Deeper shadow
             .clip(CircleShape)
             .background(buttonColor)
+            .border(1.dp, Color.Black.copy(alpha = 0.15f), CircleShape)  // Subtle sharp border
+            // Subtle inner shadow effect using gradient overlay for matte/satin feel
+            .drawBehind {
+                // Draw subtle inner shadow at top for depth
+                drawCircle(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.15f),  // Top darker
+                            Color.Transparent
+                        ),
+                        startY = 0f,
+                        endY = size.height * 0.4f
+                    ),
+                    radius = size.minDimension / 2
+                )
+            }
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -1623,7 +1771,7 @@ private fun PlayPauseButton(
 @Composable
 private fun NavigationRing(
     progress: Float,
-    chapters: List<com.mossglen.reverie.data.Chapter>,
+    chapters: List<com.mossglen.lithos.data.Chapter>,
     bookmarks: List<Long>,
     duration: Long,
     timeRemainingMs: Long,
@@ -1631,8 +1779,9 @@ private fun NavigationRing(
     totalChapters: Int,
     rippleDirection: Int = 0, // -1 = left (back), 0 = none, 1 = right (forward)
     bookmarkRippleTrigger: Int = 0, // Increments when bookmark is created
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
     onTap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1642,8 +1791,8 @@ private fun NavigationRing(
 
     // Animation for press feedback
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        targetValue = if (isPressed) LithosComponents.Buttons.pressScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "ringScale"
     )
 
@@ -1684,7 +1833,7 @@ private fun NavigationRing(
     val wave5Scale = remember { Animatable(1f) }
     val wave5Alpha = remember { Animatable(0f) }
 
-    // Core glow - illuminates the ring itself
+    // Core pulse - subtle highlight (no glow per Lithos design)
     val coreGlow = remember { Animatable(0f) }
 
     // Natural water ripple easing - starts fast, slows naturally
@@ -1697,11 +1846,11 @@ private fun NavigationRing(
             listOf(wave1Alpha, wave2Alpha, wave3Alpha, wave4Alpha, wave5Alpha).forEach { it.snapTo(0f) }
             coreGlow.snapTo(0f)
 
-            // Core glow - bright flash on the ring
+            // Core pulse - subtle flash (no bright glow per Lithos)
             launch {
-                coreGlow.animateTo(0.7f, tween(80, easing = FastOutSlowInEasing))
-                delay(150)
-                coreGlow.animateTo(0f, tween(400, easing = waterEasing))
+                coreGlow.animateTo(0.5f, tween(100, easing = FastOutSlowInEasing))
+                delay(100)
+                coreGlow.animateTo(0f, tween(300, easing = waterEasing))
             }
 
             // Wave 1 - Innermost, brightest, thickest
@@ -1745,15 +1894,15 @@ private fun NavigationRing(
         }
     }
 
-    // Colors - UI3 style
-    val progressColor = if (isReverieDark) reverieAccentColor else Color.White
-    val trackColor = if (isReverieDark) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.15f)
-    val textColor = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
-    val secondaryTextColor = if (isReverieDark) GlassColors.ReverieTextSecondary else Color.White.copy(alpha = 0.6f)
+    // Colors - Lithos Amber design language (matte, no glow)
+    val progressColor = LithosAmber  // Solid Amber for progress ring
+    val trackColor = if (!isDark) LithosSlate.copy(alpha = 0.2f) else LithosProgressTrack  // Theme-aware track
+    val textColor = if (!isDark) LithosSlate else if (isOLED) LithosTextPrimary else Color.White
+    val secondaryTextColor = if (!isDark) LithosSlate.copy(alpha = 0.7f) else if (isOLED) LithosTextSecondary else Color.White.copy(alpha = 0.6f)
 
-    // Ring dimensions - slightly larger for better readability
+    // Ring dimensions - slightly thicker stroke for better visibility
     val ringSize = 52.dp
-    val strokeWidth = 3.dp
+    val strokeWidth = 4.dp  // Thicker stroke for better visibility (was 2dp)
 
     Box(
         modifier = modifier
@@ -1820,78 +1969,52 @@ private fun NavigationRing(
                 )
             }
 
-            // 3. BOOKMARK WATER RIPPLE - Beautiful fluid ripples expanding from ring
-            // 5 concentric waves with tapered stroke widths (thick to thin)
-            // Creates natural water ripple effect like dropping a pebble
-            val rippleColor = if (isReverieDark) reverieAccentColor else Color.White
+            // 3. BOOKMARK RIPPLE - Subtle matte ripples (Lithos: no glow effects)
+            // Simple expanding ring, matte finish, no bright illumination
+            val rippleColor = LithosAmber  // Solid Amber, matte
 
-            // Core glow - bright illumination on the ring itself
+            // Core pulse - subtle ring highlight (no glow, just brief alpha change)
             if (coreGlow.value > 0f) {
-                // Outer glow
+                // Single subtle ring highlight - no outer glow
                 drawCircle(
-                    color = rippleColor.copy(alpha = coreGlow.value * 0.4f),
-                    radius = radius + 6.dp.toPx(),
+                    color = rippleColor.copy(alpha = coreGlow.value * 0.5f),
+                    radius = radius,
                     center = center,
-                    style = Stroke(width = 4.dp.toPx())
-                )
-                // Inner glow - brighter
-                drawCircle(
-                    color = rippleColor.copy(alpha = coreGlow.value * 0.8f),
-                    radius = radius + 2.dp.toPx(),
-                    center = center,
-                    style = Stroke(width = strokeWidth.toPx() + 1.dp.toPx())
+                    style = Stroke(width = strokeWidth.toPx())
                 )
             }
 
-            // Wave 1 - Innermost, thickest stroke (3dp)
+            // Wave 1 - Innermost, thin stroke (2dp - Lithos thin strokes)
             if (wave1Alpha.value > 0f) {
                 drawCircle(
-                    color = rippleColor.copy(alpha = wave1Alpha.value),
+                    color = rippleColor.copy(alpha = wave1Alpha.value * 0.5f),  // More subtle
                     radius = radius * wave1Scale.value,
-                    center = center,
-                    style = Stroke(width = 3.dp.toPx())
-                )
-            }
-
-            // Wave 2 - Slightly thinner (2.5dp)
-            if (wave2Alpha.value > 0f) {
-                drawCircle(
-                    color = rippleColor.copy(alpha = wave2Alpha.value),
-                    radius = radius * wave2Scale.value,
-                    center = center,
-                    style = Stroke(width = 2.5.dp.toPx())
-                )
-            }
-
-            // Wave 3 - Medium stroke (2dp)
-            if (wave3Alpha.value > 0f) {
-                drawCircle(
-                    color = rippleColor.copy(alpha = wave3Alpha.value),
-                    radius = radius * wave3Scale.value,
                     center = center,
                     style = Stroke(width = 2.dp.toPx())
                 )
             }
 
-            // Wave 4 - Thinner (1.5dp)
-            if (wave4Alpha.value > 0f) {
+            // Wave 2 - Slightly thinner (1.5dp)
+            if (wave2Alpha.value > 0f) {
                 drawCircle(
-                    color = rippleColor.copy(alpha = wave4Alpha.value),
-                    radius = radius * wave4Scale.value,
+                    color = rippleColor.copy(alpha = wave2Alpha.value * 0.4f),  // More subtle
+                    radius = radius * wave2Scale.value,
                     center = center,
                     style = Stroke(width = 1.5.dp.toPx())
                 )
             }
 
-            // Wave 5 - Outermost, thinnest stroke (1dp)
-            if (wave5Alpha.value > 0f) {
+            // Wave 3 - Thin stroke (1dp)
+            if (wave3Alpha.value > 0f) {
                 drawCircle(
-                    color = rippleColor.copy(alpha = wave5Alpha.value),
-                    radius = radius * wave5Scale.value,
+                    color = rippleColor.copy(alpha = wave3Alpha.value * 0.3f),  // Subtle
+                    radius = radius * wave3Scale.value,
                     center = center,
                     style = Stroke(width = 1.dp.toPx())
                 )
             }
+
+            // Skip waves 4 & 5 for cleaner matte appearance (less is more)
         }
 
         // Center content - chapter count in compact format (e.g., "3/12")
@@ -1920,8 +2043,9 @@ private fun PlayerUtilitiesPill(
     sleepTimerMinutes: Int?,
     sleepTimerRemaining: Long = 0L,
     eqPresetName: String = "Flat",
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isDark: Boolean = true,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
     onBookmarkClick: () -> Unit,
     onBookmarkLongClick: () -> Unit,
     onSpeedClick: () -> Unit,
@@ -1930,14 +2054,14 @@ private fun PlayerUtilitiesPill(
 ) {
     val view = LocalView.current
 
-    // Glass pill styling - matches nav pill for consistency
-    val pillBg = if (isReverieDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.12f)
-    val pillBorder = if (isReverieDark) reverieAccentColor.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.15f)
-    val dividerColor = if (isReverieDark) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.2f)
+    // Theme-aware frosted glass pill
+    val pillBg = if (isDark) Color(0xFF1C1C1E).copy(alpha = 0.95f) else Color(0xFFF2F2F7).copy(alpha = 0.95f)
+    val pillBorder = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)  // Neutral border
+    val dividerColor = if (isDark) LithosDivider else Color.Black.copy(alpha = 0.1f)
 
-    // Icon colors: White default (softer), accent when active
-    val defaultColor = Color.White.copy(alpha = 0.5f)  // Softer, dimmer for premium feel
-    val activeColor = if (isReverieDark) reverieAccentColor else Color.White
+    // Icon colors: Theme-aware with Amber active state
+    val defaultColor = if (isDark) LithosTextSecondary else LithosSlate.copy(alpha = 0.7f)
+    val activeColor = LithosAmber  // Solid Amber when active
 
     // Determine active states
     val isSpeedActive = playbackSpeed != 1.0f
@@ -1947,11 +2071,11 @@ private fun PlayerUtilitiesPill(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .height(52.dp)
-            .clip(RoundedCornerShape(26.dp))
+            .padding(horizontal = LithosComponents.ProgressBar.horizontalPadding)
+            .height(LithosComponents.Pill.height - 6.dp)  // Slightly smaller secondary pill
+            .clip(RoundedCornerShape(LithosComponents.Pill.cornerRadius - 4.dp))  // Slightly less rounded
             .background(pillBg)
-            .border(0.5.dp, pillBorder, RoundedCornerShape(26.dp)),
+            .border(LithosComponents.Cards.borderWidth, pillBorder, RoundedCornerShape(LithosComponents.Pill.cornerRadius - 4.dp)),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2026,9 +2150,13 @@ private fun UtilityPillIcon(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
+    // Using unified ReverieComponents for consistent animation values
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 500f),
+        targetValue = if (isPressed) LithosComponents.Pill.pressScale else 1f,
+        animationSpec = spring(
+            dampingRatio = LithosComponents.Pill.springDamping,
+            stiffness = LithosComponents.Pill.springStiffness
+        ),
         label = "scale"
     )
 
@@ -2038,7 +2166,7 @@ private fun UtilityPillIcon(
     Box(
         modifier = Modifier
             .scale(scale)
-            .size(48.dp)
+            .size(GlassTouchTarget.Standard)  // Unified touch target
             .clip(CircleShape)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -2047,13 +2175,14 @@ private fun UtilityPillIcon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = iconColor,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(GlassIconSize.Medium)  // Unified icon size
         )
     }
 }
 
 /**
  * Sleep timer icon - Uses Filled.Snooze to match other pill icons (BookmarkBorder, Speed, Equalizer)
+ * Using unified ReverieComponents for consistent animation and sizing
  */
 @Composable
 private fun SleepTimerPillIcon(
@@ -2066,8 +2195,11 @@ private fun SleepTimerPillIcon(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 500f),
+        targetValue = if (isPressed) LithosComponents.Pill.pressScale else 1f,
+        animationSpec = spring(
+            dampingRatio = LithosComponents.Pill.springDamping,
+            stiffness = LithosComponents.Pill.springStiffness
+        ),
         label = "scale"
     )
 
@@ -2076,7 +2208,7 @@ private fun SleepTimerPillIcon(
     Box(
         modifier = Modifier
             .scale(scale)
-            .size(48.dp)
+            .size(GlassTouchTarget.Standard)  // Unified touch target
             .clip(CircleShape)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -2085,7 +2217,7 @@ private fun SleepTimerPillIcon(
             imageVector = Icons.Filled.Snooze,
             contentDescription = "Sleep Timer",
             tint = iconColor,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(GlassIconSize.Medium)  // Unified icon size
         )
     }
 }
@@ -2094,7 +2226,7 @@ private fun SleepTimerPillIcon(
 private fun UtilityDivider(color: Color) {
     Box(
         modifier = Modifier
-            .width(0.5.dp)
+            .width(LithosComponents.Cards.borderWidth)  // Unified divider width
             .height(20.dp)
             .background(color)
     )
@@ -2142,9 +2274,9 @@ private fun BookmarkButton(
 @Composable
 private fun SpeedPresetChips(
     currentSpeed: Float,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
-    highlightColor: Color = GlassColors.WarmSlate,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
+    highlightColor: Color = LithosSlate,
     onSpeedSelected: (Float) -> Unit
 ) {
     val presetSpeeds = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
@@ -2160,7 +2292,7 @@ private fun SpeedPresetChips(
             SpeedChip(
                 speed = speed,
                 isSelected = abs(currentSpeed - speed) < 0.01f,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 reverieAccentColor = reverieAccentColor,
                 highlightColor = highlightColor,
                 onClick = { onSpeedSelected(speed) }
@@ -2173,27 +2305,27 @@ private fun SpeedPresetChips(
 private fun SpeedChip(
     speed: Float,
     isSelected: Boolean,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
-    highlightColor: Color = GlassColors.WarmSlate,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
+    highlightColor: Color = LithosSlate,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 500f),
+        targetValue = if (isPressed) LithosComponents.Buttons.pressScale else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "scale"
     )
 
     // Theme-appropriate colors
-    val activeColor = if (isReverieDark) reverieAccentColor else Color.White
-    val inactiveColor = if (isReverieDark) GlassColors.ReverieTextSecondary else Color.White.copy(alpha = 0.6f)
-    val activeBg = if (isReverieDark) highlightColor else Color.White.copy(alpha = 0.15f)
+    val activeColor = if (isOLED) reverieAccentColor else Color.White
+    val inactiveColor = if (isOLED) LithosTextSecondary else Color.White.copy(alpha = 0.6f)
+    val activeBg = if (isOLED) highlightColor else Color.White.copy(alpha = 0.15f)
     val inactiveBg = Color.White.copy(alpha = 0.05f)
     val borderColor = if (isSelected) {
-        if (isReverieDark) reverieAccentColor.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.3f)
+        if (isOLED) reverieAccentColor.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.3f)
     } else {
         Color.White.copy(alpha = 0.1f)
     }
@@ -2235,21 +2367,21 @@ private fun SpeedChip(
 @Composable
 private fun PremiumSpeedDialog(
     currentSpeed: Float,
-    customPresets: List<com.mossglen.reverie.data.SettingsRepository.CustomSpeedPreset>,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
-    highlightColor: Color = GlassColors.WarmSlate,
+    customPresets: List<com.mossglen.lithos.data.SettingsRepository.CustomSpeedPreset>,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
+    highlightColor: Color = LithosSlate,
     onSpeedSelected: (Float) -> Unit,
     onSavePreset: () -> Unit,
     onDeletePreset: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetBg = Color(0xFF1C1C1E)
-    val accentColor = Color(0xFFB87332) // Copper/bronze accent
+    val sheetBg = LithosUI.SheetBackground
+    val accentColor = LithosAmber // Lithos Amber accent
     val textPrimary = Color.White
     val textSecondary = Color.White.copy(alpha = 0.6f)
-    val chipBg = Color(0xFF2C2C2E)
-    val selectedBg = Color(0xFFB87332) // Copper/bronze selection
+    val chipBg = LithosUI.CardBackground
+    val selectedBg = LithosAmber // Lithos Amber selection
 
     // Speed state with slider
     var sliderSpeed by remember { mutableFloatStateOf(currentSpeed) }
@@ -2467,14 +2599,14 @@ private fun PremiumSpeedDialog(
 @Composable
 private fun SavePresetDialog(
     initialName: String,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
     onSave: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var presetName by remember { mutableStateOf(initialName) }
-    val dialogBg = Color(0xFF1C1C1E)
-    val accentColor = if (isReverieDark) reverieAccentColor else Color.White
+    val dialogBg = LithosUI.SheetBackground
+    val accentColor = if (isOLED) reverieAccentColor else Color.White
     val textPrimary = Color.White
     val textSecondary = Color.White.copy(alpha = 0.7f)
 
@@ -2571,7 +2703,7 @@ private fun SavePresetDialog(
 
 @Composable
 private fun ChaptersBookmarksDialog(
-    chapters: List<com.mossglen.reverie.data.Chapter>,
+    chapters: List<com.mossglen.lithos.data.Chapter>,
     currentChapter: Int,
     hasRealChapters: Boolean,
     totalChapters: Int,
@@ -2579,19 +2711,19 @@ private fun ChaptersBookmarksDialog(
     duration: Long,
     bookmarks: List<Long>,
     bookmarkNotes: Map<Long, String> = emptyMap(),
-    isReverieDark: Boolean,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
-    highlightColor: Color = GlassColors.WarmSlate,
+    isOLED: Boolean,
+    reverieAccentColor: Color = LithosAmber,
+    highlightColor: Color = LithosSlate,
     onSeekTo: (Long) -> Unit,
     onDeleteBookmark: (Long) -> Unit = {},
     onEditBookmarkNote: (Long, String) -> Unit = { _, _ -> },
     onDismiss: () -> Unit
 ) {
     // Use theme accent color - NO BROWN, dark grey selection
-    val accentColor = Color(0xFF3D444D) // Dark grey - matches speed/sleep dialogs
-    val selectionBg = Color(0xFF3D444D) // Dark grey selection
-    val dialogBg = Color(0xFF1C1C1E) // Consistent solid background
-    val glassBg = Color(0xFF2C2C2E) // Consistent chip background
+    val accentColor = LithosSlate // Dark grey - matches speed/sleep dialogs
+    val selectionBg = LithosSlate // Dark grey selection
+    val dialogBg = LithosUI.SheetBackground // Consistent solid background
+    val glassBg = LithosUI.CardBackground // Consistent chip background
     // Start on Chapters tab (index 0), NOT bookmarks
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
@@ -2623,8 +2755,8 @@ private fun ChaptersBookmarksDialog(
     val slideOffset by animateFloatAsState(
         targetValue = if (isVisible) 0f else 400f,
         animationSpec = spring(
-            dampingRatio = 0.85f,
-            stiffness = 350f
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
         ),
         label = "dialogSlide"
     )
@@ -2870,7 +3002,7 @@ private fun ChapterRow(
     duration: String,
     isCurrent: Boolean,
     accentColor: Color = Color.White,
-    selectionBg: Color = GlassColors.WarmSlate,
+    selectionBg: Color = LithosSlate,
     onClick: () -> Unit
 ) {
     Row(
@@ -3009,7 +3141,7 @@ private fun BookmarkRow(
         DropdownMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            containerColor = Color(0xFF2C2C2E)
+            containerColor = LithosUI.CardBackground
         ) {
             DropdownMenuItem(
                 text = {
@@ -3062,7 +3194,7 @@ private fun BookmarkRow(
     if (showEditNoteDialog) {
         AlertDialog(
             onDismissRequest = { showEditNoteDialog = false },
-            containerColor = Color(0xFF1C1C1E),
+            containerColor = LithosUI.SheetBackground,
             title = {
                 Text(
                     if (hasNote) "Edit Note" else "Add Note",
@@ -3110,16 +3242,16 @@ private fun BookmarkRow(
 @Composable
 private fun PremiumSleepDialog(
     sleepTimerMinutes: Int?,
-    isReverieDark: Boolean = false,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    reverieAccentColor: Color = LithosAmber,
     onTimerSet: (Int) -> Unit,
     onEndOfChapter: () -> Unit,
     onCancelTimer: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetBg = Color(0xFF1C1C1E)
-    val chipBg = Color(0xFF2C2C2E)
-    val selectedBg = Color(0xFFB87332) // Copper/bronze selection
+    val sheetBg = LithosUI.SheetBackground
+    val chipBg = LithosUI.CardBackground
+    val selectedBg = LithosAmber // Lithos Amber selection
     val textPrimary = Color.White
     val textSecondary = Color.White.copy(alpha = 0.6f)
 
@@ -3290,20 +3422,20 @@ private fun PremiumSleepDialog(
 private fun BookmarkNoteDialog(
     note: String,
     onNoteChange: (String) -> Unit,
-    isReverieDark: Boolean,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean,
+    reverieAccentColor: Color = LithosAmber,
     onSave: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val accentColor = if (isReverieDark) reverieAccentColor else Color(0xFF0A84FF)
-    val dialogBg = if (isReverieDark) Color(0xFF0A0A0A) else Color(0xFF1C1C1E)
+    val accentColor = if (isOLED) reverieAccentColor else LithosAmber
+    val dialogBg = if (isOLED) LithosUI.DeepBackground else LithosUI.SheetBackground
 
-    val textColor = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
+    val textColor = if (isOLED) LithosTextPrimary else Color.White
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = dialogBg,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(LithosComponents.Cards.cornerRadius),  // Unified
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -3313,7 +3445,7 @@ private fun BookmarkNoteDialog(
                     Icons.Rounded.BookmarkAdd,
                     null,
                     tint = accentColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(GlassIconSize.Medium)  // Unified
                 )
                 Text(
                     stringResource(R.string.player_add_bookmark),
@@ -3378,13 +3510,13 @@ private fun BookmarkNoteDialog(
 @Composable
 private fun AudioSettingsDialog(
     audioEffectManager: AudioEffectManager,
-    isReverieDark: Boolean,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean,
+    reverieAccentColor: Color = LithosAmber,
     onDismiss: () -> Unit
 ) {
-    val accentColor = if (isReverieDark) reverieAccentColor else Color(0xFF0A84FF)
-    val dialogBg = if (isReverieDark) Color(0xFF0A0A0A) else Color(0xFF1C1C1E)
-    val glassBg = if (isReverieDark) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.05f)
+    val accentColor = if (isOLED) reverieAccentColor else LithosAmber
+    val dialogBg = if (isOLED) LithosUI.DeepBackground else LithosUI.SheetBackground
+    val glassBg = if (isOLED) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.05f)
     val view = LocalView.current
 
     // Reinitialize effects when dialog opens
@@ -3677,7 +3809,7 @@ private fun AudioSettingsDialog(
                     Text(
                         stringResource(R.string.effect_amplifier),
                         style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium),
-                        color = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
+                        color = if (isOLED) LithosTextPrimary else Color.White
                     )
 
                     // Convert amplifierGain (-12 to +12) to normalized value (0 to 1)
@@ -3730,7 +3862,7 @@ private fun AudioSettingsDialog(
                             Text(
                                 "dB",
                                 style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                                color = if (isReverieDark) GlassColors.ReverieTextSecondary else Color.White.copy(alpha = 0.5f)
+                                color = if (isOLED) LithosTextSecondary else Color.White.copy(alpha = 0.5f)
                             )
                         }
                     }
@@ -3738,7 +3870,7 @@ private fun AudioSettingsDialog(
                     Text(
                         "Drag up/down to adjust",
                         style = TextStyle(fontSize = 11.sp),
-                        color = if (isReverieDark) GlassColors.ReverieTextTertiary else Color.White.copy(alpha = 0.4f)
+                        color = if (isOLED) LithosTextTertiary else Color.White.copy(alpha = 0.4f)
                     )
                 }
 
@@ -3901,16 +4033,16 @@ private fun AudioSettingsDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBookDialog(
-    book: com.mossglen.reverie.data.Book,
-    isReverieDark: Boolean,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    book: com.mossglen.lithos.data.Book,
+    isOLED: Boolean,
+    reverieAccentColor: Color = LithosAmber,
     onSave: (title: String, author: String, narrator: String, date: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val accentColor = if (isReverieDark) reverieAccentColor else Color(0xFF0A84FF)
-    val dialogBg = if (isReverieDark) Color(0xFF0A0A0A) else Color(0xFF1C1C1E)
-    val textColor = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
-    val secondaryText = if (isReverieDark) GlassColors.ReverieTextSecondary else Color.White.copy(alpha = 0.6f)
+    val accentColor = if (isOLED) reverieAccentColor else LithosAmber
+    val dialogBg = if (isOLED) LithosUI.DeepBackground else LithosUI.SheetBackground
+    val textColor = if (isOLED) LithosTextPrimary else Color.White
+    val secondaryText = if (isOLED) LithosTextSecondary else Color.White.copy(alpha = 0.6f)
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -4263,19 +4395,19 @@ private fun EditField(
 
 @Composable
 private fun MarkAsDialog(
-    isReverieDark: Boolean,
-    reverieAccentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean,
+    reverieAccentColor: Color = LithosAmber,
     onMarkAs: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val accentColor = if (isReverieDark) reverieAccentColor else Color(0xFF0A84FF)
-    val dialogBg = if (isReverieDark) Color(0xFF0A0A0A) else Color(0xFF1C1C1E)
-    val textColor = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
+    val accentColor = if (isOLED) reverieAccentColor else LithosAmber
+    val dialogBg = if (isOLED) LithosUI.DeepBackground else LithosUI.SheetBackground
+    val textColor = if (isOLED) LithosTextPrimary else Color.White
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = dialogBg,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(LithosComponents.Cards.cornerRadius),  // Unified
         title = {
             Text(
                 "Mark as...",
@@ -4293,17 +4425,17 @@ private fun MarkAsDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(LithosComponents.Cards.chipRadius))  // Unified
                             .clickable { onMarkAs(status) }
                             .padding(vertical = 12.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(GlassSpacing.M)
                     ) {
                         Icon(
                             icon,
                             contentDescription = null,
                             tint = accentColor,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(GlassIconSize.Medium)  // Unified
                         )
                         Column {
                             Text(
@@ -4331,24 +4463,24 @@ private fun MarkAsDialog(
 
 @Composable
 private fun DeleteConfirmDialog(
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val dialogBg = if (isReverieDark) Color(0xFF0A0A0A) else Color(0xFF1C1C1E)
-    val textColor = if (isReverieDark) GlassColors.ReverieTextPrimary else Color.White
-    val destructiveColor = GlassColors.Destructive
+    val dialogBg = if (isOLED) LithosUI.DeepBackground else LithosUI.SheetBackground
+    val textColor = if (isOLED) LithosTextPrimary else Color.White
+    val destructiveColor = LithosUI.Destructive
 
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = dialogBg,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(LithosComponents.Cards.cornerRadius),  // Unified
         icon = {
             Icon(
                 Icons.Rounded.Delete,
                 contentDescription = null,
                 tint = destructiveColor,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(GlassIconSize.XLarge)  // Unified
             )
         },
         title = {

@@ -1,4 +1,4 @@
-package com.mossglen.reverie
+package com.mossglen.lithos
 
 import org.junit.Test
 

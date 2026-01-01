@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.net.Uri
 import android.view.HapticFeedbackConstants
@@ -40,26 +40,50 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.data.DownloadInfo
-import com.mossglen.reverie.data.TorrentState
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.SettingsViewModel
-import com.mossglen.reverie.ui.viewmodel.TorrentViewModel
+import com.mossglen.lithos.data.DownloadInfo
+import com.mossglen.lithos.data.TorrentState
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.SettingsViewModel
+import com.mossglen.lithos.ui.viewmodel.TorrentViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+
+// Lithos Amber Design Language Colors
+private val LithosAmber = Color(0xFFD48C2C)
+private val LithosMoss = Color(0xFF4A5D45)
+private val LithosSlate = Color(0xFF1A1D21)
+private val LithosOat = Color(0xFFF2F0E9)
+private val LithosBlack = Color(0xFF000000)
+private val LithosGlassBackgroundDark = Color(0xD91A1D21) // rgba(26, 29, 33, 0.85)
+private val LithosGlassBackgroundLight = Color(0xD9F2F0E9) // rgba(242, 240, 233, 0.85)
+private val LithosGlassBackgroundOLED = Color(0xD9000000) // rgba(0, 0, 0, 0.85)
+
+// Helper function for theme-aware background
+private fun getBackground(isDark: Boolean, isOLED: Boolean): Color = when {
+    isOLED -> LithosBlack
+    isDark -> LithosSlate
+    else -> LithosOat
+}
+
+// Helper function for theme-aware glass background
+private fun getGlassBackground(isDark: Boolean, isOLED: Boolean): Color = when {
+    isOLED -> LithosGlassBackgroundOLED
+    isDark -> LithosGlassBackgroundDark
+    else -> LithosGlassBackgroundLight
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DownloadsScreen(
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     onBack: () -> Unit,
     torrentViewModel: TorrentViewModel = hiltViewModel(),
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val view = LocalView.current
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val downloads by torrentViewModel.activeDownloads.collectAsState()
     val error by torrentViewModel.error.collectAsState()
     val clipboardManager = LocalClipboardManager.current
@@ -117,7 +141,7 @@ fun DownloadsScreen(
             .fillMaxSize()
             .offset { IntOffset(animatedOffset.roundToInt(), 0) }
             .alpha(1f - swipeProgress * 0.3f)
-            .background(theme.background)
+            .background(getBackground(isDark, isOLED))
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
@@ -168,12 +192,12 @@ fun DownloadsScreen(
                             Icon(
                                 Icons.Default.Add,
                                 contentDescription = "Add Torrent",
-                                tint = theme.interactive
+                                tint = LithosAmber
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = theme.glassCard
+                        containerColor = getGlassBackground(isDark, isOLED)
                     )
                 )
             },
@@ -181,9 +205,9 @@ fun DownloadsScreen(
                 SnackbarHost(hostState = snackbarHostState) { data ->
                     Snackbar(
                         snackbarData = data,
-                        containerColor = theme.glassCard,
+                        containerColor = getGlassBackground(isDark, isOLED),
                         contentColor = theme.textPrimary,
-                        actionColor = theme.interactive
+                        actionColor = LithosAmber
                     )
                 }
             },
@@ -227,14 +251,14 @@ fun DownloadsScreen(
                             Button(
                                 onClick = { showAddDialog = true },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = theme.glassCard,
-                                    contentColor = theme.interactive
+                                    containerColor = getGlassBackground(isDark, isOLED),
+                                    contentColor = LithosAmber
                                 ),
                                 shape = RoundedCornerShape(GlassShapes.Medium)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, tint = theme.interactive)
+                                Icon(Icons.Default.Add, contentDescription = null, tint = LithosAmber)
                                 Spacer(modifier = Modifier.width(GlassSpacing.S))
-                                Text("ADD TORRENT", fontWeight = FontWeight.SemiBold, color = theme.interactive)
+                                Text("ADD TORRENT", fontWeight = FontWeight.SemiBold, color = LithosAmber)
                             }
                         }
                     }
@@ -252,7 +276,7 @@ fun DownloadsScreen(
                             DownloadItem(
                                 downloadInfo = downloadInfo,
                                 isDark = isDark,
-                                isReverieDark = isReverieDark,
+                                isOLED = isOLED,
                                 onPause = { torrentViewModel.pauseDownload(downloadInfo.id) },
                                 onResume = { torrentViewModel.resumeDownload(downloadInfo.id) },
                                 onCancel = { torrentViewModel.cancelDownload(downloadInfo.id) }
@@ -269,7 +293,7 @@ fun DownloadsScreen(
                 magnetLink = magnetLink,
                 onMagnetLinkChange = { magnetLink = it },
                 isDark = isDark,
-                isReverieDark = isReverieDark,
+                isOLED = isOLED,
                 onAddMagnet = {
                     if (magnetLink.startsWith("magnet:")) {
                         torrentViewModel.startDownloadWithLink(magnetLink)
@@ -298,10 +322,9 @@ fun DownloadsScreen(
         // Settings Bottom Sheet
         if (showSettingsSheet) {
             // Solid dialog background - matches player dialogs throughout app
-            val sheetBg = Color(0xFF1C1C1E)
             ModalBottomSheet(
                 onDismissRequest = { showSettingsSheet = false },
-                containerColor = sheetBg,
+                containerColor = getGlassBackground(isDark, isOLED),
                 shape = RoundedCornerShape(topStart = GlassShapes.Large, topEnd = GlassShapes.Large)
             ) {
                 Column(
@@ -323,7 +346,7 @@ fun DownloadsScreen(
                         subtitle = "Only download on Wi-Fi networks",
                         isEnabled = wifiOnly,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         onToggle = { settingsViewModel.setTorrentWifiOnly(it) }
                     )
 
@@ -337,7 +360,7 @@ fun DownloadsScreen(
                         title = "Max Concurrent Downloads",
                         value = "$maxDownloads",
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         options = listOf(1, 2, 3, 4, 5),
                         onValueChange = { settingsViewModel.setTorrentMaxDownloads(it) }
                     )
@@ -353,7 +376,7 @@ fun DownloadsScreen(
                         subtitle = "Get cover art and synopsis after download",
                         isEnabled = autoFetchMetadata,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         onToggle = { settingsViewModel.setTorrentAutoFetchMetadata(it) }
                     )
 
@@ -368,7 +391,7 @@ fun DownloadsScreen(
                         subtitle = "Share with others after download completes (uses battery)",
                         isEnabled = seedAfterDownload,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         onToggle = { settingsViewModel.setTorrentSeedAfterDownload(it) }
                     )
 
@@ -383,12 +406,12 @@ fun DownloadsScreen(
 private fun DownloadItem(
     downloadInfo: DownloadInfo,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     var visible by remember { mutableStateOf(true) }
 
     // Auto-hide completed downloads after 5 seconds
@@ -400,7 +423,7 @@ private fun DownloadItem(
     }
 
     val stateColor = when (downloadInfo.state) {
-        TorrentState.DOWNLOADING -> theme.interactive
+        TorrentState.DOWNLOADING -> LithosAmber
         TorrentState.SEEDING -> Color(0xFF22C55E)
         TorrentState.FINISHED -> Color(0xFF22C55E)
         TorrentState.PAUSED -> Color(0xFFF59E0B)
@@ -428,7 +451,7 @@ private fun DownloadItem(
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = theme.glassCard,
+            color = getGlassBackground(isDark, isOLED),
             shape = RoundedCornerShape(GlassShapes.Medium)
         ) {
             Row(
@@ -524,7 +547,7 @@ private fun DownloadItem(
                             Icon(
                                 Icons.Default.PlayArrow,
                                 contentDescription = "Resume",
-                                tint = theme.interactive
+                                tint = LithosAmber
                             )
                         }
                     } else if (isActive) {
@@ -554,20 +577,18 @@ private fun AddTorrentDialog(
     magnetLink: String,
     onMagnetLinkChange: (String) -> Unit,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onAddMagnet: () -> Unit,
     onAddFile: () -> Unit,
     onPasteFromClipboard: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val focusManager = LocalFocusManager.current
-    // Solid dialog background - matches player dialogs throughout app
-    val dialogBg = Color(0xFF1C1C1E)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = dialogBg,
+        containerColor = LithosUI.sheetBackground(isDark, isOLED),
         shape = RoundedCornerShape(GlassShapes.Large),
         title = {
             Text(
@@ -682,10 +703,10 @@ private fun SettingsToggleRow(
     subtitle: String,
     isEnabled: Boolean,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     onToggle: (Boolean) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
 
     Row(
         modifier = Modifier
@@ -724,11 +745,11 @@ private fun SettingsValueRow(
     title: String,
     value: String,
     isDark: Boolean,
-    isReverieDark: Boolean = false,
+    isOLED: Boolean = false,
     options: List<Int>,
     onValueChange: (Int) -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     var expanded by remember { mutableStateOf(false) }
 
     Row(
@@ -760,7 +781,7 @@ private fun SettingsValueRow(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(Color(0xFF1C1C1E))
+            modifier = Modifier.background(LithosUI.sheetBackground(isDark, isOLED))
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

@@ -1,4 +1,29 @@
-package com.mossglen.reverie.data
+package com.mossglen.lithos.data
+
+/**
+ * Info about a single book in a series from external sources
+ */
+data class SeriesBookInfo(
+    val title: String,
+    val coverUrl: String? = null,
+    val synopsis: String? = null,
+    val publishYear: Int? = null,
+    val contentType: String = "book"  // "book", "graphic novel", "companion", "novella", etc.
+)
+
+/**
+ * Metadata fetched from external sources about a series
+ */
+data class SeriesMetadata(
+    val name: String,
+    val totalBooks: Int,
+    val description: String? = null,
+    val author: String? = null,
+    val coverUrl: String? = null,
+    val bookTitles: List<String> = emptyList(),
+    val books: List<SeriesBookInfo> = emptyList(),
+    val relatedContent: List<SeriesBookInfo> = emptyList()  // Comics, companions, etc.
+)
 
 /**
  * REVERIE Series Data Models

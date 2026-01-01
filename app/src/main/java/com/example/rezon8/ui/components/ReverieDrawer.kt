@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.components
+package com.mossglen.lithos.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mossglen.reverie.BuildConfig
+import com.mossglen.lithos.BuildConfig
 
 /**
  * Actions that can be triggered from the drawer
@@ -30,9 +30,9 @@ enum class DrawerAction {
 }
 
 @Composable
-fun ReverieDrawerContent(
+fun LithosDrawerContent(
     isDarkTheme: Boolean,
-    isReverieTheme: Boolean,
+    isLithosTheme: Boolean,
     accentColor: Color,
     onNavigate: (String) -> Unit,
     onAction: (DrawerAction) -> Unit
@@ -51,16 +51,16 @@ fun ReverieDrawerContent(
         // No branding - will revisit later
 
         // MENU ITEMS
-        ReverieDrawerMenuItem(Icons.Outlined.FolderOpen, "Add Files", "Import content", accentColor, textColor, subtitleColor) {
+        LithosDrawerMenuItem(Icons.Outlined.FolderOpen, "Add Files", "Import content", accentColor, textColor, subtitleColor) {
             onAction(DrawerAction.OPEN_IMPORT)
         }
-        ReverieDrawerMenuItem(Icons.Outlined.CloudDownload, "Torrent Downloads", "Magnet downloads", accentColor, textColor, subtitleColor) {
+        LithosDrawerMenuItem(Icons.Outlined.CloudDownload, "Torrent Downloads", "Magnet downloads", accentColor, textColor, subtitleColor) {
             onAction(DrawerAction.OPEN_TORRENTS)
         }
-        ReverieDrawerMenuItem(Icons.Outlined.CloudQueue, "Cloud Storage", "Drive & Dropbox", accentColor, textColor, subtitleColor) {
+        LithosDrawerMenuItem(Icons.Outlined.CloudQueue, "Cloud Storage", "Drive & Dropbox", accentColor, textColor, subtitleColor) {
             onAction(DrawerAction.OPEN_CLOUD)
         }
-        ReverieDrawerMenuItem(Icons.AutoMirrored.Outlined.LibraryBooks, "Library", "Your collection", accentColor, textColor, subtitleColor) {
+        LithosDrawerMenuItem(Icons.AutoMirrored.Outlined.LibraryBooks, "Library", "Your collection", accentColor, textColor, subtitleColor) {
             onNavigate("library")
         }
 
@@ -69,13 +69,13 @@ fun ReverieDrawerContent(
             modifier = Modifier.padding(vertical = 12.dp)
         )
 
-        ReverieDrawerMenuItem(Icons.Outlined.Palette, "Appearance", "Theme options", accentColor, textColor, subtitleColor) {
+        LithosDrawerMenuItem(Icons.Outlined.Palette, "Appearance", "Theme options", accentColor, textColor, subtitleColor) {
             onAction(DrawerAction.OPEN_THEMES)
         }
-        ReverieDrawerMenuItem(Icons.Outlined.Settings, "Settings", "Configure the app", accentColor, textColor, subtitleColor) {
+        LithosDrawerMenuItem(Icons.Outlined.Settings, "Settings", "Configure the app", accentColor, textColor, subtitleColor) {
             onNavigate("settings")
         }
-        ReverieDrawerMenuItem(Icons.Outlined.Translate, "Translate", "Change language", accentColor, textColor, subtitleColor) {
+        LithosDrawerMenuItem(Icons.Outlined.Translate, "Translate", "Change language", accentColor, textColor, subtitleColor) {
             onAction(DrawerAction.OPEN_TRANSLATE)
         }
 
@@ -94,7 +94,7 @@ fun ReverieDrawerContent(
 }
 
 @Composable
-fun ReverieDrawerMenuItem(
+fun LithosDrawerMenuItem(
     icon: ImageVector,
     title: String,
     subtitle: String? = null,

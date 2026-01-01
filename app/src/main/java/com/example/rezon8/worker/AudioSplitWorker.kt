@@ -1,4 +1,4 @@
-package com.mossglen.reverie.worker
+package com.mossglen.lithos.worker
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,11 +8,11 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
-import com.mossglen.reverie.R
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.Chapter
-import com.mossglen.reverie.data.LibraryRepository
-import com.mossglen.reverie.data.audio.AudioSplitter
+import com.mossglen.lithos.R
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.Chapter
+import com.mossglen.lithos.data.LibraryRepository
+import com.mossglen.lithos.data.audio.AudioSplitter
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers

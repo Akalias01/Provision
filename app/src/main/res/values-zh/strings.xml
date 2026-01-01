@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Reverie</string>
+    <string name="app_name">Lithos</string>
 
     <!-- Navigation - UI3 Adaptive Context -->
     <string name="nav_now">现在</string>
@@ -139,7 +139,7 @@
     <string name="sleep_custom">自定义</string>
 
     <!-- Dialogs -->
-    <string name="dialog_exit_title">退出 Reverie？</string>
+    <string name="dialog_exit_title">退出 Lithos？</string>
     <string name="dialog_exit_message">确定要退出应用吗？</string>
     <string name="dialog_exit">退出</string>
     <string name="dialog_cancel">取消</string>
@@ -262,7 +262,7 @@
     <string name="edit_track_editor">音轨编辑器</string>
 
     <!-- Welcome -->
-    <string name="welcome_title">欢迎使用 Reverie</string>
+    <string name="welcome_title">欢迎使用 Lithos</string>
     <string name="welcome_subtitle">重新想象您的音频体验。</string>
 
     <!-- Cloud -->

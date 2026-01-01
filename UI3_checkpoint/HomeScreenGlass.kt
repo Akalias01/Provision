@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -43,12 +43,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.mossglen.reverie.R
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.HomeViewModel
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
-import com.mossglen.reverie.ui.components.BookDetailMorphingSheet
+import com.mossglen.lithos.R
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.HomeViewModel
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.ui.components.BookDetailMorphingSheet
 
 /**
  * REVERIE Glass - Now Screen (UI3)

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.screens
+package com.mossglen.lithos.ui.screens
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
@@ -26,10 +26,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mossglen.reverie.data.Chapter
-import com.mossglen.reverie.ui.theme.*
-import com.mossglen.reverie.ui.viewmodel.LibraryViewModel
-import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
+import com.mossglen.lithos.data.Chapter
+import com.mossglen.lithos.ui.theme.*
+import com.mossglen.lithos.ui.viewmodel.LibraryViewModel
+import com.mossglen.lithos.ui.viewmodel.PlayerViewModel
+
+// Lithos Amber Design Language Colors
+private val LithosAmber = Color(0xFFD48C2C)
+private val LithosMoss = Color(0xFF4A5D45)
+private val LithosSlate = Color(0xFF1A1D21)
+private val LithosGlassBackground = Color(0xD91A1D21) // rgba(26, 29, 33, 0.85)
 
 /**
  * Chapter List Screen
@@ -42,14 +48,14 @@ import com.mossglen.reverie.ui.viewmodel.PlayerViewModel
 fun ChapterListScreen(
     bookId: String,
     isDark: Boolean = true,
-    isReverieDark: Boolean = false,
-    accentColor: Color = GlassColors.ReverieAccent,
+    isOLED: Boolean = false,
+    accentColor: Color = LithosAmber,
     onBack: () -> Unit,
     onChapterClick: (Chapter) -> Unit = {},
     libraryViewModel: LibraryViewModel = hiltViewModel(),
     playerViewModel: PlayerViewModel = hiltViewModel()
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val view = LocalView.current
 
     val books by libraryViewModel.books.collectAsState()
@@ -95,7 +101,7 @@ fun ChapterListScreen(
                 )
             )
         },
-        containerColor = theme.background
+        containerColor = LithosSlate
     ) { padding ->
         if (book == null) {
             // Book not found
@@ -177,7 +183,7 @@ fun ChapterListScreen(
                         currentPosition = currentPosition,
                         accentColor = accentColor,
                         isDark = isDark,
-                        isReverieDark = isReverieDark
+                        isOLED = isOLED
                     )
                     Spacer(modifier = Modifier.height(GlassSpacing.M))
                 }
@@ -194,7 +200,7 @@ fun ChapterListScreen(
                         isCompleted = isCompleted && !isCurrent,
                         accentColor = accentColor,
                         isDark = isDark,
-                        isReverieDark = isReverieDark,
+                        isOLED = isOLED,
                         onClick = {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             // Load book if not current, then seek to chapter
@@ -220,13 +226,13 @@ fun ChapterListScreen(
 
 @Composable
 private fun BookProgressHeader(
-    book: com.mossglen.reverie.data.Book,
+    book: com.mossglen.lithos.data.Book,
     currentPosition: Long,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean
+    isOLED: Boolean
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
+    val theme = glassTheme(isDark, isOLED)
     val progress = if (book.duration > 0) {
         (currentPosition.toFloat() / book.duration.toFloat()).coerceIn(0f, 1f)
     } else 0f
@@ -235,7 +241,7 @@ private fun BookProgressHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(theme.glassPrimary)
+            .background(LithosGlassBackground)
             .padding(GlassSpacing.L)
     ) {
         Text(
@@ -267,7 +273,7 @@ private fun BookProgressHeader(
                 Text(
                     text = formatDuration(currentPosition),
                     style = GlassTypography.Caption,
-                    color = accentColor,
+                    color = LithosAmber,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
@@ -289,13 +295,13 @@ private fun BookProgressHeader(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(theme.glassSecondary)
+                    .background(LithosSlate)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progress)
                         .fillMaxHeight()
-                        .background(accentColor)
+                        .background(LithosAmber)
                 )
             }
         }
@@ -314,17 +320,19 @@ private fun ChapterItem(
     isCompleted: Boolean,
     accentColor: Color,
     isDark: Boolean,
-    isReverieDark: Boolean,
+    isOLED: Boolean,
     onClick: () -> Unit
 ) {
-    val theme = glassTheme(isDark, isReverieDark)
-    val highlightColor = if (isReverieDark) GlassColors.WarmSlate else Color.White.copy(alpha = 0.1f)
+    val theme = glassTheme(isDark, isOLED)
+
+    // Use neutral selection background for current chapter (not amber/orange)
+    val selectionBg = LithosColors.selection(isDark, isOLED)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(GlassShapes.Medium))
-            .background(if (isCurrent) highlightColor else theme.glassPrimary)
+            .background(if (isCurrent) selectionBg else LithosGlassBackground)
             .clickable(onClick = onClick)
             .padding(GlassSpacing.M),
         verticalAlignment = Alignment.CenterVertically
@@ -336,9 +344,9 @@ private fun ChapterItem(
                 .clip(CircleShape)
                 .background(
                     when {
-                        isCurrent -> accentColor
-                        isCompleted -> accentColor.copy(alpha = 0.3f)
-                        else -> theme.glassSecondary
+                        isCurrent -> LithosAmber
+                        isCompleted -> LithosAmber.copy(alpha = 0.3f)
+                        else -> LithosSlate
                     }
                 ),
             contentAlignment = Alignment.Center
@@ -347,7 +355,7 @@ private fun ChapterItem(
                 Icon(
                     Icons.Default.Check,
                     contentDescription = "Completed",
-                    tint = accentColor,
+                    tint = LithosAmber,
                     modifier = Modifier.size(20.dp)
                 )
             } else if (isCurrent) {
@@ -374,7 +382,7 @@ private fun ChapterItem(
                 text = chapter.title,
                 style = GlassTypography.Body,
                 fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isCurrent) accentColor else theme.textPrimary,
+                color = if (isCurrent) LithosAmber else theme.textPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )

@@ -1,4 +1,4 @@
-package com.mossglen.reverie.ui.viewmodel
+package com.mossglen.lithos.ui.viewmodel
 
 import android.net.Uri
 import android.util.Log
@@ -6,10 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.mossglen.reverie.data.Book
-import com.mossglen.reverie.data.LibraryRepository
-import com.mossglen.reverie.data.MetadataRepository
-import com.mossglen.reverie.worker.AudioSplitWorker
+import com.mossglen.lithos.data.Book
+import com.mossglen.lithos.data.LibraryRepository
+import com.mossglen.lithos.data.MetadataRepository
+import com.mossglen.lithos.worker.AudioSplitWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

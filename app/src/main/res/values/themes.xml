@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Reverie" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- REVERIE WATERCOLOR BRANDING -->
+    <style name="Theme.Lithos" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- LITHOS WATERCOLOR BRANDING -->
 
         <!-- 1. Background Color - Warm cream/paper to complement watercolor art -->
         <item name="android:windowSplashScreenBackground">#FAF7F2</item>
