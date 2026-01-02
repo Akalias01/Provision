@@ -1,8 +1,18 @@
 # PROJECT MANIFEST: LITHOS
 
-**App:** LITHOS | **Studio:** MOSSGLEN | **Package:** com.mossglen.lithos
+**App:** LITHOS (Audiobook Player) | **Studio:** MOSSGLEN | **Package:** com.mossglen.lithos
 **Architecture:** MVVM + Clean Architecture + Jetpack Compose + Media3
 **Platform:** Android 10+ (API 29) | Target: Android 16 (API 36)
+
+---
+
+## REPOSITORY INFO
+
+| Property | Value |
+|----------|-------|
+| **Repository** | github.com/Akalias01/Provision |
+| **Branch** | lithos |
+| **Related Project** | LITHOS READ (Ebook Reader) - separate repo: github.com/Akalias01/LithosRead |
 
 ---
 
@@ -380,6 +390,10 @@ A change is ready when:
 - Google Drive integration
 - Dropbox integration
 - File browsing and download
+- **Auto-connect:** Automatically reconnects when returning to cloud browser
+- **"Shared with me" folder:** Access files shared by others in Google Drive
+- **Incompatible file visibility:** Non-importable files shown grayed out with "Unsupported" label
+- **Smart filtering:** Block icon for unsupported formats, download icon for compatible files
 
 ### Torrents
 - Magnet link handling
