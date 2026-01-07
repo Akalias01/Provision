@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background circle with gradient effect -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"/>
+
+    <!-- R letter - bold and modern -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,32h18c6.6,0 12,5.4 12,12v0c0,4.4 -2.4,8.3 -6,10.4L70,76h-10l-7.5,-20H46v20h-8V32zM46,48h10c2.2,0 4,-1.8 4,-4v0c0,-2.2 -1.8,-4 -4,-4H46V48z"/>
+</vector>
